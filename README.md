@@ -1,6 +1,11 @@
 # ASCD — Bíblia & Notas
 
-Aplicação web moderna (HTML5, CSS3, JavaScript e PWA) desenvolvida para estudo bíblico, anotações de sermões e journaling diário, com suporte híbrido para **digitação no teclado com formatação rica** e **caligrafia com Apple Pencil**, além de **exportação para DOC (.doc), Excel (.csv), PDF (.pdf)** e **integração com Google Sheets / Google Drive**.
+Aplicação web moderna (HTML5, CSS3, JavaScript e PWA) desenvolvida para estudo bíblico, anotações de sermões e diário espiritual, com suporte híbrido para **digitação no teclado com formatação rica** e **caligrafia com Apple Pencil**, além de **exportação para DOC (.doc), Excel (.csv), PDF (.pdf)** e **integração com Google Sheets / Google Drive**.
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/6rsrgcm54d-design/ascd-biblia-e-notas)
+
+- 🌐 **Acesso Online (GitHub Pages)**: [https://6rsrgcm54d-design.github.io/ascd-biblia-e-notas/](https://6rsrgcm54d-design.github.io/ascd-biblia-e-notas/)
+- 💻 **Repositório GitHub**: [https://github.com/6rsrgcm54d-design/ascd-biblia-e-notas](https://github.com/6rsrgcm54d-design/ascd-biblia-e-notas)
 
 ---
 
