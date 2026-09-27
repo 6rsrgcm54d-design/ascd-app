@@ -36,6 +36,12 @@
   
   --sidebar-width: 250px;
   --header-height: 64px;
+
+  /* Safe Area Insets do iPadOS (notch, cantos arredondados e barra inferior de início) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 [data-theme="claro"] {
@@ -111,7 +117,10 @@ html, body {
   flex-direction: column;
   flex-shrink: 0;
   z-index: 50;
-  transition: transform 0.25s ease;
+  padding-top: var(--safe-top);
+  padding-bottom: max(16px, var(--safe-bottom));
+  padding-left: var(--safe-left);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s ease, opacity 0.2s ease;
 }
 
 .sidebar-header {
@@ -240,13 +249,13 @@ html, body {
 
 /* Barra Superior (Topbar) */
 .app-topbar {
-  height: var(--header-height);
+  height: calc(var(--header-height) + var(--safe-top));
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: var(--safe-top) max(20px, var(--safe-right)) 0 max(20px, var(--safe-left));
   flex-shrink: 0;
   z-index: 30;
 }
@@ -2183,10 +2192,62 @@ html, body {
   background: #BBF7D0;
 }
 
-/* Responsividade para iPad e Telas Menores */
-@media (max-width: 900px) {
+/* ==========================================================================
+   OTIMIZAÇÕES NATIVAS PARA IPADOS, SAFARI & APPLE PENCIL
+   ========================================================================== */
+
+/* Previne zoom acidental, seleção e menus popup durante a escrita com Apple Pencil */
+.drawing-canvas-element,
+.split-canvas-element,
+.note-canvas-element,
+.journal-canvas-element,
+canvas {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  overscroll-behavior: none !important;
+}
+
+/* Rolagem fluida com física inercial do iOS */
+.app-main-wrapper,
+.bible-reader-container,
+.split-content-area,
+.modal-body,
+.sidebar-nav {
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
+}
+
+/* Alvos de toque responsivos (HIG da Apple) */
+.btn-icon-subtle,
+.fmt-btn,
+.pencil-tool-btn,
+.mode-pill-btn,
+.color-palette-item {
+  touch-action: manipulation;
+}
+
+/* Colapso suave da Barra Lateral (Sidebar) para ganho de espaço no iPad */
+.app-layout.sidebar-collapsed .app-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  border-right: none !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-sidebar-toggle.is-collapsed {
+  background: var(--accent-gold-light) !important;
+  color: var(--primary) !important;
+}
+
+/* iPads em Paisagem e Telas Médias (<= 1080px) */
+@media (max-width: 1080px) {
   .app-sidebar {
-    width: 72px;
+    width: 68px;
   }
   .brand-text, .nav-btn span, .sidebar-footer {
     display: none;
@@ -2199,15 +2260,51 @@ html, body {
     justify-content: center;
     padding: 12px 0;
   }
-  .app-section {
-    padding: 16px;
+}
+
+/* iPads em Retrato (e.g. 768px, 810px, 820px, 834px) - Mantém Bíblia e Anotações LADO A LADO! */
+@media (max-width: 900px) {
+  .app-topbar {
+    padding-left: max(12px, var(--safe-left));
+    padding-right: max(12px, var(--safe-right));
+    gap: 8px;
   }
+  .app-section {
+    padding: 12px;
+  }
+  /* No iPad mantemos a Bíblia e as Anotações lado a lado (NUNCA esconder a Bíblia!) */
   .app-main-wrapper.split-view-active .app-section.active {
-    width: 100%;
-    display: none;
+    width: 50% !important;
+    display: block !important;
+    flex: 0 0 50% !important;
   }
   .app-main-wrapper.split-view-active .split-workspace-panel {
-    width: 100%;
+    width: 50% !important;
+    display: flex !important;
+    flex: 0 0 50% !important;
+  }
+  .bible-controls-bar {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .split-toolbar {
+    padding: 6px 8px !important;
+    gap: 4px !important;
+  }
+}
+
+/* Apenas em smartphones pequenos (< 640px) o split view alterna a visibilidade */
+@media (max-width: 640px) {
+  .app-sidebar {
+    display: none;
+  }
+  .app-main-wrapper.split-view-active .app-section.active {
+    width: 100% !important;
+    display: none !important;
+  }
+  .app-main-wrapper.split-view-active .split-workspace-panel {
+    width: 100% !important;
+    flex: 0 0 100% !important;
   }
   .journal-layout-container {
     grid-template-columns: 1fr;
@@ -2235,4 +2332,432 @@ html, body {
   color: var(--text-primary);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   MODO ECRÃ INTEIRO (FULLSCREEN) PARA ANOTAÇÕES À MÃO (APPLE PENCIL) & TEXTO
+   ========================================================================== */
+
+body.ascd-in-fullscreen {
+  overflow: hidden !important;
+}
+
+/* Botão Flutuante Global de Sair do Ecrã Inteiro (Sempre visível em qualquer tela cheia) */
+.btn-exit-fullscreen-floating {
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 10000000 !important; /* Acima de absolutamente qualquer elemento */
+  background: #DC2626; /* Vermelho vivo com contraste perfeito */
+  color: #FFFFFF;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-exit-fullscreen-floating:hover {
+  background: #B91C1C;
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+}
+
+.btn-exit-fullscreen-floating svg {
+  stroke: #FFFFFF;
+}
+
+body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
+  display: inline-flex !important;
+}
+
+/* Botão de Alternar Ecrã Inteiro na Barra Apple Pencil */
+.btn-fullscreen-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 5px 11px !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.btn-fullscreen-toggle:hover {
+  background: var(--bg-surface-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-gold) !important;
+}
+
+.btn-fullscreen-toggle.is-active {
+  background: var(--accent-gold) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 2px 10px rgba(180, 83, 9, 0.4) !important;
+}
+
+.btn-fullscreen-toggle.is-active svg {
+  stroke: #FFFFFF !important;
+}
+
+/* Botão de Alternar Ecrã Inteiro na Barra de Formatação de Texto */
+.btn-text-fullscreen {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 9px !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-text-fullscreen:hover {
+  background: var(--bg-surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-text-fullscreen.is-active {
+  background: var(--accent-gold) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold) !important;
+}
+
+.btn-text-fullscreen.is-active svg {
+  stroke: #FFFFFF !important;
+}
+
+/* Container de Anotações à Mão em Ecrã Inteiro */
+.pencil-section-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important; /* ACIMA de topbar (z-index 30) e sidebar (z-index 50) */
+  background: var(--bg-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 12px 16px 16px 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Barra de ferramentas no topo com sombra elegante e acesso total às ferramentas */
+.pencil-section-fullscreen > div:first-child,
+.pencil-section-fullscreen .note-section-toolbar,
+.pencil-section-fullscreen .split-toolbar,
+.split-workspace-panel.has-fullscreen-child .split-toolbar {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 8px !important;
+  flex-wrap: wrap !important;
+  overflow-x: auto !important;
+  z-index: 1000 !important;
+}
+
+/* Folha do Canvas em Ecrã Inteiro */
+.pencil-section-fullscreen .journal-canvas-container,
+.pencil-section-fullscreen .note-canvas-container,
+.pencil-section-fullscreen .split-canvas-container {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.pencil-section-fullscreen canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+/* Container de Editor de Texto em Ecrã Inteiro */
+.text-section-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important;
+  background: var(--bg-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 16px 24px 24px 24px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.text-section-fullscreen .note-rich-formatting-toolbar {
+  flex-shrink: 0 !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 8px !important;
+}
+
+.text-section-fullscreen .rich-editor-box,
+.text-section-fullscreen .journal-editor {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  box-sizing: border-box !important;
+  padding: 28px !important;
+  font-size: 18px !important;
+  line-height: 1.8 !important;
+  overflow-y: auto !important;
+  background: var(--bg-surface) !important;
+}
+
+/* Modais que contêm elementos em Ecrã Inteiro (Sermões e Caderno de Estudos) */
+.modal-dialog.has-fullscreen-child {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+}
+
+.modal-dialog.has-fullscreen-child > .modal-header,
+.modal-dialog.has-fullscreen-child > .modal-footer {
+  display: none !important;
+}
+
+.modal-body.has-fullscreen-child {
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.modal-dialog:has(.pencil-section-fullscreen),
+.modal-dialog:has(.text-section-fullscreen) {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+}
+
+.modal-dialog:has(.pencil-section-fullscreen) > .modal-header,
+.modal-dialog:has(.pencil-section-fullscreen) > .modal-footer,
+.modal-dialog:has(.text-section-fullscreen) > .modal-header,
+.modal-dialog:has(.text-section-fullscreen) > .modal-footer {
+  display: none !important;
+}
+
+.modal-body:has(.pencil-section-fullscreen),
+.modal-body:has(.text-section-fullscreen) {
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* MODO DIVIDIDO NO LEITOR BÍBLICO EM TELA CHEIA */
+.split-workspace-panel.has-fullscreen-child {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
+}
+
+.split-workspace-panel.has-fullscreen-child .split-header-bar {
+  display: none !important;
+}
+
+.split-workspace-panel.has-fullscreen-child .split-content-area {
+  padding: 12px 18px 18px 18px !important;
+  margin: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.split-workspace-panel.has-fullscreen-child #split-pencil-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  z-index: 1000 !important;
+}
+
+.split-workspace-panel.has-fullscreen-child #split-canvas-container {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.split-workspace-panel.has-fullscreen-child canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+/* ECRÃ INTEIRO DO LEITOR BÍBLICO (Com suporte integrado a Modo Dividido / Anotações) */
+.app-main-wrapper.bible-fullscreen-active {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important;
+  background: var(--bg-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  overflow: hidden !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active #sec-biblia,
+.bible-section-fullscreen {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  padding: 16px 24px 24px 24px !important;
+  box-sizing: border-box !important;
+  background: var(--bg-primary) !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active .bible-reader-container,
+.bible-section-fullscreen .bible-reader-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-main-wrapper.bible-fullscreen-active .bible-controls-bar,
+.bible-section-fullscreen .bible-controls-bar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 10px 18px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Quando em tela cheia e o modo dividido de anotações estiver aberto */
+.app-main-wrapper.bible-fullscreen-active.split-view-active #sec-biblia {
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active.split-view-active .split-workspace-panel {
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  border-left: 1px solid var(--border-color) !important;
+  background: var(--bg-surface) !important;
+  z-index: 101 !important;
+}
+
+/* Fallback standalone se a classe for aplicada diretamente em sec-biblia */
+.bible-section-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999999 !important;
+  display: block !important;
+}
+
+
 

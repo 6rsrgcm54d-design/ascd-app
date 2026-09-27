@@ -231,6 +231,48 @@ function setupNavigation() {
   if (btnExportDb) {
     btnExportDb.addEventListener('click', openSheetsSyncModal);
   }
+
+  // Botão de Recolher/Expandir Barra Lateral (Mais espaço no iPad)
+  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+  if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener('click', () => {
+      const layout = document.querySelector('.app-layout');
+      if (!layout) return;
+      const isCollapsed = layout.classList.toggle('sidebar-collapsed');
+      btnToggleSidebar.classList.toggle('is-collapsed', isCollapsed);
+      btnToggleSidebar.title = isCollapsed ? 'Mostrar Barra Lateral' : 'Ocultar Barra Lateral (Mais espaço no iPad)';
+      showToast(isCollapsed ? 'Barra lateral recolhida (Ecrã expandido)' : 'Barra lateral visível');
+
+      // Redimensionar engines com suavidade
+      setTimeout(() => {
+        [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+          if (eng && typeof eng.handleResizePreserve === 'function') eng.handleResizePreserve();
+        });
+      }, 260);
+    });
+  }
+
+  // Botão de Guia de Otimização no iPad
+  const btnIpadGuide = document.getElementById('btn-ipad-guide');
+  if (btnIpadGuide) {
+    btnIpadGuide.addEventListener('click', () => {
+      const modal = document.getElementById('ipad-guide-modal');
+      if (modal) modal.classList.add('open');
+    });
+  }
+
+  // Botão Flutuante Global de Sair do Ecrã Inteiro
+  const btnGlobalExitFs = document.getElementById('global-exit-fullscreen-btn');
+  if (btnGlobalExitFs) {
+    btnGlobalExitFs.addEventListener('click', (e) => {
+      e.preventDefault();
+      exitAllFullscreens();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      showToast('Modo normal restaurado.');
+    });
+  }
 }
 
 function showTab(tabId) {
@@ -400,6 +442,18 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
       e.preventDefault();
       applyTextHighlight(editor, 'transparent');
       showToast('Marcação removida');
+    });
+  }
+
+  // 7. Botão de Ecrã Inteiro / Foco no Editor de Texto
+  const btnFullscreen = document.getElementById(`${prefix}-btn-fullscreen`);
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      const wrapper = editor.closest('.note-section-block, .journal-section-block') || editor.parentElement;
+      if (wrapper) {
+        toggleTextFullscreen(wrapper, btnFullscreen);
+      }
     });
   }
 
@@ -584,6 +638,23 @@ function setupBibleReader() {
       } else if (q.length === 0) {
         loadBibleChapter(ASCD.currentBibleBook, ASCD.currentBibleChapter);
       }
+    });
+  }
+
+  // 7. Botão de Alternar Modo Dividido / Anotações na barra do Leitor Bíblico
+  const btnBibleToggleNotes = document.getElementById('bible-btn-toggle-notes');
+  if (btnBibleToggleNotes) {
+    btnBibleToggleNotes.addEventListener('click', () => {
+      toggleSplitScreen();
+    });
+  }
+
+  // 8. Botão de Ecrã Inteiro no Leitor Bíblico
+  const btnBibleFs = document.getElementById('bible-btn-fullscreen');
+  if (btnBibleFs) {
+    btnBibleFs.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleBibleFullscreen();
     });
   }
 }
@@ -966,6 +1037,7 @@ function setupHybridNotes() {
   const btnCloseModal = document.getElementById('btn-close-note-modal');
   if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
+      exitAllFullscreens();
       document.getElementById('note-editor-modal')?.classList.remove('open');
     });
   }
@@ -1371,6 +1443,7 @@ function setupSermons() {
   const btnCloseModal = document.getElementById('btn-close-sermon-modal');
   if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
+      exitAllFullscreens();
       document.getElementById('sermon-editor-modal')?.classList.remove('open');
     });
   }
@@ -2417,6 +2490,18 @@ function setupPencilEngineControls(engine, prefix) {
       showToast(`${labels[type] || 'Folha'} ativada no Apple Pencil`);
     });
   }
+
+  // Botão de Ecrã Inteiro na Caligrafia Apple Pencil
+  const btnFullscreen = document.getElementById(`${prefix}-btn-fullscreen`);
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      const wrapper = document.getElementById(`${prefix}-pencil-wrapper`);
+      if (wrapper) {
+        togglePencilFullscreen(wrapper, engine, btnFullscreen);
+      }
+    });
+  }
 }
 
 /**
@@ -2436,6 +2521,28 @@ function setupSplitScreen() {
         btn.classList.add('active');
         const tool = btn.getAttribute('data-tool');
         if (tool) ASCD.splitPencilEngine.setTool(tool);
+        if (tool === 'eraser') {
+          document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+          showToast('🧹 Borracha ativada no Modo Dividido');
+        } else if (tool === 'pen') {
+          document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+          showToast('✏️ Caneta Apple Pencil ativada no Modo Dividido');
+        }
+      });
+    });
+
+    // Marca-textos da caneta Apple Pencil no Modo Dividido
+    document.querySelectorAll('.split-hl-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        document.querySelectorAll('.split-tool-btn').forEach(b => b.classList.remove('active'));
+        const color = dot.getAttribute('data-pencil-color');
+        if (color) {
+          ASCD.splitPencilEngine.setTool('highlighter');
+          ASCD.splitPencilEngine.highlighterColor = color;
+          showToast('🖍️ Marca-texto Apple Pencil ativado no Modo Dividido');
+        }
       });
     });
 
@@ -2443,14 +2550,15 @@ function setupSplitScreen() {
       dot.addEventListener('click', () => {
         document.querySelectorAll('.split-color-dot').forEach(d => d.classList.remove('selected'));
         dot.classList.add('selected');
+        document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+        const penBtn = document.getElementById('split-tool-pen');
+        const eraserBtn = document.getElementById('split-tool-eraser');
+        if (penBtn) penBtn.classList.add('active');
+        if (eraserBtn) eraserBtn.classList.remove('active');
         const c = dot.getAttribute('data-color');
         if (c) {
-          if (c === '#FEF08A' || c === '#BBF7D0' || c === '#FECDD3') {
-            ASCD.splitPencilEngine.tool = 'highlighter';
-            ASCD.splitPencilEngine.highlighterColor = c;
-          } else {
-            ASCD.splitPencilEngine.color = c;
-          }
+          ASCD.splitPencilEngine.setTool('pen');
+          ASCD.splitPencilEngine.color = c;
         }
       });
     });
@@ -2492,6 +2600,17 @@ function setupSplitScreen() {
           branca: '⚪ Folha Lisa'
         };
         showToast(`${labels[type] || 'Folha'} ativada no Modo Dividido`);
+      });
+    }
+
+    const btnSplitFs = document.getElementById('split-btn-fullscreen');
+    if (btnSplitFs) {
+      btnSplitFs.addEventListener('click', (e) => {
+        e.preventDefault();
+        const wrapper = document.getElementById('split-pencil-wrapper');
+        if (wrapper) {
+          togglePencilFullscreen(wrapper, ASCD.splitPencilEngine, btnSplitFs);
+        }
       });
     }
   }
@@ -2545,6 +2664,252 @@ function setSplitMode(mode) {
     }
   }
 }
+
+/**
+ * ==========================================================================
+ * CONTROLE DE MODO ECRÃ INTEIRO (FULLSCREEN) PARA CALIGRAFIA & TEXTO
+ * ==========================================================================
+ */
+function togglePencilFullscreen(wrapper, engine, btnElement) {
+  if (!wrapper) return;
+
+  const isFullscreen = wrapper.classList.toggle('pencil-section-fullscreen');
+  const modalDialog = wrapper.closest('.modal-dialog');
+  const modalBody = wrapper.closest('.modal-body');
+  const splitWorkspace = wrapper.closest('.split-workspace-panel');
+  
+  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+
+  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+
+  if (btnElement) {
+    btnElement.classList.toggle('is-active', isFullscreen);
+    const enterIcon = btnElement.querySelector('.fs-icon-enter');
+    const exitIcon = btnElement.querySelector('.fs-icon-exit');
+    const label = btnElement.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
+    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
+    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+  }
+
+  // Tentar Fullscreen API nativo do navegador quando suportado
+  if (isFullscreen) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+
+  // Redimensionar e preservar caligrafia com nitidez Retina
+  if (engine && typeof engine.handleResizePreserve === 'function') {
+    setTimeout(() => engine.handleResizePreserve(), 60);
+    setTimeout(() => engine.handleResizePreserve(), 220);
+  }
+}
+
+function toggleTextFullscreen(wrapper, btnElement) {
+  if (!wrapper) return;
+
+  const isFullscreen = wrapper.classList.toggle('text-section-fullscreen');
+  const modalDialog = wrapper.closest('.modal-dialog');
+  const modalBody = wrapper.closest('.modal-body');
+  const splitWorkspace = wrapper.closest('.split-workspace-panel');
+  
+  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+
+  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+
+  if (btnElement) {
+    btnElement.classList.toggle('is-active', isFullscreen);
+    const enterIcon = btnElement.querySelector('.fs-icon-enter');
+    const exitIcon = btnElement.querySelector('.fs-icon-exit');
+    const label = btnElement.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
+    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
+    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Foco de Escrita';
+  }
+
+  if (isFullscreen) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+}
+
+function toggleBibleFullscreen() {
+  const mainWrapper = document.querySelector('.app-main-wrapper');
+  if (!mainWrapper) return;
+
+  const isFs = mainWrapper.classList.toggle('bible-fullscreen-active');
+  document.body.classList.toggle('ascd-in-fullscreen', isFs);
+
+  const btn = document.getElementById('bible-btn-fullscreen');
+  if (btn) {
+    btn.classList.toggle('is-active', isFs);
+    const enterIcon = btn.querySelector('.fs-icon-enter');
+    const exitIcon = btn.querySelector('.fs-icon-exit');
+    const label = btn.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFs ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFs ? 'inline-block' : 'none';
+    if (label) label.textContent = isFs ? 'Sair' : 'Ecrã Inteiro';
+    btn.title = isFs ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
+  }
+
+  // Se estiver com tela dividida ativa, redimensiona o canvas para preservar nitidez
+  if (ASCD.splitPencilEngine && typeof ASCD.splitPencilEngine.handleResizePreserve === 'function') {
+    setTimeout(() => ASCD.splitPencilEngine.handleResizePreserve(), 60);
+    setTimeout(() => ASCD.splitPencilEngine.handleResizePreserve(), 220);
+  }
+
+  if (isFs) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Leitor Bíblico em Ecrã Inteiro. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+}
+
+function exitAllFullscreens() {
+  // 1. Desativar fullscreen em wrappers de desenho Apple Pencil
+  document.querySelectorAll('.pencil-section-fullscreen').forEach(wrapper => {
+    wrapper.classList.remove('pencil-section-fullscreen');
+    const btn = wrapper.querySelector('.btn-fullscreen-toggle');
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+    }
+  });
+
+  // 2. Desativar fullscreen em editores de texto
+  document.querySelectorAll('.text-section-fullscreen').forEach(wrapper => {
+    wrapper.classList.remove('text-section-fullscreen');
+    const btn = wrapper.querySelector('.btn-text-fullscreen');
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Foco de Escrita';
+    }
+  });
+
+  // 3. Desativar fullscreen no Leitor Bíblico e Workspace
+  const mainWrapper = document.querySelector('.app-main-wrapper');
+  if (mainWrapper) mainWrapper.classList.remove('bible-fullscreen-active');
+
+  const secBiblia = document.getElementById('sec-biblia');
+  if (secBiblia) secBiblia.classList.remove('bible-section-fullscreen');
+
+  const bibleFsBtn = document.getElementById('bible-btn-fullscreen');
+  if (bibleFsBtn) {
+    bibleFsBtn.classList.remove('is-active');
+    const enterIcon = bibleFsBtn.querySelector('.fs-icon-enter');
+    const exitIcon = bibleFsBtn.querySelector('.fs-icon-exit');
+    const label = bibleFsBtn.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = 'inline-block';
+    if (exitIcon) exitIcon.style.display = 'none';
+    if (label) label.textContent = 'Ecrã Inteiro';
+    bibleFsBtn.title = 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
+  }
+
+  // 4. Limpar classes auxiliares e body
+  document.querySelectorAll('.has-fullscreen-child').forEach(el => el.classList.remove('has-fullscreen-child'));
+  document.body.classList.remove('ascd-in-fullscreen');
+
+  // 5. Redimensionar os engines ativos após retorno ao modo normal
+  [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+    if (eng && typeof eng.handleResizePreserve === 'function') {
+      setTimeout(() => eng.handleResizePreserve(), 60);
+      setTimeout(() => eng.handleResizePreserve(), 200);
+    }
+  });
+}
+
+// Atalhos de teclado compatíveis com iPad (Magic Keyboard / Smart Keyboard) e Desktop
+document.addEventListener('keydown', (e) => {
+  // 1. ESC para sair de ecrã inteiro
+  if (e.key === 'Escape') {
+    const hasAnyFs = document.body.classList.contains('ascd-in-fullscreen') || document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .bible-section-fullscreen');
+    if (hasAnyFs) {
+      exitAllFullscreens();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      showToast('Modo normal restaurado.');
+    }
+  }
+
+  const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+  // 2. Cmd+Z / Ctrl+Z para desfazer traços no Apple Pencil
+  if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+    if (ASCD.isSplitView && ASCD.splitPencilEngine && ASCD.splitCurrentMode !== 'text') {
+      e.preventDefault();
+      ASCD.splitPencilEngine.undo();
+      showToast('↩️ Desfazer traço (Apple Pencil)');
+    } else if (ASCD.activeTab === 'journal' && ASCD.journalPencilEngine) {
+      e.preventDefault();
+      ASCD.journalPencilEngine.undo();
+    }
+  }
+
+  // 3. Cmd+S / Ctrl+S para salvar estudo no modo dividido
+  if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (ASCD.isSplitView) {
+      saveCurrentBiblePageStudy();
+    }
+  }
+});
+
+// Listener de saída do fullscreen nativo do navegador
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    exitAllFullscreens();
+  }
+});
+
+// Listener de rotação no iPad (Retrato <-> Paisagem)
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+      if (eng && typeof eng.handleResizePreserve === 'function') {
+        eng.handleResizePreserve();
+      }
+    });
+  }, 250);
+});
 
 function loadBiblePageNoteIntoSplit() {
   const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
@@ -2701,6 +3066,8 @@ function toggleSplitScreen() {
   
   ASCD.isSplitView = !ASCD.isSplitView;
 
+  const bibleBtnNotes = document.getElementById('bible-btn-toggle-notes');
+
   if (ASCD.isSplitView) {
     appContainer.classList.add('split-view-active');
     if (btnToggle) {
@@ -2709,6 +3076,10 @@ function toggleSplitScreen() {
         <span>Fechar Tela Dividida</span>
       `;
       btnToggle.classList.add('btn-active-state');
+    }
+    if (bibleBtnNotes) {
+      bibleBtnNotes.classList.add('is-active');
+      bibleBtnNotes.classList.add('active');
     }
 
     if (ASCD.activeTab !== 'biblia') {
@@ -2728,6 +3099,10 @@ function toggleSplitScreen() {
         <span>Modo Dividido (Teclado & Apple Pencil)</span>
       `;
       btnToggle.classList.remove('btn-active-state');
+    }
+    if (bibleBtnNotes) {
+      bibleBtnNotes.classList.remove('is-active');
+      bibleBtnNotes.classList.remove('active');
     }
   }
 }

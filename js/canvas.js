@@ -68,6 +68,8 @@ class AscdPencilEngine {
     this.ctx.scale(dpr, dpr);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
 
     this.ctx.clearRect(0, 0, width, height);
 
@@ -85,45 +87,79 @@ class AscdPencilEngine {
     this.canvas.addEventListener('pointercancel', (e) => this.handlePointerUp(e), { passive: false });
     this.canvas.addEventListener('pointerout', (e) => this.handlePointerUp(e), { passive: false });
 
-    // Prevenir comportamentos padrão no iOS (seleção de texto, gestos de rolagem no canvas)
-    this.canvas.addEventListener('touchstart', (e) => {
+    // Prevenir comportamentos padrão no iOS (seleção de texto, rolagem no canvas)
+    const preventTouch = (e) => {
       if (this.onlyPenMode || this.tool !== 'scroll') {
         e.preventDefault();
       }
-    }, { passive: false });
+    };
+    this.canvas.addEventListener('touchstart', preventTouch, { passive: false });
+    this.canvas.addEventListener('touchmove', preventTouch, { passive: false });
+    this.canvas.addEventListener('touchend', preventTouch, { passive: false });
+
+    // Prevenir gestos de pinça e zoom nativo do Safari no iPad durante escrita
+    this.canvas.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    this.canvas.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    this.canvas.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
 
     window.addEventListener('resize', () => {
-      // Pequeno debounce no resize
       clearTimeout(this.resizeTimeout);
       this.resizeTimeout = setTimeout(() => {
         this.handleResizePreserve();
       }, 150);
     });
+
+    window.addEventListener('orientationchange', () => {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        this.handleResizePreserve();
+      }, 300);
+    });
   }
 
   handleResizePreserve() {
-    const prevData = this.canvas.toDataURL();
+    if (!this.canvas) return;
     const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.max(window.devicePixelRatio || 1, 2);
     
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = Math.max(rect.height, 750) * dpr;
+    const newWidth = Math.round(rect.width > 50 ? rect.width : 900);
+    const newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
+
+    const currentLogicalW = Math.round(this.canvas.width / (this.dpr || 1));
+    const currentLogicalH = Math.round(this.canvas.height / (this.dpr || 1));
+
+    if (newWidth === currentLogicalW && newHeight === currentLogicalH && this.dpr === dpr) {
+      return;
+    }
+
+    const prevData = this.canvas.toDataURL();
+
+    this.dpr = dpr;
+    this.canvas.width = newWidth * dpr;
+    this.canvas.height = newHeight * dpr;
     this.ctx.scale(dpr, dpr);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
 
-    const img = new Image();
-    img.onload = () => {
-      this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
-    };
-    img.src = prevData;
+    if (this.hasDrawn) {
+      const img = new Image();
+      img.onload = () => {
+        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
+        this.renderPaper();
+      };
+      img.src = prevData;
+    } else {
+      this.renderPaper();
+    }
   }
 
   getCanvasPoint(e) {
     const rect = this.canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.x,
-      y: e.clientY - rect.y,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       pressure: e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5,
       tiltX: e.tiltX || 0,
       tiltY: e.tiltY || 0,
@@ -140,7 +176,9 @@ class AscdPencilEngine {
     }
 
     e.preventDefault();
-    this.canvas.setPointerCapture(e.pointerId);
+    try {
+      this.canvas.setPointerCapture(e.pointerId);
+    } catch (_) {}
 
     const pt = this.getCanvasPoint(e);
     this.isDrawing = true;
@@ -159,11 +197,16 @@ class AscdPencilEngine {
     }
 
     e.preventDefault();
-    const pt = this.getCanvasPoint(e);
-    this.points.push(pt);
 
-    if (this.points.length > 2) {
-      this.drawSmoothStroke();
+    // No iPadOS com Apple Pencil, getCoalescedEvents() captura todos os pontos intermediários a 240Hz
+    const events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : [e];
+    for (let i = 0; i < events.length; i++) {
+      const pt = this.getCanvasPoint(events[i]);
+      this.points.push(pt);
+
+      if (this.points.length > 2) {
+        this.drawSmoothStroke();
+      }
     }
   }
 

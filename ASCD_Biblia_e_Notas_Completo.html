@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <title>ASCD - Bíblia & Notas</title>
   
-  <!-- Otimizações para iPadOS, Safari e Apple Pencil -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- Otimizações Nativas para iPadOS, Safari e Apple Pencil -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ASCD">
+  <meta name="apple-mobile-web-app-title" content="ASCD Bíblia">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#FAF6F0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D1117" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
@@ -57,6 +61,12 @@
   
   --sidebar-width: 250px;
   --header-height: 64px;
+
+  /* Safe Area Insets do iPadOS (notch, cantos arredondados e barra inferior de início) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 [data-theme="claro"] {
@@ -132,7 +142,10 @@ html, body {
   flex-direction: column;
   flex-shrink: 0;
   z-index: 50;
-  transition: transform 0.25s ease;
+  padding-top: var(--safe-top);
+  padding-bottom: max(16px, var(--safe-bottom));
+  padding-left: var(--safe-left);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s ease, opacity 0.2s ease;
 }
 
 .sidebar-header {
@@ -261,13 +274,13 @@ html, body {
 
 /* Barra Superior (Topbar) */
 .app-topbar {
-  height: var(--header-height);
+  height: calc(var(--header-height) + var(--safe-top));
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: var(--safe-top) max(20px, var(--safe-right)) 0 max(20px, var(--safe-left));
   flex-shrink: 0;
   z-index: 30;
 }
@@ -2204,10 +2217,62 @@ html, body {
   background: #BBF7D0;
 }
 
-/* Responsividade para iPad e Telas Menores */
-@media (max-width: 900px) {
+/* ==========================================================================
+   OTIMIZAÇÕES NATIVAS PARA IPADOS, SAFARI & APPLE PENCIL
+   ========================================================================== */
+
+/* Previne zoom acidental, seleção e menus popup durante a escrita com Apple Pencil */
+.drawing-canvas-element,
+.split-canvas-element,
+.note-canvas-element,
+.journal-canvas-element,
+canvas {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  overscroll-behavior: none !important;
+}
+
+/* Rolagem fluida com física inercial do iOS */
+.app-main-wrapper,
+.bible-reader-container,
+.split-content-area,
+.modal-body,
+.sidebar-nav {
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
+}
+
+/* Alvos de toque responsivos (HIG da Apple) */
+.btn-icon-subtle,
+.fmt-btn,
+.pencil-tool-btn,
+.mode-pill-btn,
+.color-palette-item {
+  touch-action: manipulation;
+}
+
+/* Colapso suave da Barra Lateral (Sidebar) para ganho de espaço no iPad */
+.app-layout.sidebar-collapsed .app-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  border-right: none !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-sidebar-toggle.is-collapsed {
+  background: var(--accent-gold-light) !important;
+  color: var(--primary) !important;
+}
+
+/* iPads em Paisagem e Telas Médias (<= 1080px) */
+@media (max-width: 1080px) {
   .app-sidebar {
-    width: 72px;
+    width: 68px;
   }
   .brand-text, .nav-btn span, .sidebar-footer {
     display: none;
@@ -2220,15 +2285,51 @@ html, body {
     justify-content: center;
     padding: 12px 0;
   }
-  .app-section {
-    padding: 16px;
+}
+
+/* iPads em Retrato (e.g. 768px, 810px, 820px, 834px) - Mantém Bíblia e Anotações LADO A LADO! */
+@media (max-width: 900px) {
+  .app-topbar {
+    padding-left: max(12px, var(--safe-left));
+    padding-right: max(12px, var(--safe-right));
+    gap: 8px;
   }
+  .app-section {
+    padding: 12px;
+  }
+  /* No iPad mantemos a Bíblia e as Anotações lado a lado (NUNCA esconder a Bíblia!) */
   .app-main-wrapper.split-view-active .app-section.active {
-    width: 100%;
-    display: none;
+    width: 50% !important;
+    display: block !important;
+    flex: 0 0 50% !important;
   }
   .app-main-wrapper.split-view-active .split-workspace-panel {
-    width: 100%;
+    width: 50% !important;
+    display: flex !important;
+    flex: 0 0 50% !important;
+  }
+  .bible-controls-bar {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .split-toolbar {
+    padding: 6px 8px !important;
+    gap: 4px !important;
+  }
+}
+
+/* Apenas em smartphones pequenos (< 640px) o split view alterna a visibilidade */
+@media (max-width: 640px) {
+  .app-sidebar {
+    display: none;
+  }
+  .app-main-wrapper.split-view-active .app-section.active {
+    width: 100% !important;
+    display: none !important;
+  }
+  .app-main-wrapper.split-view-active .split-workspace-panel {
+    width: 100% !important;
+    flex: 0 0 100% !important;
   }
   .journal-layout-container {
     grid-template-columns: 1fr;
@@ -2256,6 +2357,434 @@ html, body {
   color: var(--text-primary);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   MODO ECRÃ INTEIRO (FULLSCREEN) PARA ANOTAÇÕES À MÃO (APPLE PENCIL) & TEXTO
+   ========================================================================== */
+
+body.ascd-in-fullscreen {
+  overflow: hidden !important;
+}
+
+/* Botão Flutuante Global de Sair do Ecrã Inteiro (Sempre visível em qualquer tela cheia) */
+.btn-exit-fullscreen-floating {
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  z-index: 10000000 !important; /* Acima de absolutamente qualquer elemento */
+  background: #DC2626; /* Vermelho vivo com contraste perfeito */
+  color: #FFFFFF;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-exit-fullscreen-floating:hover {
+  background: #B91C1C;
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+}
+
+.btn-exit-fullscreen-floating svg {
+  stroke: #FFFFFF;
+}
+
+body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
+  display: inline-flex !important;
+}
+
+/* Botão de Alternar Ecrã Inteiro na Barra Apple Pencil */
+.btn-fullscreen-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 5px 11px !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.btn-fullscreen-toggle:hover {
+  background: var(--bg-surface-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-gold) !important;
+}
+
+.btn-fullscreen-toggle.is-active {
+  background: var(--accent-gold) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 2px 10px rgba(180, 83, 9, 0.4) !important;
+}
+
+.btn-fullscreen-toggle.is-active svg {
+  stroke: #FFFFFF !important;
+}
+
+/* Botão de Alternar Ecrã Inteiro na Barra de Formatação de Texto */
+.btn-text-fullscreen {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 9px !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-text-fullscreen:hover {
+  background: var(--bg-surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-text-fullscreen.is-active {
+  background: var(--accent-gold) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold) !important;
+}
+
+.btn-text-fullscreen.is-active svg {
+  stroke: #FFFFFF !important;
+}
+
+/* Container de Anotações à Mão em Ecrã Inteiro */
+.pencil-section-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important; /* ACIMA de topbar (z-index 30) e sidebar (z-index 50) */
+  background: var(--bg-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 12px 16px 16px 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Barra de ferramentas no topo com sombra elegante e acesso total às ferramentas */
+.pencil-section-fullscreen > div:first-child,
+.pencil-section-fullscreen .note-section-toolbar,
+.pencil-section-fullscreen .split-toolbar,
+.split-workspace-panel.has-fullscreen-child .split-toolbar {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 8px !important;
+  flex-wrap: wrap !important;
+  overflow-x: auto !important;
+  z-index: 1000 !important;
+}
+
+/* Folha do Canvas em Ecrã Inteiro */
+.pencil-section-fullscreen .journal-canvas-container,
+.pencil-section-fullscreen .note-canvas-container,
+.pencil-section-fullscreen .split-canvas-container {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.pencil-section-fullscreen canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+/* Container de Editor de Texto em Ecrã Inteiro */
+.text-section-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important;
+  background: var(--bg-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 16px 24px 24px 24px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.text-section-fullscreen .note-rich-formatting-toolbar {
+  flex-shrink: 0 !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 8px !important;
+}
+
+.text-section-fullscreen .rich-editor-box,
+.text-section-fullscreen .journal-editor {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  box-sizing: border-box !important;
+  padding: 28px !important;
+  font-size: 18px !important;
+  line-height: 1.8 !important;
+  overflow-y: auto !important;
+  background: var(--bg-surface) !important;
+}
+
+/* Modais que contêm elementos em Ecrã Inteiro (Sermões e Caderno de Estudos) */
+.modal-dialog.has-fullscreen-child {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+}
+
+.modal-dialog.has-fullscreen-child > .modal-header,
+.modal-dialog.has-fullscreen-child > .modal-footer {
+  display: none !important;
+}
+
+.modal-body.has-fullscreen-child {
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.modal-dialog:has(.pencil-section-fullscreen),
+.modal-dialog:has(.text-section-fullscreen) {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+}
+
+.modal-dialog:has(.pencil-section-fullscreen) > .modal-header,
+.modal-dialog:has(.pencil-section-fullscreen) > .modal-footer,
+.modal-dialog:has(.text-section-fullscreen) > .modal-header,
+.modal-dialog:has(.text-section-fullscreen) > .modal-footer {
+  display: none !important;
+}
+
+.modal-body:has(.pencil-section-fullscreen),
+.modal-body:has(.text-section-fullscreen) {
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* MODO DIVIDIDO NO LEITOR BÍBLICO EM TELA CHEIA */
+.split-workspace-panel.has-fullscreen-child {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  z-index: 9999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
+}
+
+.split-workspace-panel.has-fullscreen-child .split-header-bar {
+  display: none !important;
+}
+
+.split-workspace-panel.has-fullscreen-child .split-content-area {
+  padding: 12px 18px 18px 18px !important;
+  margin: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.split-workspace-panel.has-fullscreen-child #split-pencil-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  z-index: 1000 !important;
+}
+
+.split-workspace-panel.has-fullscreen-child #split-canvas-container {
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.split-workspace-panel.has-fullscreen-child canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+/* ECRÃ INTEIRO DO LEITOR BÍBLICO (Com suporte integrado a Modo Dividido / Anotações) */
+.app-main-wrapper.bible-fullscreen-active {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  z-index: 9999999 !important;
+  background: var(--bg-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  overflow: hidden !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active #sec-biblia,
+.bible-section-fullscreen {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  padding: 16px 24px 24px 24px !important;
+  box-sizing: border-box !important;
+  background: var(--bg-primary) !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active .bible-reader-container,
+.bible-section-fullscreen .bible-reader-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-main-wrapper.bible-fullscreen-active .bible-controls-bar,
+.bible-section-fullscreen .bible-controls-bar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding: 10px 18px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Quando em tela cheia e o modo dividido de anotações estiver aberto */
+.app-main-wrapper.bible-fullscreen-active.split-view-active #sec-biblia {
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
+}
+
+.app-main-wrapper.bible-fullscreen-active.split-view-active .split-workspace-panel {
+  width: 50% !important;
+  max-width: 50% !important;
+  flex: 0 0 50% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  border-left: 1px solid var(--border-color) !important;
+  background: var(--bg-surface) !important;
+  z-index: 101 !important;
+}
+
+/* Fallback standalone se a classe for aplicada diretamente em sec-biblia */
+.bible-section-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999999 !important;
+  display: block !important;
+}
+
+
 
 
 </style>
@@ -2313,13 +2842,21 @@ html, body {
     <div class="app-content">
       <!-- Topbar com Ações Rápidas -->
       <header class="app-topbar">
-        <div class="topbar-left">
+        <div class="topbar-left" style="display:flex; align-items:center; gap:10px;">
+          <button type="button" class="btn-icon-subtle btn-sidebar-toggle" id="btn-toggle-sidebar" title="Ocultar/Mostrar Barra Lateral (Mais espaço no iPad)" style="border-radius:var(--radius-sm); padding:6px; display:inline-flex; align-items:center; justify-content:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          </button>
           <span style="font-weight: 700; font-family: var(--font-serif); font-size: 16px; color: var(--accent-gold);">
             ASCD • Bíblia & Notas
           </span>
         </div>
 
         <div class="topbar-actions">
+          <!-- Guia iPad & Apple Pencil -->
+          <button type="button" class="btn-topbar-action" id="btn-ipad-guide" title="Dicas de instalação e uso no iPad com Apple Pencil">
+            <span>📱 Guia iPad</span>
+          </button>
+
           <!-- Indicador de Sincronização Automática com Google Sheets -->
           <span id="sheets-autosync-badge" class="sheets-sync-pill" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" style="cursor:pointer;" title="Sincronização automática com Google Sheets">
             ☁️ <span style="font-weight:600;">Google Sheets Conectado</span>
@@ -2350,9 +2887,20 @@ html, body {
                 </div>
               </div>
 
-              <div class="search-input-wrapper">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div class="search-input-wrapper">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
+                </div>
+                <button type="button" class="btn-icon-subtle" id="bible-btn-toggle-notes" title="Abrir/Fechar Anotações & Apple Pencil (Modo Dividido)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                  <span class="split-notes-label" style="font-size:12px; font-weight:600; margin-left:3px;">Anotações</span>
+                </button>
+                <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="bible-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Leitor Bíblico)">
+                  <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                  <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+                </button>
               </div>
             </div>
 
@@ -2634,6 +3182,13 @@ html, body {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                       </button>
                     </div>
+
+                    <div class="fmt-divider"></div>
+                    <button type="button" class="fmt-btn btn-text-fullscreen" id="jfmt-btn-fullscreen" title="Ecrã Inteiro / Foco de Escrita">
+                      <svg class="fs-icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                      <svg class="fs-icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                      <span class="fs-label" style="font-size:11px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+                    </button>
                   </div>
 
                   <div id="journal-text-editor" class="rich-editor-box journal-editor" contenteditable="true" placeholder="Escreva aqui o seu diário espiritual do dia, agradecimentos, aprendizados e pensamentos..."></div>
@@ -2680,6 +3235,11 @@ html, body {
                       </button>
                       <button type="button" class="btn-icon-subtle" id="journal-btn-clear" title="Limpar Caligrafia">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                      </button>
+                      <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="journal-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
+                        <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                        <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
                       </button>
                     </div>
                   </div>
@@ -2843,6 +3403,13 @@ html, body {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
+
+                <div class="fmt-divider"></div>
+                <button type="button" class="fmt-btn btn-text-fullscreen" id="split-fmt-btn-fullscreen" title="Ecrã Inteiro / Foco de Escrita">
+                  <svg class="fs-icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  <svg class="fs-icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                  <span class="fs-label" style="font-size:11px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+                </button>
               </div>
 
               <div id="split-text-editor" class="rich-editor-box" contenteditable="true" style="min-height:160px;" placeholder="Escreva aqui observações, notas de rodapé, comentários e reflexões para este capítulo da Bíblia..."></div>
@@ -2851,47 +3418,55 @@ html, body {
             <!-- 2. Caligrafia Apple Pencil da Página Bíblica -->
             <div id="split-pencil-wrapper" class="note-section-block">
               <div class="split-toolbar" style="border-radius: var(--radius-sm); margin-bottom: 6px;">
-                <div style="display:flex; align-items:center; gap: 6px;">
-                  <button class="pencil-tool-btn split-tool-btn active" data-tool="pen" title="Caneta">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                <div class="pencil-tools-pill" style="margin-right: 6px;">
+                  <button type="button" class="pencil-tool-btn split-tool-btn active" data-tool="pen" id="split-tool-pen" title="Caneta (Escrever com Apple Pencil)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                    <span>Caneta</span>
                   </button>
-                  <button class="pencil-tool-btn split-tool-btn" data-tool="highlighter" title="Marca-Texto">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h3l6-6"/><path d="M22 2l-7 7 3 3 7-7z"/></svg>
-                  </button>
-                  <button class="pencil-tool-btn split-tool-btn" data-tool="eraser" title="Borracha">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
+                  <button type="button" class="pencil-tool-btn split-tool-btn" data-tool="eraser" id="split-tool-eraser" title="Borracha (Apagar traços)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
+                    <span>Borracha</span>
                   </button>
                 </div>
 
-                <div style="display:flex; align-items:center; gap: 4px;">
-                  <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Preto Tinta"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Azul Real"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;">
+                  <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
+                  <div class="color-palette-item split-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
+                  <div class="color-palette-item split-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
+                  <div class="color-palette-item split-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;">
+                  <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul"></div>
                 </div>
 
                 <div class="paper-type-control" title="Escolha o tipo de folha da página">
                   <span class="paper-control-label">Folha:</span>
                   <select class="paper-select" id="split-paper-select">
-                    <option value="pergaminho">📜 Papiro</option>
-                    <option value="pautada">📄 Pautada</option>
-                    <option value="quadriculada">📐 Quadriculada</option>
+                    <option value="pergaminho">📜 Papiro Nobre</option>
+                    <option value="pautada">📄 Pautada (Linhas)</option>
+                    <option value="quadriculada">📐 Quadriculada (Matemática)</option>
                     <option value="pontilhada">⠇ Pontilhada</option>
-                    <option value="branca">⚪ Lisa</option>
+                    <option value="branca">⚪ Folha Lisa</option>
                   </select>
                 </div>
 
                 <div style="display:flex; align-items:center; gap: 4px;">
-                  <button class="btn-palm" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
-                  <button class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
+                  <button type="button" class="btn-palm" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
+                  <button type="button" class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                   </button>
-                  <button class="btn-icon-subtle" id="split-btn-clear" title="Limpar">
+                  <button type="button" class="btn-icon-subtle" id="split-btn-clear" title="Limpar">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
                   </button>
-                  <button class="btn-icon-subtle" id="split-btn-export" title="Exportar PNG">
+                  <button type="button" class="btn-icon-subtle" id="split-btn-export" title="Exportar PNG">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                  <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="split-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
+                    <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                    <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
                   </button>
                 </div>
               </div>
@@ -2993,6 +3568,13 @@ html, body {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
+
+            <div class="fmt-divider"></div>
+            <button type="button" class="fmt-btn btn-text-fullscreen" id="sfmt-btn-fullscreen" title="Ecrã Inteiro / Foco de Escrita">
+              <svg class="fs-icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              <svg class="fs-icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+              <span class="fs-label" style="font-size:11px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+            </button>
           </div>
 
           <div id="edit-sermon-content" class="rich-editor-box" contenteditable="true" placeholder="Tópicos da pregação, ilustrações, citações bíblicas e aplicação prática..."></div>
@@ -3000,7 +3582,7 @@ html, body {
 
         <!-- Seção Apple Pencil do Sermão -->
         <div id="sermon-pencil-wrapper" class="note-section-block">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:gap:8px;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
                 ✍️ Apple Pencil
@@ -3039,6 +3621,11 @@ html, body {
               </button>
               <button type="button" class="btn-icon-subtle" id="sermon-btn-clear" title="Limpar">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              </button>
+              <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="sermon-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
+                <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
               </button>
             </div>
           </div>
@@ -3149,6 +3736,13 @@ html, body {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
+
+            <div class="fmt-divider"></div>
+            <button type="button" class="fmt-btn btn-text-fullscreen" id="fmt-btn-fullscreen" title="Ecrã Inteiro / Foco de Escrita">
+              <svg class="fs-icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              <svg class="fs-icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+              <span class="fs-label" style="font-size:11px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+            </button>
           </div>
 
           <div id="edit-note-content" class="rich-editor-box" contenteditable="true" placeholder="Escreva observações de estudo bíblico, referências, exegese..."></div>
@@ -3196,6 +3790,11 @@ html, body {
               </button>
               <button type="button" class="btn-icon-subtle" id="note-btn-clear" title="Limpar Folha">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              </button>
+              <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="note-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
+                <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
               </button>
             </div>
           </div>
@@ -3333,6 +3932,66 @@ html, body {
       </div>
     </div>
   </div>
+
+  <!-- MODAL: GUIA DE USO & OTIMIZAÇÃO NO IPAD -->
+  <div class="modal-overlay" id="ipad-guide-modal">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">📱</span>
+          <div>
+            <h3 style="margin:0;">Otimização & Uso no iPad</h3>
+            <span style="font-size:12px; color:var(--text-muted);">Como usar a aplicação como uma App nativa e aproveitar o Apple Pencil</span>
+          </div>
+        </div>
+        <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px; line-height: 1.6;">
+        <div style="background:var(--accent-gold-light); border-left:4px solid var(--accent-gold); padding:12px 16px; border-radius:var(--radius-sm); margin-bottom:20px;">
+          <strong style="color:var(--primary); font-size:14px;">✨ Dica de Ouro: Instalar no Ecrã Principal do iPad</strong>
+          <p style="font-size:13px; margin:4px 0 0 0; color:var(--text-primary);">
+            Abra esta página no <strong>Safari do iPad</strong>, toque no ícone de <strong>Partilhar <span style="display:inline-block; border:1px solid #aaa; padding:1px 5px; border-radius:4px; font-size:11px;">⎋</span></strong> (no topo do Safari) e selecione <strong>"Adicionar ao Ecrã Principal"</strong>. A app passará a abrir em <strong>ecrã total</strong>, sem abas nem barras de navegação!
+          </p>
+        </div>
+
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">✍️ Recursos do Apple Pencil</h4>
+        <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; margin-bottom:18px;">
+          <li><strong>Rejeição de Palma Automática:</strong> Pouse a mão no ecrã com naturalidade; a tela ignora o toque da sua palma enquanto escreve com o Apple Pencil.</li>
+          <li><strong>Precisão a 240Hz:</strong> Traços ultra-suaves e sem atrasos (latência reduzida), aproveitando a taxa de atualização ProMotion do iPad.</li>
+          <li><strong>Sensibilidade à Pressão:</strong> Controle a espessura da tinta conforme a força com a Caneta Clássica e a Caneta-Tinteiro.</li>
+          <li><strong>Tipos de Folhas:</strong> Pautada (linhas), Quadriculada (matemática), Pontilhada, Papiro Bíblico e Lisa.</li>
+        </ul>
+
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">📖 Leitura e Escrita em Tela Dividida (Split Screen)</h4>
+        <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; margin-bottom:18px;">
+          <li><strong>Lado a Lado:</strong> No Leitor Bíblico, toque em <strong>"Anotações"</strong> ou <strong>"Modo Dividido"</strong> para ler os versículos à esquerda e desenhar/escrever à direita.</li>
+          <li><strong>Mais Espaço:</strong> Toque no botão <strong>⊞</strong> no topo esquerdo para recolher a barra lateral e ganhar área máxima de leitura e caligrafia.</li>
+          <li><strong>Ecrã Inteiro:</strong> Toque em <strong>"Ecrã Inteiro"</strong> para foco absoluto. Para sair, prima o botão vermelho <strong>[✕ Sair]</strong> no canto superior.</li>
+        </ul>
+
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">⌨️ Atalhos com Teclado do iPad (Magic Keyboard)</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--text-secondary);">
+          <div><code>⌘ + Z</code> : Desfazer traço/texto</div>
+          <div><code>⌘ + S</code> : Guardar estudo atual</div>
+          <div><code>ESC</code> : Sair do Ecrã Inteiro</div>
+          <div><code>⌘ + B / I / U</code> : Negrito / Itálico / Sublinhado</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botão Flutuante Global de Sair do Ecrã Inteiro (Sempre visível em qualquer modo de tela cheia) -->
+  <button type="button" class="btn-exit-fullscreen-floating" id="global-exit-fullscreen-btn" title="Sair do Ecrã Inteiro (Pressione ESC)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <span>Sair do Ecrã Inteiro</span>
+  </button>
 
   <!-- Scripts -->
   <script>
@@ -4893,6 +5552,8 @@ class AscdPencilEngine {
     this.ctx.scale(dpr, dpr);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
 
     this.ctx.clearRect(0, 0, width, height);
 
@@ -4910,45 +5571,79 @@ class AscdPencilEngine {
     this.canvas.addEventListener('pointercancel', (e) => this.handlePointerUp(e), { passive: false });
     this.canvas.addEventListener('pointerout', (e) => this.handlePointerUp(e), { passive: false });
 
-    // Prevenir comportamentos padrão no iOS (seleção de texto, gestos de rolagem no canvas)
-    this.canvas.addEventListener('touchstart', (e) => {
+    // Prevenir comportamentos padrão no iOS (seleção de texto, rolagem no canvas)
+    const preventTouch = (e) => {
       if (this.onlyPenMode || this.tool !== 'scroll') {
         e.preventDefault();
       }
-    }, { passive: false });
+    };
+    this.canvas.addEventListener('touchstart', preventTouch, { passive: false });
+    this.canvas.addEventListener('touchmove', preventTouch, { passive: false });
+    this.canvas.addEventListener('touchend', preventTouch, { passive: false });
+
+    // Prevenir gestos de pinça e zoom nativo do Safari no iPad durante escrita
+    this.canvas.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    this.canvas.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    this.canvas.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
 
     window.addEventListener('resize', () => {
-      // Pequeno debounce no resize
       clearTimeout(this.resizeTimeout);
       this.resizeTimeout = setTimeout(() => {
         this.handleResizePreserve();
       }, 150);
     });
+
+    window.addEventListener('orientationchange', () => {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        this.handleResizePreserve();
+      }, 300);
+    });
   }
 
   handleResizePreserve() {
-    const prevData = this.canvas.toDataURL();
+    if (!this.canvas) return;
     const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.max(window.devicePixelRatio || 1, 2);
     
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = Math.max(rect.height, 750) * dpr;
+    const newWidth = Math.round(rect.width > 50 ? rect.width : 900);
+    const newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
+
+    const currentLogicalW = Math.round(this.canvas.width / (this.dpr || 1));
+    const currentLogicalH = Math.round(this.canvas.height / (this.dpr || 1));
+
+    if (newWidth === currentLogicalW && newHeight === currentLogicalH && this.dpr === dpr) {
+      return;
+    }
+
+    const prevData = this.canvas.toDataURL();
+
+    this.dpr = dpr;
+    this.canvas.width = newWidth * dpr;
+    this.canvas.height = newHeight * dpr;
     this.ctx.scale(dpr, dpr);
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
 
-    const img = new Image();
-    img.onload = () => {
-      this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
-    };
-    img.src = prevData;
+    if (this.hasDrawn) {
+      const img = new Image();
+      img.onload = () => {
+        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
+        this.renderPaper();
+      };
+      img.src = prevData;
+    } else {
+      this.renderPaper();
+    }
   }
 
   getCanvasPoint(e) {
     const rect = this.canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.x,
-      y: e.clientY - rect.y,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       pressure: e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5,
       tiltX: e.tiltX || 0,
       tiltY: e.tiltY || 0,
@@ -4965,7 +5660,9 @@ class AscdPencilEngine {
     }
 
     e.preventDefault();
-    this.canvas.setPointerCapture(e.pointerId);
+    try {
+      this.canvas.setPointerCapture(e.pointerId);
+    } catch (_) {}
 
     const pt = this.getCanvasPoint(e);
     this.isDrawing = true;
@@ -4984,11 +5681,16 @@ class AscdPencilEngine {
     }
 
     e.preventDefault();
-    const pt = this.getCanvasPoint(e);
-    this.points.push(pt);
 
-    if (this.points.length > 2) {
-      this.drawSmoothStroke();
+    // No iPadOS com Apple Pencil, getCoalescedEvents() captura todos os pontos intermediários a 240Hz
+    const events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : [e];
+    for (let i = 0; i < events.length; i++) {
+      const pt = this.getCanvasPoint(events[i]);
+      this.points.push(pt);
+
+      if (this.points.length > 2) {
+        this.drawSmoothStroke();
+      }
     }
   }
 
@@ -5604,6 +6306,48 @@ function setupNavigation() {
   if (btnExportDb) {
     btnExportDb.addEventListener('click', openSheetsSyncModal);
   }
+
+  // Botão de Recolher/Expandir Barra Lateral (Mais espaço no iPad)
+  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+  if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener('click', () => {
+      const layout = document.querySelector('.app-layout');
+      if (!layout) return;
+      const isCollapsed = layout.classList.toggle('sidebar-collapsed');
+      btnToggleSidebar.classList.toggle('is-collapsed', isCollapsed);
+      btnToggleSidebar.title = isCollapsed ? 'Mostrar Barra Lateral' : 'Ocultar Barra Lateral (Mais espaço no iPad)';
+      showToast(isCollapsed ? 'Barra lateral recolhida (Ecrã expandido)' : 'Barra lateral visível');
+
+      // Redimensionar engines com suavidade
+      setTimeout(() => {
+        [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+          if (eng && typeof eng.handleResizePreserve === 'function') eng.handleResizePreserve();
+        });
+      }, 260);
+    });
+  }
+
+  // Botão de Guia de Otimização no iPad
+  const btnIpadGuide = document.getElementById('btn-ipad-guide');
+  if (btnIpadGuide) {
+    btnIpadGuide.addEventListener('click', () => {
+      const modal = document.getElementById('ipad-guide-modal');
+      if (modal) modal.classList.add('open');
+    });
+  }
+
+  // Botão Flutuante Global de Sair do Ecrã Inteiro
+  const btnGlobalExitFs = document.getElementById('global-exit-fullscreen-btn');
+  if (btnGlobalExitFs) {
+    btnGlobalExitFs.addEventListener('click', (e) => {
+      e.preventDefault();
+      exitAllFullscreens();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      showToast('Modo normal restaurado.');
+    });
+  }
 }
 
 function showTab(tabId) {
@@ -5773,6 +6517,18 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
       e.preventDefault();
       applyTextHighlight(editor, 'transparent');
       showToast('Marcação removida');
+    });
+  }
+
+  // 7. Botão de Ecrã Inteiro / Foco no Editor de Texto
+  const btnFullscreen = document.getElementById(`${prefix}-btn-fullscreen`);
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      const wrapper = editor.closest('.note-section-block, .journal-section-block') || editor.parentElement;
+      if (wrapper) {
+        toggleTextFullscreen(wrapper, btnFullscreen);
+      }
     });
   }
 
@@ -5957,6 +6713,23 @@ function setupBibleReader() {
       } else if (q.length === 0) {
         loadBibleChapter(ASCD.currentBibleBook, ASCD.currentBibleChapter);
       }
+    });
+  }
+
+  // 7. Botão de Alternar Modo Dividido / Anotações na barra do Leitor Bíblico
+  const btnBibleToggleNotes = document.getElementById('bible-btn-toggle-notes');
+  if (btnBibleToggleNotes) {
+    btnBibleToggleNotes.addEventListener('click', () => {
+      toggleSplitScreen();
+    });
+  }
+
+  // 8. Botão de Ecrã Inteiro no Leitor Bíblico
+  const btnBibleFs = document.getElementById('bible-btn-fullscreen');
+  if (btnBibleFs) {
+    btnBibleFs.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleBibleFullscreen();
     });
   }
 }
@@ -6339,6 +7112,7 @@ function setupHybridNotes() {
   const btnCloseModal = document.getElementById('btn-close-note-modal');
   if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
+      exitAllFullscreens();
       document.getElementById('note-editor-modal')?.classList.remove('open');
     });
   }
@@ -6744,6 +7518,7 @@ function setupSermons() {
   const btnCloseModal = document.getElementById('btn-close-sermon-modal');
   if (btnCloseModal) {
     btnCloseModal.addEventListener('click', () => {
+      exitAllFullscreens();
       document.getElementById('sermon-editor-modal')?.classList.remove('open');
     });
   }
@@ -7790,6 +8565,18 @@ function setupPencilEngineControls(engine, prefix) {
       showToast(`${labels[type] || 'Folha'} ativada no Apple Pencil`);
     });
   }
+
+  // Botão de Ecrã Inteiro na Caligrafia Apple Pencil
+  const btnFullscreen = document.getElementById(`${prefix}-btn-fullscreen`);
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      const wrapper = document.getElementById(`${prefix}-pencil-wrapper`);
+      if (wrapper) {
+        togglePencilFullscreen(wrapper, engine, btnFullscreen);
+      }
+    });
+  }
 }
 
 /**
@@ -7809,6 +8596,28 @@ function setupSplitScreen() {
         btn.classList.add('active');
         const tool = btn.getAttribute('data-tool');
         if (tool) ASCD.splitPencilEngine.setTool(tool);
+        if (tool === 'eraser') {
+          document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+          showToast('🧹 Borracha ativada no Modo Dividido');
+        } else if (tool === 'pen') {
+          document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+          showToast('✏️ Caneta Apple Pencil ativada no Modo Dividido');
+        }
+      });
+    });
+
+    // Marca-textos da caneta Apple Pencil no Modo Dividido
+    document.querySelectorAll('.split-hl-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        document.querySelectorAll('.split-tool-btn').forEach(b => b.classList.remove('active'));
+        const color = dot.getAttribute('data-pencil-color');
+        if (color) {
+          ASCD.splitPencilEngine.setTool('highlighter');
+          ASCD.splitPencilEngine.highlighterColor = color;
+          showToast('🖍️ Marca-texto Apple Pencil ativado no Modo Dividido');
+        }
       });
     });
 
@@ -7816,14 +8625,15 @@ function setupSplitScreen() {
       dot.addEventListener('click', () => {
         document.querySelectorAll('.split-color-dot').forEach(d => d.classList.remove('selected'));
         dot.classList.add('selected');
+        document.querySelectorAll('.split-hl-dot').forEach(d => d.classList.remove('selected'));
+        const penBtn = document.getElementById('split-tool-pen');
+        const eraserBtn = document.getElementById('split-tool-eraser');
+        if (penBtn) penBtn.classList.add('active');
+        if (eraserBtn) eraserBtn.classList.remove('active');
         const c = dot.getAttribute('data-color');
         if (c) {
-          if (c === '#FEF08A' || c === '#BBF7D0' || c === '#FECDD3') {
-            ASCD.splitPencilEngine.tool = 'highlighter';
-            ASCD.splitPencilEngine.highlighterColor = c;
-          } else {
-            ASCD.splitPencilEngine.color = c;
-          }
+          ASCD.splitPencilEngine.setTool('pen');
+          ASCD.splitPencilEngine.color = c;
         }
       });
     });
@@ -7865,6 +8675,17 @@ function setupSplitScreen() {
           branca: '⚪ Folha Lisa'
         };
         showToast(`${labels[type] || 'Folha'} ativada no Modo Dividido`);
+      });
+    }
+
+    const btnSplitFs = document.getElementById('split-btn-fullscreen');
+    if (btnSplitFs) {
+      btnSplitFs.addEventListener('click', (e) => {
+        e.preventDefault();
+        const wrapper = document.getElementById('split-pencil-wrapper');
+        if (wrapper) {
+          togglePencilFullscreen(wrapper, ASCD.splitPencilEngine, btnSplitFs);
+        }
       });
     }
   }
@@ -7918,6 +8739,252 @@ function setSplitMode(mode) {
     }
   }
 }
+
+/**
+ * ==========================================================================
+ * CONTROLE DE MODO ECRÃ INTEIRO (FULLSCREEN) PARA CALIGRAFIA & TEXTO
+ * ==========================================================================
+ */
+function togglePencilFullscreen(wrapper, engine, btnElement) {
+  if (!wrapper) return;
+
+  const isFullscreen = wrapper.classList.toggle('pencil-section-fullscreen');
+  const modalDialog = wrapper.closest('.modal-dialog');
+  const modalBody = wrapper.closest('.modal-body');
+  const splitWorkspace = wrapper.closest('.split-workspace-panel');
+  
+  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+
+  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+
+  if (btnElement) {
+    btnElement.classList.toggle('is-active', isFullscreen);
+    const enterIcon = btnElement.querySelector('.fs-icon-enter');
+    const exitIcon = btnElement.querySelector('.fs-icon-exit');
+    const label = btnElement.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
+    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
+    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+  }
+
+  // Tentar Fullscreen API nativo do navegador quando suportado
+  if (isFullscreen) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+
+  // Redimensionar e preservar caligrafia com nitidez Retina
+  if (engine && typeof engine.handleResizePreserve === 'function') {
+    setTimeout(() => engine.handleResizePreserve(), 60);
+    setTimeout(() => engine.handleResizePreserve(), 220);
+  }
+}
+
+function toggleTextFullscreen(wrapper, btnElement) {
+  if (!wrapper) return;
+
+  const isFullscreen = wrapper.classList.toggle('text-section-fullscreen');
+  const modalDialog = wrapper.closest('.modal-dialog');
+  const modalBody = wrapper.closest('.modal-body');
+  const splitWorkspace = wrapper.closest('.split-workspace-panel');
+  
+  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+
+  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+
+  if (btnElement) {
+    btnElement.classList.toggle('is-active', isFullscreen);
+    const enterIcon = btnElement.querySelector('.fs-icon-enter');
+    const exitIcon = btnElement.querySelector('.fs-icon-exit');
+    const label = btnElement.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
+    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
+    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Foco de Escrita';
+  }
+
+  if (isFullscreen) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+}
+
+function toggleBibleFullscreen() {
+  const mainWrapper = document.querySelector('.app-main-wrapper');
+  if (!mainWrapper) return;
+
+  const isFs = mainWrapper.classList.toggle('bible-fullscreen-active');
+  document.body.classList.toggle('ascd-in-fullscreen', isFs);
+
+  const btn = document.getElementById('bible-btn-fullscreen');
+  if (btn) {
+    btn.classList.toggle('is-active', isFs);
+    const enterIcon = btn.querySelector('.fs-icon-enter');
+    const exitIcon = btn.querySelector('.fs-icon-exit');
+    const label = btn.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = isFs ? 'none' : 'inline-block';
+    if (exitIcon) exitIcon.style.display = isFs ? 'inline-block' : 'none';
+    if (label) label.textContent = isFs ? 'Sair' : 'Ecrã Inteiro';
+    btn.title = isFs ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
+  }
+
+  // Se estiver com tela dividida ativa, redimensiona o canvas para preservar nitidez
+  if (ASCD.splitPencilEngine && typeof ASCD.splitPencilEngine.handleResizePreserve === 'function') {
+    setTimeout(() => ASCD.splitPencilEngine.handleResizePreserve(), 60);
+    setTimeout(() => ASCD.splitPencilEngine.handleResizePreserve(), 220);
+  }
+
+  if (isFs) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast('⛶ Leitor Bíblico em Ecrã Inteiro. Pressione ESC ou clique em Sair para voltar.');
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast('Modo normal restaurado.');
+  }
+}
+
+function exitAllFullscreens() {
+  // 1. Desativar fullscreen em wrappers de desenho Apple Pencil
+  document.querySelectorAll('.pencil-section-fullscreen').forEach(wrapper => {
+    wrapper.classList.remove('pencil-section-fullscreen');
+    const btn = wrapper.querySelector('.btn-fullscreen-toggle');
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+    }
+  });
+
+  // 2. Desativar fullscreen em editores de texto
+  document.querySelectorAll('.text-section-fullscreen').forEach(wrapper => {
+    wrapper.classList.remove('text-section-fullscreen');
+    const btn = wrapper.querySelector('.btn-text-fullscreen');
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Foco de Escrita';
+    }
+  });
+
+  // 3. Desativar fullscreen no Leitor Bíblico e Workspace
+  const mainWrapper = document.querySelector('.app-main-wrapper');
+  if (mainWrapper) mainWrapper.classList.remove('bible-fullscreen-active');
+
+  const secBiblia = document.getElementById('sec-biblia');
+  if (secBiblia) secBiblia.classList.remove('bible-section-fullscreen');
+
+  const bibleFsBtn = document.getElementById('bible-btn-fullscreen');
+  if (bibleFsBtn) {
+    bibleFsBtn.classList.remove('is-active');
+    const enterIcon = bibleFsBtn.querySelector('.fs-icon-enter');
+    const exitIcon = bibleFsBtn.querySelector('.fs-icon-exit');
+    const label = bibleFsBtn.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = 'inline-block';
+    if (exitIcon) exitIcon.style.display = 'none';
+    if (label) label.textContent = 'Ecrã Inteiro';
+    bibleFsBtn.title = 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
+  }
+
+  // 4. Limpar classes auxiliares e body
+  document.querySelectorAll('.has-fullscreen-child').forEach(el => el.classList.remove('has-fullscreen-child'));
+  document.body.classList.remove('ascd-in-fullscreen');
+
+  // 5. Redimensionar os engines ativos após retorno ao modo normal
+  [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+    if (eng && typeof eng.handleResizePreserve === 'function') {
+      setTimeout(() => eng.handleResizePreserve(), 60);
+      setTimeout(() => eng.handleResizePreserve(), 200);
+    }
+  });
+}
+
+// Atalhos de teclado compatíveis com iPad (Magic Keyboard / Smart Keyboard) e Desktop
+document.addEventListener('keydown', (e) => {
+  // 1. ESC para sair de ecrã inteiro
+  if (e.key === 'Escape') {
+    const hasAnyFs = document.body.classList.contains('ascd-in-fullscreen') || document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .bible-section-fullscreen');
+    if (hasAnyFs) {
+      exitAllFullscreens();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      showToast('Modo normal restaurado.');
+    }
+  }
+
+  const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+  // 2. Cmd+Z / Ctrl+Z para desfazer traços no Apple Pencil
+  if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+    if (ASCD.isSplitView && ASCD.splitPencilEngine && ASCD.splitCurrentMode !== 'text') {
+      e.preventDefault();
+      ASCD.splitPencilEngine.undo();
+      showToast('↩️ Desfazer traço (Apple Pencil)');
+    } else if (ASCD.activeTab === 'journal' && ASCD.journalPencilEngine) {
+      e.preventDefault();
+      ASCD.journalPencilEngine.undo();
+    }
+  }
+
+  // 3. Cmd+S / Ctrl+S para salvar estudo no modo dividido
+  if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (ASCD.isSplitView) {
+      saveCurrentBiblePageStudy();
+    }
+  }
+});
+
+// Listener de saída do fullscreen nativo do navegador
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    exitAllFullscreens();
+  }
+});
+
+// Listener de rotação no iPad (Retrato <-> Paisagem)
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
+      if (eng && typeof eng.handleResizePreserve === 'function') {
+        eng.handleResizePreserve();
+      }
+    });
+  }, 250);
+});
 
 function loadBiblePageNoteIntoSplit() {
   const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
@@ -8074,6 +9141,8 @@ function toggleSplitScreen() {
   
   ASCD.isSplitView = !ASCD.isSplitView;
 
+  const bibleBtnNotes = document.getElementById('bible-btn-toggle-notes');
+
   if (ASCD.isSplitView) {
     appContainer.classList.add('split-view-active');
     if (btnToggle) {
@@ -8082,6 +9151,10 @@ function toggleSplitScreen() {
         <span>Fechar Tela Dividida</span>
       `;
       btnToggle.classList.add('btn-active-state');
+    }
+    if (bibleBtnNotes) {
+      bibleBtnNotes.classList.add('is-active');
+      bibleBtnNotes.classList.add('active');
     }
 
     if (ASCD.activeTab !== 'biblia') {
@@ -8101,6 +9174,10 @@ function toggleSplitScreen() {
         <span>Modo Dividido (Teclado & Apple Pencil)</span>
       `;
       btnToggle.classList.remove('btn-active-state');
+    }
+    if (bibleBtnNotes) {
+      bibleBtnNotes.classList.remove('is-active');
+      bibleBtnNotes.classList.remove('active');
     }
   }
 }
