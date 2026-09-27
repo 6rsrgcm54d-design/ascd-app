@@ -842,6 +842,49 @@ html, body {
   color: #FFF;
 }
 
+/* Grupo de Pílula das Ferramentas da Caneta (Caneta / Borracha) */
+.pencil-tools-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  gap: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pencil-tools-pill .pencil-tool-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.pencil-tools-pill .pencil-tool-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.pencil-tools-pill .pencil-tool-btn.active {
+  background: var(--accent-gold);
+  color: #FFFFFF;
+}
+
+[data-theme="escuro"] .pencil-tools-pill .pencil-tool-btn.active {
+  background: var(--accent-gold);
+  color: #FFFFFF;
+}
+
 /* Indicador de Palma (Palm Rejection) */
 .btn-palm {
   background: rgba(0, 0, 0, 0.05);

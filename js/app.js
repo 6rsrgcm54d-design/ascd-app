@@ -2338,14 +2338,39 @@ function deleteCurrentJournalDay() {
 function setupPencilEngineControls(engine, prefix) {
   if (!engine) return;
 
+  const btnPen = document.getElementById(`${prefix}-tool-pen`);
+  const btnEraser = document.getElementById(`${prefix}-tool-eraser`);
+
+  if (btnPen) {
+    btnPen.addEventListener('click', () => {
+      engine.setTool('pen');
+      btnPen.classList.add('active');
+      if (btnEraser) btnEraser.classList.remove('active');
+      document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
+      showToast('✏️ Caneta Apple Pencil ativada');
+    });
+  }
+
+  if (btnEraser) {
+    btnEraser.addEventListener('click', () => {
+      engine.setTool('eraser');
+      btnEraser.classList.add('active');
+      if (btnPen) btnPen.classList.remove('active');
+      document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
+      showToast('🧹 Borracha ativada: passe o Apple Pencil sobre os traços para apagar');
+    });
+  }
+
   // As 3 cores de marca-texto da caneta Apple Pencil
   document.querySelectorAll(`.${prefix}-hl-dot`).forEach(dot => {
     dot.addEventListener('click', () => {
       document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
       dot.classList.add('selected');
+      if (btnPen) btnPen.classList.remove('active');
+      if (btnEraser) btnEraser.classList.remove('active');
       const color = dot.getAttribute('data-pencil-color');
       if (color) {
-        engine.tool = 'highlighter';
+        engine.setTool('highlighter');
         engine.highlighterColor = color;
         showToast('🖍️ Marca-texto Apple Pencil ativado');
       }
@@ -2410,7 +2435,7 @@ function setupSplitScreen() {
         document.querySelectorAll('.split-tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tool = btn.getAttribute('data-tool');
-        if (tool) ASCD.splitPencilEngine.tool = tool;
+        if (tool) ASCD.splitPencilEngine.setTool(tool);
       });
     });
 

@@ -205,11 +205,11 @@ class AscdPencilEngine {
       } else if (this.tool === 'highlighter') {
         width = Math.max(this.size * 3.5, 18);
       } else if (this.tool === 'eraser') {
-        width = Math.max(this.size * 4, 20);
+        width = Math.max(this.size * 6, 26);
       }
     } else {
       if (this.tool === 'highlighter') width = Math.max(this.size * 3.5, 18);
-      if (this.tool === 'eraser') width = Math.max(this.size * 4, 20);
+      if (this.tool === 'eraser') width = Math.max(this.size * 6, 26);
     }
     return width;
   }
@@ -405,6 +405,14 @@ class AscdPencilEngine {
 
   setPaperType(type) {
     this.changePaper(type);
+  }
+
+  // Define a ferramenta ativa (caneta, borracha, marca-texto) e atualiza o cursor
+  setTool(tool) {
+    this.tool = tool || 'pen';
+    if (this.canvas) {
+      this.canvas.style.cursor = tool === 'eraser' ? 'cell' : 'crosshair';
+    }
   }
 
   // Gera imagem composta (Padrão de Folha de Fundo + Caligrafia do Usuário)
