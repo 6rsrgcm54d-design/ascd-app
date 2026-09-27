@@ -1,0 +1,3646 @@
+/**
+ * ASCD - Aplicativo de Estudo Bíblico, Sermões & Journaling
+ * Suporte a Apple Pencil, Digitação Rica com Formatação (Fontes, Tamanhos, Negrito, Itálico, Sublinhado e 3 Marca-Textos)
+ * Exportação em DOC, Excel e PDF para Anotações, Sermões e Journal (sem mensagens promocionais / "Exportação Oficial").
+ * Multi-seleção e exportação em lote de vários sermões e notas simultaneamente.
+ * Modo Dividido com Teclado + Apple Pencil e salvamento de anotação da página bíblica.
+ * Journal com Seção de Oração e Lista interativa de "O que Fazer Nesse Dia".
+ */
+
+// Estado Global da Aplicação
+const ASCD = {
+  activeTab: 'biblia',
+  isSplitView: false,
+  currentBibleBook: 'sl',
+  currentBibleChapter: 23,
+  currentBibleVersion: 'arc',
+  theme: 'pergaminho',
+
+  // Motores de desenho Apple Pencil
+  notePencilEngine: null,
+  splitPencilEngine: null,
+  sermonPencilEngine: null,
+  journalPencilEngine: null,
+
+  // Caderno de Estudos Bíblicos
+  notes: [],
+  activeNoteId: null,
+  noteCurrentMode: 'hybrid',
+  selectedNotes: new Set(),
+  notesSelectMode: false,
+
+  // Anotações de Sermões
+  sermons: [],
+  activeSermonId: null,
+  sermonCurrentMode: 'hybrid',
+  selectedSermons: new Set(),
+  sermonsSelectMode: false,
+
+  // Journaling com Calendário
+  journalEntries: {}, // chave: 'YYYY-MM-DD'
+  currentJournalDate: '', // 'YYYY-MM-DD'
+  journalCurrentMode: 'hybrid',
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(), // 0-indexed
+  selectedJournalDates: new Set(),
+  journalSelectMode: false,
+
+  // Anotações de Páginas Bíblicas (Modo Dividido)
+  biblePageNotes: {}, // chave: `${bookId}_${chapterNum}`
+  splitCurrentMode: 'hybrid',
+
+  // Conexão Google Sheets
+  sheetsWebhookUrl: 'https://script.google.com/macros/s/AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I/exec'
+};
+
+const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I/exec';
+let autoSyncTimeout = null;
+let isSyncingToSheets = false;
+
+// Inicialização Geral
+document.addEventListener('DOMContentLoaded', () => {
+  loadStoredData();
+  setupNavigation();
+  setupThemes();
+  setupBibleReader();
+  setupTextToolbars();
+  setupHybridNotes();
+  setupSermons();
+  setupJournal();
+  setupSplitScreen();
+  setupSheetsSyncModal();
+  initSheetsSyncIndicator();
+
+  // Abrir na aba inicial (Bíblia)
+  showTab('biblia');
+});
+
+/**
+ * ==========================================================================
+ * PERSISTÊNCIA LOCAL (LOCALSTORAGE)
+ * ==========================================================================
+ */
+function loadStoredData() {
+  try {
+    // 1. Caderno de Notas
+    const savedNotes = localStorage.getItem('ascd_notes');
+    if (savedNotes) {
+      ASCD.notes = JSON.parse(savedNotes);
+    } else {
+      ASCD.notes = [
+        {
+          id: 'note-1',
+          title: 'Estudo Exegético: Salmos 23 - O Bom Pastor',
+          category: 'Estudo Bíblico',
+          date: '26/09/2026',
+          mode: 'hybrid',
+          content: '<blockquote><strong>Salmos 23:1</strong> — "O Senhor é o meu pastor; nada me faltará."</blockquote><p>Observações exegéticas: No texto hebraico original, a expressão <em>Yahweh Ro\'i</em> expressa o cuidado vigilante, afetuoso e constante do pastor que conhece cada ovelha pelo nome.</p><p><strong>Aplicações:</strong></p><ul><li>O descanso em pastos verdejantes simboliza a paz interior fornecida pela presença divina.</li><li>Águas de repouso (<em>Menuchot</em>) referem-se a águas tranquilas, sem correnteza que amedronte o rebanho.</li></ul>',
+          pencilDataUrl: null
+        }
+      ];
+      saveNotes();
+    }
+
+    // 2. Anotações de Sermões
+    const savedSermons = localStorage.getItem('ascd_sermons');
+    if (savedSermons) {
+      ASCD.sermons = JSON.parse(savedSermons);
+    } else {
+      ASCD.sermons = [
+        {
+          id: 'sermon-1',
+          title: 'O Poder da Cruz e a Graça Imerecida',
+          preacher: 'Pr. Lucas Ferreira',
+          passage: 'Romanos 8:31-39',
+          date: '2026-09-20',
+          mode: 'hybrid',
+          content: '<blockquote><strong>Romanos 8:31</strong> — "Que diremos, pois, a estas coisas? Se Deus é por nós, quem será contra nós?"</blockquote><p><strong>1. Fundamento Inabalável:</strong> A nossa segurança não depende de nossos sentimentos diários, mas da obra consumada na cruz.</p><p><strong>2. A Entrega Absoluta:</strong> Aquele que nem mesmo a seu próprio Filho poupou, como não nos dará também com ele todas as coisas?</p><p><strong>3. Vitória Eterna:</strong> Em todas estas coisas somos mais do que vencedores, por aquele que nos amou.</p>',
+          pencilDataUrl: null
+        }
+      ];
+      saveSermons();
+    }
+
+    // 3. Registros de Journaling (com Oração e Tarefas)
+    const todayStr = getTodayDateStr();
+    ASCD.currentJournalDate = todayStr;
+    const savedJournal = localStorage.getItem('ascd_journal');
+    if (savedJournal) {
+      ASCD.journalEntries = JSON.parse(savedJournal);
+    } else {
+      ASCD.journalEntries = {
+        [todayStr]: {
+          date: todayStr,
+          title: 'Meditações Matinais e Gratidão',
+          verse: 'Salmos 23:1-3',
+          prayer: 'Agradeço pelo descanso da noite e pela fidelidade de Deus. Peço direção e sabedoria nas reuniões de hoje, paz para a família e discernimento nas decisões importantes.',
+          tasks: [
+            { id: 't-1', text: 'Leitura e meditação de Salmos 23', done: true },
+            { id: 't-2', text: 'Interceder em oração pela família', done: true },
+            { id: 't-3', text: 'Revisar notas do sermão de domingo', done: false }
+          ],
+          mode: 'hybrid',
+          content: '<p>Comecei o dia em oração e leitura meditada da Palavra de Deus. Em momentos de decisão e desafios profissionais, encontro paz ao me lembrar de que o Bom Pastor guia os meus passos em veredas de justiça.</p>',
+          pencilDataUrl: null,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      saveJournalEntries();
+    }
+
+    // 4. Anotações de Páginas Bíblicas (Modo Dividido)
+    const savedBibleNotes = localStorage.getItem('ascd_bible_page_notes');
+    if (savedBibleNotes) {
+      ASCD.biblePageNotes = JSON.parse(savedBibleNotes);
+    }
+
+    // 5. Tema
+    const savedTheme = localStorage.getItem('ascd_theme');
+    if (savedTheme) ASCD.theme = savedTheme;
+
+    // 6. Versão da Bíblia
+    const savedVersion = localStorage.getItem('ascd_bible_version');
+    if (savedVersion) ASCD.currentBibleVersion = savedVersion;
+
+    // 7. Webhook do Google Sheets
+    const savedWebhook = localStorage.getItem('ascd_sheets_webhook_url');
+    if (!savedWebhook) {
+      localStorage.setItem('ascd_sheets_webhook_url', DEFAULT_SHEETS_WEBHOOK_URL);
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar dados locais:', err);
+  }
+}
+
+function saveNotes() {
+  try {
+    localStorage.setItem('ascd_notes', JSON.stringify(ASCD.notes));
+  } catch (e) {
+    console.error('Erro ao salvar notas:', e);
+  }
+  triggerAutoSyncToGoogleSheets();
+}
+
+function saveSermons() {
+  try {
+    localStorage.setItem('ascd_sermons', JSON.stringify(ASCD.sermons));
+  } catch (e) {
+    console.error('Erro ao salvar sermões:', e);
+  }
+  triggerAutoSyncToGoogleSheets();
+}
+
+function saveJournalEntries() {
+  try {
+    localStorage.setItem('ascd_journal', JSON.stringify(ASCD.journalEntries));
+  } catch (e) {
+    console.error('Erro ao salvar journal:', e);
+  }
+  triggerAutoSyncToGoogleSheets();
+}
+
+function saveBiblePageNotes() {
+  try {
+    localStorage.setItem('ascd_bible_page_notes', JSON.stringify(ASCD.biblePageNotes));
+  } catch (e) {
+    console.error('Erro ao salvar notas de páginas bíblicas:', e);
+  }
+  triggerAutoSyncToGoogleSheets();
+}
+
+/**
+ * ==========================================================================
+ * NAVEGAÇÃO ENTRE ABAS
+ * ==========================================================================
+ */
+function setupNavigation() {
+  const navButtons = document.querySelectorAll('.nav-btn');
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      if (tab) showTab(tab);
+    });
+  });
+
+  const btnToggleSplit = document.getElementById('btn-toggle-split');
+  if (btnToggleSplit) {
+    btnToggleSplit.addEventListener('click', toggleSplitScreen);
+  }
+
+  const btnExportDb = document.getElementById('btn-export-database-sheets');
+  if (btnExportDb) {
+    btnExportDb.addEventListener('click', openSheetsSyncModal);
+  }
+}
+
+function showTab(tabId) {
+  ASCD.activeTab = tabId;
+
+  // Se mudar para outra aba que não seja a Bíblia e a tela dividida estiver aberta, fecha a tela dividida
+  if (tabId !== 'biblia' && ASCD.isSplitView) {
+    toggleSplitScreen();
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+
+  document.querySelectorAll('.app-section').forEach(sec => {
+    sec.classList.remove('active');
+  });
+
+  const targetSec = document.getElementById(`sec-${tabId}`);
+  if (targetSec) {
+    targetSec.classList.add('active');
+  }
+
+  // Ações ao abrir abas específicas
+  if (tabId === 'journal') {
+    renderCalendar();
+    loadJournalEntryForDate(ASCD.currentJournalDate);
+    renderJournalHistoryList();
+    setTimeout(() => {
+      if (ASCD.journalPencilEngine) ASCD.journalPencilEngine.initCanvasSize();
+    }, 150);
+  } else if (tabId === 'sermoes') {
+    renderSermonsList();
+  } else if (tabId === 'notas') {
+    renderNotesList();
+  }
+
+  // Fechar menu mobile se aberto
+  const sidebar = document.querySelector('.app-sidebar');
+  if (sidebar && sidebar.classList.contains('mobile-open')) {
+    sidebar.classList.remove('mobile-open');
+  }
+}
+
+/**
+ * ==========================================================================
+ * BARRAS DE FORMATAÇÃO DE TEXTO (NOTAS, SERMÕES, JOURNAL E MODO DIVIDIDO)
+ * Inclui: Fontes, Tamanhos, Negrito (B), Itálico (I), Sublinhado (U) e
+ * 3 Cores de Marca-Texto (Vermelho Claro, Verde e Amarelo)
+ * ==========================================================================
+ */
+function setupTextToolbars() {
+  // 1. Caderno de Notas
+  setupEditorToolbar({
+    prefix: 'fmt',
+    editorId: 'edit-note-content',
+    hlPrefix: 'hl'
+  });
+
+  // 2. Anotações de Sermões
+  setupEditorToolbar({
+    prefix: 'sfmt',
+    editorId: 'edit-sermon-content',
+    hlPrefix: 'shl'
+  });
+
+  // 3. Journaling Diário
+  setupEditorToolbar({
+    prefix: 'jfmt',
+    editorId: 'journal-text-editor',
+    hlPrefix: 'jhl'
+  });
+
+  // 4. Modo Dividido (Split View)
+  setupEditorToolbar({
+    prefix: 'split-fmt',
+    editorId: 'split-text-editor',
+    hlPrefix: 'split-hl'
+  });
+}
+
+function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
+  const editor = document.getElementById(editorId);
+  if (!editor) return;
+
+  // 1. Família da Fonte
+  const fontSelect = document.getElementById(`${prefix}-font-family`);
+  if (fontSelect) {
+    fontSelect.addEventListener('change', (e) => {
+      applyFontFamily(editor, e.target.value);
+    });
+  }
+
+  // 2. Tamanho da Fonte
+  const sizeSelect = document.getElementById(`${prefix}-font-size`);
+  if (sizeSelect) {
+    sizeSelect.addEventListener('change', (e) => {
+      applyFontSize(editor, e.target.value);
+    });
+  }
+
+  // 3. Negrito (Bold)
+  const btnBold = document.getElementById(`${prefix}-btn-bold`);
+  if (btnBold) {
+    btnBold.addEventListener('click', (e) => {
+      e.preventDefault();
+      editor.focus();
+      document.execCommand('bold', false, null);
+      updateToolbarActiveState(prefix);
+    });
+  }
+
+  // 4. Itálico (Italic)
+  const btnItalic = document.getElementById(`${prefix}-btn-italic`);
+  if (btnItalic) {
+    btnItalic.addEventListener('click', (e) => {
+      e.preventDefault();
+      editor.focus();
+      document.execCommand('italic', false, null);
+      updateToolbarActiveState(prefix);
+    });
+  }
+
+  // 5. Sublinhar (Underline)
+  const btnUnderline = document.getElementById(`${prefix}-btn-underline`);
+  if (btnUnderline) {
+    btnUnderline.addEventListener('click', (e) => {
+      e.preventDefault();
+      editor.focus();
+      document.execCommand('underline', false, null);
+      updateToolbarActiveState(prefix);
+    });
+  }
+
+  // 6. As 3 Cores de Marca-Texto: Vermelho Claro, Verde e Amarelo
+  const btnHlRed = document.getElementById(`${hlPrefix}-color-red`);
+  const btnHlGreen = document.getElementById(`${hlPrefix}-color-green`);
+  const btnHlYellow = document.getElementById(`${hlPrefix}-color-yellow`);
+  const btnHlClear = document.getElementById(`${hlPrefix}-color-clear`);
+
+  if (btnHlRed) {
+    btnHlRed.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#FECDD3');
+      showToast('🖍️ Marca-texto Vermelho Claro aplicado');
+    });
+  }
+
+  if (btnHlGreen) {
+    btnHlGreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#BBF7D0');
+      showToast('🖍️ Marca-texto Verde aplicado');
+    });
+  }
+
+  if (btnHlYellow) {
+    btnHlYellow.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#FEF08A');
+      showToast('🖍️ Marca-texto Amarelo aplicado');
+    });
+  }
+
+  if (btnHlClear) {
+    btnHlClear.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, 'transparent');
+      showToast('Marcação removida');
+    });
+  }
+
+  // Atualizar botões ativos ao digitar ou mover o cursor
+  editor.addEventListener('keyup', () => updateToolbarActiveState(prefix));
+  editor.addEventListener('mouseup', () => updateToolbarActiveState(prefix));
+}
+
+function updateToolbarActiveState(prefix) {
+  const btnBold = document.getElementById(`${prefix}-btn-bold`);
+  const btnItalic = document.getElementById(`${prefix}-btn-italic`);
+  const btnUnderline = document.getElementById(`${prefix}-btn-underline`);
+
+  try {
+    if (btnBold) btnBold.classList.toggle('active', document.queryCommandState('bold'));
+    if (btnItalic) btnItalic.classList.toggle('active', document.queryCommandState('italic'));
+    if (btnUnderline) btnUnderline.classList.toggle('active', document.queryCommandState('underline'));
+  } catch (_) {}
+}
+
+function applyFontFamily(editor, fontFamily) {
+  editor.focus();
+  const sel = window.getSelection();
+
+  if (sel.rangeCount > 0 && !sel.isCollapsed && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.fontFamily = fontFamily;
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      sel.selectAllChildren(span);
+    } catch (_) {
+      document.execCommand('fontName', false, fontFamily);
+    }
+  } else {
+    editor.style.fontFamily = fontFamily;
+  }
+}
+
+function applyFontSize(editor, size) {
+  editor.focus();
+  const sel = window.getSelection();
+
+  if (sel.rangeCount > 0 && !sel.isCollapsed && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.fontSize = size;
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      sel.selectAllChildren(span);
+    } catch (_) {
+      document.execCommand('fontSize', false, '4');
+    }
+  } else {
+    editor.style.fontSize = size;
+  }
+}
+
+function applyTextHighlight(editor, color) {
+  editor.focus();
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+
+  const range = sel.getRangeAt(0);
+  if (!editor.contains(range.commonAncestorContainer)) {
+    return;
+  }
+
+  if (color === 'transparent' || !color) {
+    document.execCommand('hiliteColor', false, 'transparent');
+    document.execCommand('backColor', false, 'transparent');
+  } else {
+    let success = document.execCommand('hiliteColor', false, color);
+    if (!success) {
+      success = document.execCommand('backColor', false, color);
+    }
+
+    if (!success && !sel.isCollapsed) {
+      const span = document.createElement('span');
+      span.style.backgroundColor = color;
+      span.style.padding = '2px 4px';
+      span.style.borderRadius = '3px';
+      try {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+      } catch (_) {}
+    }
+  }
+}
+
+/**
+ * ==========================================================================
+ * LEITOR BÍBLICO E INTEGRAÇÃO COM NOTAS
+ * ==========================================================================
+ */
+function setupBibleReader() {
+  // 1. Dropdown de Versões Bíblicas (ARC, AA, TB)
+  const versionSelect = document.getElementById('bible-version-select');
+  if (versionSelect) {
+    versionSelect.innerHTML = BIBLE_VERSIONS.map(v => `
+      <option value="${v.id}" ${v.id === ASCD.currentBibleVersion ? 'selected' : ''}>${v.shortName} - ${v.name}</option>
+    `).join('');
+
+    versionSelect.addEventListener('change', (e) => {
+      ASCD.currentBibleVersion = e.target.value;
+      try {
+        localStorage.setItem('ascd_bible_version', ASCD.currentBibleVersion);
+      } catch (err) {}
+      loadBibleChapter(ASCD.currentBibleBook, ASCD.currentBibleChapter);
+      const vObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion);
+      if (vObj) {
+        showToast(`📖 Tradução alterada para: ${vObj.shortName} (${vObj.name})`);
+      }
+    });
+  }
+
+  // 2. Dropdown de Livros Bíblicos (66 Livros organizados por Testamento)
+  const bookSelect = document.getElementById('bible-book-select');
+  if (bookSelect) {
+    const atBooks = BIBLE_BOOKS.filter(b => b.test === 'AT');
+    const ntBooks = BIBLE_BOOKS.filter(b => b.test === 'NT');
+
+    bookSelect.innerHTML = `
+      <optgroup label="— Antigo Testamento (39 Livros) —">
+        ${atBooks.map(b => `<option value="${b.id}" ${b.id === ASCD.currentBibleBook ? 'selected' : ''}>${b.name}</option>`).join('')}
+      </optgroup>
+      <optgroup label="— Novo Testamento (27 Livros) —">
+        ${ntBooks.map(b => `<option value="${b.id}" ${b.id === ASCD.currentBibleBook ? 'selected' : ''}>${b.name}</option>`).join('')}
+      </optgroup>
+    `;
+
+    bookSelect.addEventListener('change', (e) => {
+      const newBook = e.target.value;
+      loadBibleChapter(newBook, 1);
+    });
+  }
+
+  // 3. Dropdown de Capítulos
+  const chapterSelect = document.getElementById('bible-chapter-select');
+  if (chapterSelect) {
+    chapterSelect.addEventListener('change', (e) => {
+      const newChap = parseInt(e.target.value, 10) || 1;
+      loadBibleChapter(ASCD.currentBibleBook, newChap);
+    });
+  }
+
+  // 4. Botões de Navegação Anterior / Próximo (Topo e Fundo)
+  const prevBtnTop = document.getElementById('btn-prev-chapter');
+  if (prevBtnTop) prevBtnTop.addEventListener('click', navigateToPreviousChapter);
+
+  const nextBtnTop = document.getElementById('btn-next-chapter');
+  if (nextBtnTop) nextBtnTop.addEventListener('click', navigateToNextChapter);
+
+  const prevBtnBottom = document.getElementById('btn-bottom-prev-chap');
+  if (prevBtnBottom) {
+    prevBtnBottom.addEventListener('click', () => {
+      navigateToPreviousChapter();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  const nextBtnBottom = document.getElementById('btn-bottom-next-chap');
+  if (nextBtnBottom) {
+    nextBtnBottom.addEventListener('click', () => {
+      navigateToNextChapter();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // 5. Inicializar Leitor com valores correntes
+  loadBibleChapter(ASCD.currentBibleBook, ASCD.currentBibleChapter);
+
+  // 6. Campo de Pesquisa Bíblica
+  const searchInput = document.getElementById('bible-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      if (q.length > 2) {
+        performBibleSearch(q);
+      } else if (q.length === 0) {
+        loadBibleChapter(ASCD.currentBibleBook, ASCD.currentBibleChapter);
+      }
+    });
+  }
+}
+
+function updateChapterDropdown(bookId, selectedChap = 1) {
+  const chapterSelect = document.getElementById('bible-chapter-select');
+  const book = BIBLE_BOOKS.find(b => b.id === bookId) || BIBLE_BOOKS[0];
+  if (!chapterSelect || !book) return;
+
+  const validChap = Math.min(Math.max(1, selectedChap), book.chapters);
+
+  if (chapterSelect.dataset.bookId !== bookId || chapterSelect.options.length !== book.chapters) {
+    let html = '';
+    for (let i = 1; i <= book.chapters; i++) {
+      html += `<option value="${i}">Capítulo ${i}</option>`;
+    }
+    chapterSelect.innerHTML = html;
+    chapterSelect.dataset.bookId = bookId;
+  }
+  chapterSelect.value = validChap;
+}
+
+function updateBibleNavigationButtons(book, chap) {
+  const prevBtnTop = document.getElementById('btn-prev-chapter');
+  const nextBtnTop = document.getElementById('btn-next-chapter');
+  const prevBtnBottom = document.getElementById('btn-bottom-prev-chap');
+  const nextBtnBottom = document.getElementById('btn-bottom-next-chap');
+  const indicator = document.getElementById('bible-bottom-chap-indicator');
+
+  if (indicator) {
+    indicator.textContent = `${book.name} — Capítulo ${chap} de ${book.chapters}`;
+  }
+
+  const bookIndex = BIBLE_BOOKS.findIndex(b => b.id === book.id);
+  const isFirst = (bookIndex === 0 && chap === 1);
+  const isLast = (bookIndex === BIBLE_BOOKS.length - 1 && chap === book.chapters);
+
+  [prevBtnTop, prevBtnBottom].forEach(btn => {
+    if (btn) btn.disabled = isFirst;
+  });
+  [nextBtnTop, nextBtnBottom].forEach(btn => {
+    if (btn) btn.disabled = isLast;
+  });
+}
+
+function navigateToPreviousChapter() {
+  const currentBook = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook) || BIBLE_BOOKS[0];
+  const currentChap = ASCD.currentBibleChapter;
+
+  if (currentChap > 1) {
+    loadBibleChapter(currentBook.id, currentChap - 1);
+  } else {
+    const bookIdx = BIBLE_BOOKS.findIndex(b => b.id === currentBook.id);
+    if (bookIdx > 0) {
+      const prevBook = BIBLE_BOOKS[bookIdx - 1];
+      loadBibleChapter(prevBook.id, prevBook.chapters);
+    }
+  }
+}
+
+function navigateToNextChapter() {
+  const currentBook = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook) || BIBLE_BOOKS[0];
+  const currentChap = ASCD.currentBibleChapter;
+
+  if (currentChap < currentBook.chapters) {
+    loadBibleChapter(currentBook.id, currentChap + 1);
+  } else {
+    const bookIdx = BIBLE_BOOKS.findIndex(b => b.id === currentBook.id);
+    if (bookIdx < BIBLE_BOOKS.length - 1) {
+      const nextBook = BIBLE_BOOKS[bookIdx + 1];
+      loadBibleChapter(nextBook.id, 1);
+    }
+  }
+}
+
+async function loadBibleChapter(bookId, chapterNum) {
+  const book = BIBLE_BOOKS.find(b => b.id === bookId) || BIBLE_BOOKS[0];
+  const validChap = Math.min(Math.max(1, chapterNum), book.chapters);
+
+  ASCD.currentBibleBook = book.id;
+  ASCD.currentBibleChapter = validChap;
+
+  // 1. Sincronizar os seletores do DOM
+  const bookSelect = document.getElementById('bible-book-select');
+  if (bookSelect && bookSelect.value !== book.id) {
+    bookSelect.value = book.id;
+  }
+
+  updateChapterDropdown(book.id, validChap);
+
+  const versionSelect = document.getElementById('bible-version-select');
+  if (versionSelect && versionSelect.value !== ASCD.currentBibleVersion) {
+    versionSelect.value = ASCD.currentBibleVersion;
+  }
+
+  // 2. Atualizar cabeçalhos e botões
+  const headerTitle = document.getElementById('bible-header-title');
+  const headerSub = document.getElementById('bible-header-sub');
+  const versionBadge = document.getElementById('bible-header-version-badge');
+  const versionFullname = document.getElementById('bible-header-version-fullname');
+  const vObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion) || BIBLE_VERSIONS[0];
+
+  if (headerTitle) headerTitle.textContent = `${book.name} ${validChap}`;
+  if (headerSub) headerSub.textContent = getChapterTitle(book, validChap);
+  if (versionBadge) versionBadge.textContent = vObj.shortName || ASCD.currentBibleVersion.toUpperCase();
+  if (versionFullname) versionFullname.textContent = `${vObj.name || 'Tradução Bíblica'} • Domínio Público`;
+
+  updateBibleNavigationButtons(book, validChap);
+  updateBiblePageSavedBadge();
+
+  // 3. Atualizar título do Modo Dividido se ativo
+  const splitStudyTitle = document.getElementById('split-study-title');
+  if (splitStudyTitle) {
+    splitStudyTitle.textContent = `Estudo: ${book.name} ${validChap} (${vObj.shortName || ''})`;
+  }
+  loadBiblePageNoteIntoSplit();
+
+  // 4. Mostrar estado de carregamento se não estiver em cache
+  const container = document.getElementById('bible-verses-display');
+  const syncData = getBibleChapterData(book.id, validChap, ASCD.currentBibleVersion);
+
+  if (syncData && syncData.verses && syncData.verses.length > 5) {
+    renderVersesList(container, syncData);
+  } else if (container) {
+    container.innerHTML = `
+      <div class="bible-loading-state">
+        <div class="bible-spinner"></div>
+        <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Carregando ${book.name} ${validChap}...</div>
+        <div style="font-size:13px; color:var(--text-muted);">A obter o capítulo completo com todos os versículos (${vObj.shortName})</div>
+      </div>
+    `;
+  }
+
+  // 5. Carregamento assíncrono com garantia de todos os versículos
+  const data = await getBibleChapterDataAsync(book.id, validChap, ASCD.currentBibleVersion);
+
+  // Se o usuário mudou de capítulo antes de responder, descarta
+  if (ASCD.currentBibleBook !== book.id || ASCD.currentBibleChapter !== validChap) {
+    return;
+  }
+
+  if (headerSub) {
+    headerSub.textContent = data.title || getChapterTitle(book, validChap);
+  }
+
+  if (container) {
+    if (data.isOfflineNotice) {
+      container.innerHTML = `
+        <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:28px 24px; text-align:center; margin:20px 0;">
+          <div style="font-size:32px; margin-bottom:12px;">📡</div>
+          <h4 style="margin:0 0 8px 0; color:var(--text-primary);">Capítulo Completo Disponível Online</h4>
+          <p style="font-size:14px; color:var(--text-secondary); max-width:540px; margin:0 auto 18px auto; line-height:1.6;">${data.verses[0].text}</p>
+          <button type="button" class="btn btn-primary" onclick="loadBibleChapter('${book.id}', ${validChap})">
+            🔄 Tentar Novamente
+          </button>
+        </div>
+      `;
+    } else {
+      renderVersesList(container, data);
+    }
+  }
+}
+
+function renderVersesList(container, data) {
+  if (!container || !data || !data.verses) return;
+  container.innerHTML = data.verses.map(v => `
+    <div class="verse-row" data-verse="${v.num}">
+      <span class="verse-num">${v.num}</span>
+      <span class="verse-text">${v.text}</span>
+      <div class="verse-actions">
+        <button class="verse-action-btn" title="Copiar versículo" onclick="copyVerse('${data.book}', ${data.chapter}, ${v.num}, '${escapeForJs(v.text)}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="verse-action-btn" title="Criar Anotação de Estudo" onclick="createNoteFromVerse('${data.book}', ${data.chapter}, ${v.num}, '${escapeForJs(v.text)}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateBiblePageSavedBadge() {
+  const badgeContainer = document.getElementById('bible-chapter-badge-container');
+  if (!badgeContainer) return;
+
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const saved = ASCD.biblePageNotes[key];
+
+  if (saved && (saved.content || saved.pencilDataUrl)) {
+    badgeContainer.innerHTML = `
+      <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(16, 185, 129, 0.12); border:1px solid #10B981; border-radius:999px; padding:3px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <button type="button" class="split-study-badge" onclick="openSplitStudyFromBadge()" title="Esta página bíblica possui anotação salva. Clique para abrir!" style="background:transparent; border:none; padding:0; display:inline-flex; align-items:center; gap:6px; color:#065F46; font-weight:600; font-size:12px; cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span>Anotação desta página guardada</span>
+        </button>
+        <span style="color:#A7F3D0; font-size:12px;">•</span>
+        <button type="button" onclick="deleteCurrentBiblePageStudy(event)" title="Apagar definitivamente a anotação desta página" style="background:transparent; border:none; padding:2px 4px; display:inline-flex; align-items:center; gap:4px; color:#DC2626; font-weight:700; font-size:12px; cursor:pointer; border-radius:4px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          <span>Apagar</span>
+        </button>
+      </div>
+    `;
+  } else {
+    badgeContainer.innerHTML = '';
+  }
+}
+
+function openSplitStudyFromBadge() {
+  if (!ASCD.isSplitView) {
+    toggleSplitScreen();
+  }
+}
+
+function copyVerse(book, chap, num, text) {
+  const formatted = `"${text}" — ${book} ${chap}:${num}`;
+  navigator.clipboard.writeText(formatted).then(() => {
+    showToast(`✓ Versículo copiado para a área de transferência!`);
+  }).catch(() => {
+    showToast(`✓ ${book} ${chap}:${num}`);
+  });
+}
+
+function createNoteFromVerse(book, chap, num, text) {
+  openNoteEditorModal(null, {
+    title: `Estudo: ${book} ${chap}:${num}`,
+    category: 'Estudo Bíblico',
+    content: `<blockquote><strong>${book} ${chap}:${num}</strong><br/>"${text}"</blockquote><p>Observações e reflexões espirituais deste versículo:</p>`
+  });
+  showToast(`📝 Nota de estudo criada para ${book} ${chap}:${num}`);
+}
+
+function performBibleSearch(term) {
+  const container = document.getElementById('bible-verses-display');
+  const headerTitle = document.getElementById('bible-header-title');
+  const headerSub = document.getElementById('bible-header-sub');
+  if (!container) return;
+
+  const results = [];
+  const currentVer = ASCD.currentBibleVersion || 'arc';
+
+  Object.keys(BIBLE_TEXTS).forEach(key => {
+    const raw = BIBLE_TEXTS[key];
+    const verses = (raw.versions && raw.versions[currentVer]) || (raw.versions && raw.versions.arc) || raw.verses || [];
+    verses.forEach(v => {
+      if (v.text.toLowerCase().includes(term)) {
+        results.push({
+          book: raw.book,
+          chapter: raw.chapter,
+          num: v.num,
+          text: v.text
+        });
+      }
+    });
+  });
+
+  const vObj = BIBLE_VERSIONS.find(v => v.id === currentVer) || { shortName: 'Bíblia' };
+
+  if (headerTitle) headerTitle.textContent = `Resultados para "${term}"`;
+  if (headerSub) headerSub.textContent = `${results.length} versículo(s) encontrado(s) na versão ${vObj.shortName}`;
+
+  if (results.length === 0) {
+    container.innerHTML = `<div style="padding:24px; text-align:center; color:var(--text-muted);">Nenhum versículo encontrado na versão atual. Tente buscar por palavras como "Senhor", "paz", "pastor", "amor", "Deus", "graça".</div>`;
+    return;
+  }
+
+  container.innerHTML = results.map(r => `
+    <div class="verse-row">
+      <span class="verse-ref-tag" style="font-weight:700; color:var(--accent-gold); margin-right:8px; cursor:pointer;" onclick="goToVerseLocation('${r.book}', ${r.chapter})">${r.book} ${r.chapter}:${r.num}</span>
+      <span class="verse-text">${highlightSearchTerm(r.text, term)}</span>
+      <div class="verse-actions">
+        <button class="verse-action-btn" title="Copiar" onclick="copyVerse('${r.book}', ${r.chapter}, ${r.num}, '${escapeForJs(r.text)}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="verse-action-btn" title="Criar Nota de Estudo" onclick="createNoteFromVerse('${r.book}', ${r.chapter}, ${r.num}, '${escapeForJs(r.text)}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function goToVerseLocation(bookName, chap) {
+  const b = BIBLE_BOOKS.find(item => item.name.toLowerCase() === bookName.toLowerCase() || item.id === bookName.toLowerCase());
+  if (b) {
+    loadBibleChapter(b.id, chap);
+    const searchInput = document.getElementById('bible-search-input');
+    if (searchInput) searchInput.value = '';
+    showToast(`📖 Aberto em ${b.name} ${chap}`);
+  }
+}
+
+function highlightSearchTerm(text, term) {
+  const regex = new RegExp(`(${term})`, 'gi');
+  return text.replace(regex, '<mark style="background:#FEF08A; padding:1px 3px; border-radius:3px;">$1</mark>');
+}
+
+/**
+ * ==========================================================================
+ * CADERNO DE ESTUDOS BÍBLICOS (NOTAS GERAIS) COM MULTI-SELEÇÃO
+ * ==========================================================================
+ */
+function setupHybridNotes() {
+  renderNotesList();
+
+  const noteCanvasEl = document.getElementById('note-drawing-canvas');
+  if (noteCanvasEl) {
+    ASCD.notePencilEngine = new AscdPencilEngine(noteCanvasEl);
+    ASCD.notePencilEngine.changePaper('pautada');
+    setupPencilEngineControls(ASCD.notePencilEngine, 'note');
+  }
+
+  const btnNewNote = document.getElementById('btn-new-text-note');
+  if (btnNewNote) {
+    btnNewNote.addEventListener('click', () => openNoteEditorModal());
+  }
+
+  const searchInput = document.getElementById('notes-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      renderNotesList(e.target.value.toLowerCase());
+    });
+  }
+
+  // Alternar modo de seleção de notas
+  const btnToggleSelect = document.getElementById('btn-toggle-select-notes');
+  if (btnToggleSelect) {
+    btnToggleSelect.addEventListener('click', () => {
+      ASCD.notesSelectMode = !ASCD.notesSelectMode;
+      ASCD.selectedNotes.clear();
+      updateNotesBatchBar();
+      renderNotesList();
+      btnToggleSelect.textContent = ASCD.notesSelectMode ? '✕ Cancelar Seleção' : '☑️ Selecionar Várias';
+    });
+  }
+
+  // Selecionar Todas as notas
+  document.getElementById('btn-select-all-notes')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      ASCD.notes.forEach(n => ASCD.selectedNotes.add(n.id));
+    } else {
+      ASCD.selectedNotes.clear();
+    }
+    updateNotesBatchBar();
+    renderNotesList();
+  });
+
+  // Ações em lote para notas
+  document.getElementById('btn-batch-notes-doc')?.addEventListener('click', () => {
+    const items = getSelectedNotesItems();
+    if (items.length) exportBatchToDoc(items, 'Estudos Bíblicos', 'ASCD_Estudos_Biblicos_Selecionados');
+  });
+
+  document.getElementById('btn-batch-notes-excel')?.addEventListener('click', () => {
+    const items = getSelectedNotesItems();
+    if (items.length) exportToExcel(items, 'ASCD_Estudos_Biblicos_Selecionados');
+  });
+
+  document.getElementById('btn-batch-notes-pdf')?.addEventListener('click', () => {
+    const items = getSelectedNotesItems();
+    if (items.length) exportBatchToPdf(items, 'Estudos Bíblicos Selecionados');
+  });
+
+  document.getElementById('btn-batch-notes-del')?.addEventListener('click', () => {
+    deleteSelectedNotes();
+  });
+
+  // Modos de entrada no modal de notas
+  document.querySelectorAll('[data-notemode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-notemode');
+      if (mode) setNoteModalMode(mode);
+    });
+  });
+
+  const btnSaveModal = document.getElementById('btn-save-note-modal');
+  if (btnSaveModal) {
+    btnSaveModal.addEventListener('click', saveNoteFromModal);
+  }
+
+  const btnCloseModal = document.getElementById('btn-close-note-modal');
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', () => {
+      document.getElementById('note-editor-modal')?.classList.remove('open');
+    });
+  }
+
+  // Exportações individuais do modal de notas
+  document.getElementById('btn-export-note-doc')?.addEventListener('click', () => {
+    const item = getActiveNoteObjectForExport();
+    if (item) exportToDoc(item, 'Nota');
+  });
+
+  document.getElementById('btn-export-note-excel')?.addEventListener('click', () => {
+    const item = getActiveNoteObjectForExport();
+    if (item) exportToExcel([item], `ASCD_Nota_${cleanFilename(item.title)}`);
+  });
+
+  document.getElementById('btn-export-note-pdf')?.addEventListener('click', () => {
+    const item = getActiveNoteObjectForExport();
+    if (item) exportToPdf(item, 'Nota de Estudo Bíblico');
+  });
+
+  document.getElementById('btn-export-all-notes-excel')?.addEventListener('click', () => {
+    exportToExcel(ASCD.notes.map(n => ({ ...n, type: 'Estudo Bíblico' })), 'ASCD_Todas_Notas_Estudo');
+  });
+}
+
+function getSelectedNotesItems() {
+  return ASCD.notes
+    .filter(n => ASCD.selectedNotes.has(n.id))
+    .map(n => ({ ...n, type: 'Estudo Bíblico' }));
+}
+
+function updateNotesBatchBar() {
+  const bar = document.getElementById('notes-batch-bar');
+  const counter = document.getElementById('notes-selected-counter');
+  const count = ASCD.selectedNotes.size;
+
+  if (bar) {
+    bar.classList.toggle('active', ASCD.notesSelectMode || count > 0);
+  }
+  if (counter) {
+    counter.textContent = `${count} selecionada(s)`;
+  }
+}
+
+function deleteSelectedNotes() {
+  const count = ASCD.selectedNotes.size;
+  if (!count) return;
+  if (confirm(`Deseja realmente excluir as ${count} anotações selecionadas?`)) {
+    ASCD.notes = ASCD.notes.filter(n => !ASCD.selectedNotes.has(n.id));
+    ASCD.selectedNotes.clear();
+    saveNotes();
+    updateNotesBatchBar();
+    renderNotesList();
+    showToast(`${count} anotação(ões) excluída(s)`);
+  }
+}
+
+function getActiveNoteObjectForExport() {
+  const title = document.getElementById('edit-note-title')?.value.trim() || 'Anotação sem título';
+  const category = document.getElementById('edit-note-category')?.value || 'Estudo Bíblico';
+  const content = document.getElementById('edit-note-content')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  if (ASCD.notePencilEngine && (ASCD.noteCurrentMode === 'pencil' || ASCD.noteCurrentMode === 'hybrid')) {
+    if (ASCD.notePencilEngine.historyIndex > 0 || ASCD.notePencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.notePencilEngine.getDataUrl ? ASCD.notePencilEngine.getDataUrl() : ASCD.notePencilEngine.canvas.toDataURL();
+    }
+  }
+
+  return {
+    id: ASCD.activeNoteId || 'nota-export',
+    type: 'Estudo Bíblico',
+    title,
+    category,
+    date: new Date().toLocaleDateString('pt-BR'),
+    mode: ASCD.noteCurrentMode,
+    paperType: ASCD.notePencilEngine ? ASCD.notePencilEngine.paperType : 'pautada',
+    content,
+    pencilDataUrl
+  };
+}
+
+function renderNotesList(filterQuery = '') {
+  const container = document.getElementById('notes-cards-grid');
+  if (!container) return;
+
+  const filtered = ASCD.notes.filter(n => {
+    return n.title.toLowerCase().includes(filterQuery) ||
+           (n.content && n.content.toLowerCase().includes(filterQuery)) ||
+           (n.category && n.category.toLowerCase().includes(filterQuery));
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state-box" style="grid-column: 1 / -1; padding: 40px; text-align: center; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h3 style="margin-top: 12px;">Nenhuma anotação encontrada</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Crie uma nova nota de estudo com digitação rica ou caligrafia com Apple Pencil!</p>
+        <button class="btn btn-primary" onclick="openNoteEditorModal()" style="margin-top: 16px;">+ Nova Anotação</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(n => {
+    const isSelected = ASCD.selectedNotes.has(n.id);
+    const modeBadge = n.mode === 'pencil' ? '✍️ Apple Pencil' : (n.mode === 'text' ? '⌨️ Teclado' : '✨ Híbrido');
+    const plainText = n.content ? stripHtml(n.content).trim() : '';
+    const snippet = plainText ? (plainText.length > 140 ? escapeHtml(plainText.substring(0, 140)) + '...' : escapeHtml(plainText)) : '';
+    return `
+      <div class="note-card ${isSelected ? 'selected' : ''}" onclick="handleNoteCardClick('${n.id}')">
+        <div class="note-card-header">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <input type="checkbox" class="card-select-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectNote('${n.id}')" title="Selecionar" />
+            <span class="note-category-tag">${escapeHtml(n.category || 'Estudo')}</span>
+          </div>
+          <span class="note-mode-tag">${modeBadge}</span>
+        </div>
+        
+        <h3 class="note-card-title">${escapeHtml(n.title)}</h3>
+
+        ${n.pencilDataUrl ? `
+          <img src="${n.pencilDataUrl}" class="note-card-pencil-thumb" alt="Caligrafia Apple Pencil" />
+        ` : ''}
+
+        ${snippet ? `
+          <div class="note-card-preview">${snippet}</div>
+        ` : ''}
+
+        <div class="card-actions-row">
+          <span class="note-date">${n.date}</span>
+          
+          <div class="card-export-mini-group" onclick="event.stopPropagation()">
+            <button class="btn-mini-export" title="Exportar para DOC" onclick="exportNoteById('${n.id}', 'doc')">DOC</button>
+            <button class="btn-mini-export" title="Exportar para Excel" onclick="exportNoteById('${n.id}', 'excel')">Excel</button>
+            <button class="btn-mini-export" title="Exportar para PDF" onclick="exportNoteById('${n.id}', 'pdf')">PDF</button>
+            <button class="btn-icon-subtle" onclick="deleteNote(event, '${n.id}')" title="Excluir Nota" style="margin-left: 4px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleNoteCardClick(id) {
+  if (ASCD.notesSelectMode) {
+    toggleSelectNote(id);
+  } else {
+    openNoteEditorModal(id);
+  }
+}
+
+function toggleSelectNote(id) {
+  if (ASCD.selectedNotes.has(id)) {
+    ASCD.selectedNotes.delete(id);
+  } else {
+    ASCD.selectedNotes.add(id);
+  }
+  updateNotesBatchBar();
+  renderNotesList();
+}
+
+function openNoteEditorModal(noteId = null, prefillData = null) {
+  ASCD.activeNoteId = noteId;
+  const modal = document.getElementById('note-editor-modal');
+  if (!modal) return;
+
+  let note = null;
+  if (noteId) {
+    note = ASCD.notes.find(n => n.id === noteId);
+  }
+
+  const titleInput = document.getElementById('edit-note-title');
+  const catSelect = document.getElementById('edit-note-category');
+  const textEditor = document.getElementById('edit-note-content');
+
+  if (note) {
+    if (titleInput) titleInput.value = note.title || '';
+    if (catSelect) catSelect.value = note.category || 'Estudo Bíblico';
+    if (textEditor) textEditor.innerHTML = note.content || '';
+    setNoteModalMode(note.mode || 'hybrid');
+
+    const notePaper = note.paperType || 'pautada';
+    if (ASCD.notePencilEngine) {
+      ASCD.notePencilEngine.changePaper(notePaper);
+      const sel = document.getElementById('note-paper-select');
+      if (sel) sel.value = notePaper;
+      ASCD.notePencilEngine.clearCanvas();
+      if (note.pencilRawDataUrl) {
+        ASCD.notePencilEngine.loadFromDataUrl(note.pencilRawDataUrl);
+      } else if (note.pencilDataUrl) {
+        ASCD.notePencilEngine.loadFromDataUrl(note.pencilDataUrl);
+      }
+    }
+  } else {
+    ASCD.activeNoteId = null;
+    if (titleInput) titleInput.value = prefillData ? prefillData.title : '';
+    if (catSelect) catSelect.value = prefillData ? prefillData.category : 'Estudo Bíblico';
+    if (textEditor) textEditor.innerHTML = prefillData ? prefillData.content : '';
+    setNoteModalMode('hybrid');
+
+    if (ASCD.notePencilEngine) {
+      ASCD.notePencilEngine.changePaper('pautada');
+      const sel = document.getElementById('note-paper-select');
+      if (sel) sel.value = 'pautada';
+      ASCD.notePencilEngine.clearCanvas();
+    }
+  }
+
+  modal.classList.add('open');
+
+  setTimeout(() => {
+    if (ASCD.notePencilEngine) ASCD.notePencilEngine.initCanvasSize();
+  }, 100);
+}
+
+function setNoteModalMode(mode) {
+  ASCD.noteCurrentMode = mode;
+
+  document.querySelectorAll('[data-notemode]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-notemode') === mode);
+  });
+
+  const textWrap = document.getElementById('note-text-wrapper');
+  const pencilWrap = document.getElementById('note-pencil-wrapper');
+
+  if (mode === 'text') {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) pencilWrap.style.display = 'none';
+  } else if (mode === 'pencil') {
+    if (textWrap) textWrap.style.display = 'none';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.notePencilEngine) ASCD.notePencilEngine.initCanvasSize();
+      }, 50);
+    }
+  } else {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.notePencilEngine) ASCD.notePencilEngine.initCanvasSize();
+      }, 50);
+    }
+  }
+}
+
+function saveNoteFromModal() {
+  const title = document.getElementById('edit-note-title')?.value.trim() || 'Anotação sem título';
+  const category = document.getElementById('edit-note-category')?.value || 'Estudo Bíblico';
+  const content = document.getElementById('edit-note-content')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  let pencilRawDataUrl = null;
+  if (ASCD.notePencilEngine && (ASCD.noteCurrentMode === 'pencil' || ASCD.noteCurrentMode === 'hybrid')) {
+    if (ASCD.notePencilEngine.historyIndex > 0 || ASCD.notePencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.notePencilEngine.getDataUrl ? ASCD.notePencilEngine.getDataUrl() : ASCD.notePencilEngine.canvas.toDataURL();
+      pencilRawDataUrl = ASCD.notePencilEngine.canvas.toDataURL();
+    }
+  }
+
+  const paperType = ASCD.notePencilEngine ? ASCD.notePencilEngine.paperType : 'pautada';
+
+  if (ASCD.activeNoteId) {
+    const idx = ASCD.notes.findIndex(n => n.id === ASCD.activeNoteId);
+    if (idx !== -1) {
+      ASCD.notes[idx].title = title;
+      ASCD.notes[idx].category = category;
+      ASCD.notes[idx].mode = ASCD.noteCurrentMode;
+      ASCD.notes[idx].paperType = paperType;
+      ASCD.notes[idx].content = content;
+      if (pencilDataUrl) ASCD.notes[idx].pencilDataUrl = pencilDataUrl;
+      if (pencilRawDataUrl) ASCD.notes[idx].pencilRawDataUrl = pencilRawDataUrl;
+    }
+  } else {
+    const newNote = {
+      id: 'note-' + Date.now(),
+      title,
+      category,
+      date: new Date().toLocaleDateString('pt-BR'),
+      mode: ASCD.noteCurrentMode,
+      paperType,
+      content,
+      pencilDataUrl,
+      pencilRawDataUrl
+    };
+    ASCD.notes.unshift(newNote);
+  }
+
+  saveNotes();
+  renderNotesList();
+  document.getElementById('note-editor-modal')?.classList.remove('open');
+  showToast('💾 Anotação salva com sucesso!');
+}
+
+function deleteNote(event, noteId) {
+  event.stopPropagation();
+  if (confirm('Tem certeza que deseja apagar esta anotação?')) {
+    ASCD.notes = ASCD.notes.filter(n => n.id !== noteId);
+    ASCD.selectedNotes.delete(noteId);
+    saveNotes();
+    updateNotesBatchBar();
+    renderNotesList();
+    showToast('Anotação removida');
+  }
+}
+
+function exportNoteById(noteId, format) {
+  const note = ASCD.notes.find(n => n.id === noteId);
+  if (!note) return;
+  const item = { ...note, type: 'Estudo Bíblico' };
+  if (format === 'doc') exportToDoc(item, 'Nota');
+  if (format === 'excel') exportToExcel([item], `ASCD_Nota_${cleanFilename(item.title)}`);
+  if (format === 'pdf') exportToPdf(item, 'Nota de Estudo Bíblico');
+}
+
+/**
+ * ==========================================================================
+ * ANOTAÇÕES DE SERMÕES & PREGAÇÕES COM MULTI-SELEÇÃO E EXPORTAÇÃO EM LOTE
+ * ==========================================================================
+ */
+function setupSermons() {
+  renderSermonsList();
+
+  const sermonCanvasEl = document.getElementById('sermon-drawing-canvas');
+  if (sermonCanvasEl) {
+    ASCD.sermonPencilEngine = new AscdPencilEngine(sermonCanvasEl);
+    ASCD.sermonPencilEngine.changePaper('pautada');
+    setupPencilEngineControls(ASCD.sermonPencilEngine, 'sermon');
+  }
+
+  const btnNewSermon = document.getElementById('btn-new-sermon');
+  if (btnNewSermon) {
+    btnNewSermon.addEventListener('click', () => openSermonModal());
+  }
+
+  const searchInput = document.getElementById('sermons-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      renderSermonsList(e.target.value.toLowerCase());
+    });
+  }
+
+  // Alternar modo de seleção de sermões
+  const btnToggleSelect = document.getElementById('btn-toggle-select-sermons');
+  if (btnToggleSelect) {
+    btnToggleSelect.addEventListener('click', () => {
+      ASCD.sermonsSelectMode = !ASCD.sermonsSelectMode;
+      ASCD.selectedSermons.clear();
+      updateSermonsBatchBar();
+      renderSermonsList();
+      btnToggleSelect.textContent = ASCD.sermonsSelectMode ? '✕ Cancelar Seleção' : '☑️ Selecionar Vários';
+    });
+  }
+
+  // Selecionar Todos os sermões
+  document.getElementById('btn-select-all-sermons')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      ASCD.sermons.forEach(s => ASCD.selectedSermons.add(s.id));
+    } else {
+      ASCD.selectedSermons.clear();
+    }
+    updateSermonsBatchBar();
+    renderSermonsList();
+  });
+
+  // Ações em lote para sermões selecionados
+  document.getElementById('btn-batch-sermons-doc')?.addEventListener('click', () => {
+    const items = getSelectedSermonsItems();
+    if (items.length) exportBatchToDoc(items, 'Sermões', 'ASCD_Sermoes_Selecionados');
+  });
+
+  document.getElementById('btn-batch-sermons-excel')?.addEventListener('click', () => {
+    const items = getSelectedSermonsItems();
+    if (items.length) exportToExcel(items, 'ASCD_Sermoes_Selecionados');
+  });
+
+  document.getElementById('btn-batch-sermons-pdf')?.addEventListener('click', () => {
+    const items = getSelectedSermonsItems();
+    if (items.length) exportBatchToPdf(items, 'Sermões Selecionados');
+  });
+
+  document.getElementById('btn-batch-sermons-del')?.addEventListener('click', () => {
+    deleteSelectedSermons();
+  });
+
+  // Modos de entrada no modal de sermões
+  document.querySelectorAll('[data-sermonmode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-sermonmode');
+      if (mode) setSermonModalMode(mode);
+    });
+  });
+
+  const btnSaveModal = document.getElementById('btn-save-sermon-modal');
+  if (btnSaveModal) {
+    btnSaveModal.addEventListener('click', saveSermonFromModal);
+  }
+
+  const btnCloseModal = document.getElementById('btn-close-sermon-modal');
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', () => {
+      document.getElementById('sermon-editor-modal')?.classList.remove('open');
+    });
+  }
+
+  // Exportações individuais do modal de sermões
+  document.getElementById('btn-export-sermon-doc')?.addEventListener('click', () => {
+    const item = getActiveSermonObjectForExport();
+    if (item) exportToDoc(item, 'Sermao');
+  });
+
+  document.getElementById('btn-export-sermon-excel')?.addEventListener('click', () => {
+    const item = getActiveSermonObjectForExport();
+    if (item) exportToExcel([item], `ASCD_Sermao_${cleanFilename(item.title)}`);
+  });
+
+  document.getElementById('btn-export-sermon-pdf')?.addEventListener('click', () => {
+    const item = getActiveSermonObjectForExport();
+    if (item) exportToPdf(item, 'Anotação de Sermão');
+  });
+
+  document.getElementById('btn-export-all-sermons-excel')?.addEventListener('click', () => {
+    exportToExcel(ASCD.sermons.map(s => ({ ...s, type: 'Sermão' })), 'ASCD_Todos_Sermoes');
+  });
+}
+
+function getSelectedSermonsItems() {
+  return ASCD.sermons
+    .filter(s => ASCD.selectedSermons.has(s.id))
+    .map(s => ({ ...s, type: 'Sermão' }));
+}
+
+function updateSermonsBatchBar() {
+  const bar = document.getElementById('sermons-batch-bar');
+  const counter = document.getElementById('sermons-selected-counter');
+  const count = ASCD.selectedSermons.size;
+
+  if (bar) {
+    bar.classList.toggle('active', ASCD.sermonsSelectMode || count > 0);
+  }
+  if (counter) {
+    counter.textContent = `${count} selecionado(s)`;
+  }
+}
+
+function deleteSelectedSermons() {
+  const count = ASCD.selectedSermons.size;
+  if (!count) return;
+  if (confirm(`Deseja realmente excluir os ${count} sermões selecionados?`)) {
+    ASCD.sermons = ASCD.sermons.filter(s => !ASCD.selectedSermons.has(s.id));
+    ASCD.selectedSermons.clear();
+    saveSermons();
+    updateSermonsBatchBar();
+    renderSermonsList();
+    showToast(`${count} sermão(ões) excluído(s)`);
+  }
+}
+
+function getActiveSermonObjectForExport() {
+  const title = document.getElementById('edit-sermon-title')?.value.trim() || 'Sermão sem título';
+  const preacher = document.getElementById('edit-sermon-preacher')?.value.trim() || 'Pregador não informado';
+  const passage = document.getElementById('edit-sermon-passage')?.value.trim() || 'Geral';
+  const date = document.getElementById('edit-sermon-date')?.value || new Date().toISOString().split('T')[0];
+  const content = document.getElementById('edit-sermon-content')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  if (ASCD.sermonPencilEngine && (ASCD.sermonCurrentMode === 'pencil' || ASCD.sermonCurrentMode === 'hybrid')) {
+    if (ASCD.sermonPencilEngine.historyIndex > 0 || ASCD.sermonPencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.sermonPencilEngine.getDataUrl ? ASCD.sermonPencilEngine.getDataUrl() : ASCD.sermonPencilEngine.canvas.toDataURL();
+    }
+  }
+
+  return {
+    id: ASCD.activeSermonId || 'sermon-export',
+    type: 'Sermão',
+    title,
+    preacher,
+    passage,
+    date,
+    mode: ASCD.sermonCurrentMode,
+    paperType: ASCD.sermonPencilEngine ? ASCD.sermonPencilEngine.paperType : 'pautada',
+    content,
+    pencilDataUrl
+  };
+}
+
+function renderSermonsList(filterQuery = '') {
+  const container = document.getElementById('sermons-cards-grid');
+  if (!container) return;
+
+  const filtered = ASCD.sermons.filter(s => {
+    return s.title.toLowerCase().includes(filterQuery) ||
+           (s.preacher && s.preacher.toLowerCase().includes(filterQuery)) ||
+           (s.passage && s.passage.toLowerCase().includes(filterQuery)) ||
+           (s.content && s.content.toLowerCase().includes(filterQuery));
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state-box" style="grid-column: 1 / -1; padding: 40px; text-align: center; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <h3 style="margin-top: 12px;">Nenhum sermão registrado</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Guarde as pregações de seus cultos com dados do pregador, versículos e Apple Pencil!</p>
+        <button class="btn btn-primary" onclick="openSermonModal()" style="margin-top: 16px;">+ Novo Sermão</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => {
+    const isSelected = ASCD.selectedSermons.has(s.id);
+    const modeBadge = s.mode === 'pencil' ? '✍️ Apple Pencil' : (s.mode === 'text' ? '⌨️ Teclado' : '✨ Híbrido');
+    const plainText = s.content ? stripHtml(s.content).trim() : '';
+    const snippet = plainText ? (plainText.length > 140 ? escapeHtml(plainText.substring(0, 140)) + '...' : escapeHtml(plainText)) : '';
+    return `
+      <div class="note-card ${isSelected ? 'selected' : ''}" onclick="handleSermonCardClick('${s.id}')">
+        <div class="note-card-header">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <input type="checkbox" class="card-select-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectSermon('${s.id}')" title="Selecionar" />
+            <span class="note-category-tag">🎤 Sermão</span>
+          </div>
+          <span class="note-mode-tag">${modeBadge}</span>
+        </div>
+        
+        <h3 class="note-card-title">${escapeHtml(s.title)}</h3>
+
+        <div class="sermon-meta-row">
+          ${s.preacher ? `<span class="sermon-meta-item">👤 <strong>${escapeHtml(s.preacher)}</strong></span>` : ''}
+          ${s.passage ? `<span class="sermon-meta-item">📖 <strong>${escapeHtml(s.passage)}</strong></span>` : ''}
+        </div>
+
+        ${s.pencilDataUrl ? `
+          <img src="${s.pencilDataUrl}" class="note-card-pencil-thumb" alt="Caligrafia Apple Pencil" />
+        ` : ''}
+
+        ${snippet ? `
+          <div class="note-card-preview">${snippet}</div>
+        ` : ''}
+
+        <div class="card-actions-row">
+          <span class="note-date">${formatDateShort(s.date)}</span>
+          
+          <div class="card-export-mini-group" onclick="event.stopPropagation()">
+            <button class="btn-mini-export" title="Exportar para DOC" onclick="exportSermonById('${s.id}', 'doc')">DOC</button>
+            <button class="btn-mini-export" title="Exportar para Excel" onclick="exportSermonById('${s.id}', 'excel')">Excel</button>
+            <button class="btn-mini-export" title="Exportar para PDF" onclick="exportSermonById('${s.id}', 'pdf')">PDF</button>
+            <button class="btn-icon-subtle" onclick="deleteSermon(event, '${s.id}')" title="Excluir Sermão" style="margin-left: 4px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleSermonCardClick(id) {
+  if (ASCD.sermonsSelectMode) {
+    toggleSelectSermon(id);
+  } else {
+    openSermonModal(id);
+  }
+}
+
+function toggleSelectSermon(id) {
+  if (ASCD.selectedSermons.has(id)) {
+    ASCD.selectedSermons.delete(id);
+  } else {
+    ASCD.selectedSermons.add(id);
+  }
+  updateSermonsBatchBar();
+  renderSermonsList();
+}
+
+function openSermonModal(sermonId = null) {
+  ASCD.activeSermonId = sermonId;
+  const modal = document.getElementById('sermon-editor-modal');
+  if (!modal) return;
+
+  let sermon = null;
+  if (sermonId) {
+    sermon = ASCD.sermons.find(s => s.id === sermonId);
+  }
+
+  const titleInput = document.getElementById('edit-sermon-title');
+  const preacherInput = document.getElementById('edit-sermon-preacher');
+  const passageInput = document.getElementById('edit-sermon-passage');
+  const dateInput = document.getElementById('edit-sermon-date');
+  const textEditor = document.getElementById('edit-sermon-content');
+
+  if (sermon) {
+    if (titleInput) titleInput.value = sermon.title || '';
+    if (preacherInput) preacherInput.value = sermon.preacher || '';
+    if (passageInput) passageInput.value = sermon.passage || '';
+    if (dateInput) dateInput.value = sermon.date || '';
+    if (textEditor) textEditor.innerHTML = sermon.content || '';
+    setSermonModalMode(sermon.mode || 'hybrid');
+
+    const sermonPaper = sermon.paperType || 'pautada';
+    if (ASCD.sermonPencilEngine) {
+      ASCD.sermonPencilEngine.changePaper(sermonPaper);
+      const sel = document.getElementById('sermon-paper-select');
+      if (sel) sel.value = sermonPaper;
+      ASCD.sermonPencilEngine.clearCanvas();
+      if (sermon.pencilRawDataUrl) {
+        ASCD.sermonPencilEngine.loadFromDataUrl(sermon.pencilRawDataUrl);
+      } else if (sermon.pencilDataUrl) {
+        ASCD.sermonPencilEngine.loadFromDataUrl(sermon.pencilDataUrl);
+      }
+    }
+  } else {
+    ASCD.activeSermonId = null;
+    if (titleInput) titleInput.value = '';
+    if (preacherInput) preacherInput.value = '';
+    if (passageInput) passageInput.value = '';
+    if (dateInput) dateInput.value = getTodayDateStr();
+    if (textEditor) textEditor.innerHTML = '';
+    setSermonModalMode('hybrid');
+
+    if (ASCD.sermonPencilEngine) {
+      ASCD.sermonPencilEngine.changePaper('pautada');
+      const sel = document.getElementById('sermon-paper-select');
+      if (sel) sel.value = 'pautada';
+      ASCD.sermonPencilEngine.clearCanvas();
+    }
+  }
+
+  modal.classList.add('open');
+
+  setTimeout(() => {
+    if (ASCD.sermonPencilEngine) ASCD.sermonPencilEngine.initCanvasSize();
+  }, 100);
+}
+
+function setSermonModalMode(mode) {
+  ASCD.sermonCurrentMode = mode;
+
+  document.querySelectorAll('[data-sermonmode]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-sermonmode') === mode);
+  });
+
+  const textWrap = document.getElementById('sermon-text-wrapper');
+  const pencilWrap = document.getElementById('sermon-pencil-wrapper');
+
+  if (mode === 'text') {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) pencilWrap.style.display = 'none';
+  } else if (mode === 'pencil') {
+    if (textWrap) textWrap.style.display = 'none';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.sermonPencilEngine) ASCD.sermonPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  } else {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.sermonPencilEngine) ASCD.sermonPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  }
+}
+
+function saveSermonFromModal() {
+  const title = document.getElementById('edit-sermon-title')?.value.trim() || 'Sermão sem título';
+  const preacher = document.getElementById('edit-sermon-preacher')?.value.trim() || '';
+  const passage = document.getElementById('edit-sermon-passage')?.value.trim() || '';
+  const date = document.getElementById('edit-sermon-date')?.value || getTodayDateStr();
+  const content = document.getElementById('edit-sermon-content')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  let pencilRawDataUrl = null;
+  if (ASCD.sermonPencilEngine && (ASCD.sermonCurrentMode === 'pencil' || ASCD.sermonCurrentMode === 'hybrid')) {
+    if (ASCD.sermonPencilEngine.historyIndex > 0 || ASCD.sermonPencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.sermonPencilEngine.getDataUrl ? ASCD.sermonPencilEngine.getDataUrl() : ASCD.sermonPencilEngine.canvas.toDataURL();
+      pencilRawDataUrl = ASCD.sermonPencilEngine.canvas.toDataURL();
+    }
+  }
+
+  const paperType = ASCD.sermonPencilEngine ? ASCD.sermonPencilEngine.paperType : 'pautada';
+
+  if (ASCD.activeSermonId) {
+    const idx = ASCD.sermons.findIndex(s => s.id === ASCD.activeSermonId);
+    if (idx !== -1) {
+      ASCD.sermons[idx].title = title;
+      ASCD.sermons[idx].preacher = preacher;
+      ASCD.sermons[idx].passage = passage;
+      ASCD.sermons[idx].date = date;
+      ASCD.sermons[idx].mode = ASCD.sermonCurrentMode;
+      ASCD.sermons[idx].paperType = paperType;
+      ASCD.sermons[idx].content = content;
+      if (pencilDataUrl) ASCD.sermons[idx].pencilDataUrl = pencilDataUrl;
+      if (pencilRawDataUrl) ASCD.sermons[idx].pencilRawDataUrl = pencilRawDataUrl;
+    }
+  } else {
+    const newSermon = {
+      id: 'sermon-' + Date.now(),
+      title,
+      preacher,
+      passage,
+      date,
+      mode: ASCD.sermonCurrentMode,
+      paperType,
+      content,
+      pencilDataUrl,
+      pencilRawDataUrl
+    };
+    ASCD.sermons.unshift(newSermon);
+  }
+
+  saveSermons();
+  renderSermonsList();
+  document.getElementById('sermon-editor-modal')?.classList.remove('open');
+  showToast('💾 Sermão gravado com sucesso!');
+}
+
+function deleteSermon(event, sermonId) {
+  event.stopPropagation();
+  if (confirm('Tem certeza que deseja apagar esta anotação de sermão?')) {
+    ASCD.sermons = ASCD.sermons.filter(s => s.id !== sermonId);
+    ASCD.selectedSermons.delete(sermonId);
+    saveSermons();
+    updateSermonsBatchBar();
+    renderSermonsList();
+    showToast('Sermão excluído');
+  }
+}
+
+function exportSermonById(sermonId, format) {
+  const sermon = ASCD.sermons.find(s => s.id === sermonId);
+  if (!sermon) return;
+  const item = { ...sermon, type: 'Sermão' };
+  if (format === 'doc') exportToDoc(item, 'Sermao');
+  if (format === 'excel') exportToExcel([item], `ASCD_Sermao_${cleanFilename(item.title)}`);
+  if (format === 'pdf') exportToPdf(item, 'Anotação de Sermão');
+}
+
+/**
+ * ==========================================================================
+ * JOURNALING DIÁRIO COM CALENDÁRIO, ORAÇÃO E TAREFAS ("O QUE FAZER NESSE DIA")
+ * ==========================================================================
+ */
+function setupJournal() {
+  const todayStr = getTodayDateStr();
+  ASCD.currentJournalDate = todayStr;
+  const d = new Date();
+  ASCD.calendarYear = d.getFullYear();
+  ASCD.calendarMonth = d.getMonth();
+
+  const journalCanvasEl = document.getElementById('journal-drawing-canvas');
+  if (journalCanvasEl) {
+    ASCD.journalPencilEngine = new AscdPencilEngine(journalCanvasEl);
+    ASCD.journalPencilEngine.changePaper('pautada');
+    setupPencilEngineControls(ASCD.journalPencilEngine, 'journal');
+  }
+
+  // Navegação do Calendário
+  document.getElementById('cal-prev-month')?.addEventListener('click', () => {
+    ASCD.calendarMonth--;
+    if (ASCD.calendarMonth < 0) {
+      ASCD.calendarMonth = 11;
+      ASCD.calendarYear--;
+    }
+    renderCalendar();
+  });
+
+  document.getElementById('cal-next-month')?.addEventListener('click', () => {
+    ASCD.calendarMonth++;
+    if (ASCD.calendarMonth > 11) {
+      ASCD.calendarMonth = 0;
+      ASCD.calendarYear++;
+    }
+    renderCalendar();
+  });
+
+  document.getElementById('cal-btn-today')?.addEventListener('click', () => {
+    const now = new Date();
+    ASCD.calendarYear = now.getFullYear();
+    ASCD.calendarMonth = now.getMonth();
+    selectJournalDate(getTodayDateStr());
+    renderCalendar();
+  });
+
+  // Navegação de Dias Anteriores / Seguintes no Journal
+  document.getElementById('journal-prev-day')?.addEventListener('click', () => {
+    changeJournalDay(-1);
+  });
+
+  document.getElementById('journal-next-day')?.addEventListener('click', () => {
+    changeJournalDay(1);
+  });
+
+  // Modos de entrada no Journal
+  document.querySelectorAll('[data-journalmode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-journalmode');
+      if (mode) setJournalMode(mode);
+    });
+  });
+
+  // Adicionar tarefa em "O que fazer nesse dia"
+  const btnAddTask = document.getElementById('btn-add-journal-task');
+  const taskInput = document.getElementById('journal-task-input');
+  if (btnAddTask && taskInput) {
+    btnAddTask.addEventListener('click', () => addJournalTask());
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addJournalTask();
+      }
+    });
+  }
+
+  // Salvar registro
+  document.getElementById('btn-save-journal-entry')?.addEventListener('click', () => {
+    saveCurrentJournalEntry();
+    showToast('💾 Registro diário salvo no seu dispositivo!');
+  });
+
+  // Exportações do Journal
+  document.getElementById('btn-export-journal-doc')?.addEventListener('click', () => {
+    saveCurrentJournalEntry(false);
+    const entry = ASCD.journalEntries[ASCD.currentJournalDate];
+    if (entry) exportToDoc({ ...entry, type: 'Journal Diário' }, 'Journal');
+  });
+
+  document.getElementById('btn-export-journal-excel')?.addEventListener('click', () => {
+    saveCurrentJournalEntry(false);
+    const entry = ASCD.journalEntries[ASCD.currentJournalDate];
+    if (entry) exportToExcel([{ ...entry, type: 'Journal Diário' }], `ASCD_Journal_${ASCD.currentJournalDate}`);
+  });
+
+  document.getElementById('btn-export-journal-pdf')?.addEventListener('click', () => {
+    saveCurrentJournalEntry(false);
+    const entry = ASCD.journalEntries[ASCD.currentJournalDate];
+    if (entry) exportToPdf({ ...entry, type: 'Journal Diário' }, 'Diário Espiritual & Journaling');
+  });
+
+  document.getElementById('btn-export-all-journal-excel')?.addEventListener('click', () => {
+    const list = Object.values(ASCD.journalEntries).map(j => ({ ...j, type: 'Journal Diário' }));
+    exportToExcel(list, 'ASCD_Todo_Historico_Journal');
+  });
+
+  // Alternar modo de seleção de dias de journaling
+  const btnToggleSelectJ = document.getElementById('btn-toggle-select-journal');
+  if (btnToggleSelectJ) {
+    btnToggleSelectJ.addEventListener('click', () => {
+      ASCD.journalSelectMode = !ASCD.journalSelectMode;
+      ASCD.selectedJournalDates.clear();
+      updateJournalBatchBar();
+      renderJournalHistoryList();
+      btnToggleSelectJ.textContent = ASCD.journalSelectMode ? '✕ Cancelar' : '☑️ Selecionar';
+    });
+  }
+
+  // Selecionar todos os dias de journaling
+  document.getElementById('btn-select-all-journal')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      Object.keys(ASCD.journalEntries).forEach(d => ASCD.selectedJournalDates.add(d));
+    } else {
+      ASCD.selectedJournalDates.clear();
+    }
+    updateJournalBatchBar();
+    renderJournalHistoryList();
+  });
+
+  // Excluir dias selecionados em lote
+  document.getElementById('btn-batch-journal-del')?.addEventListener('click', () => {
+    deleteSelectedJournalDays();
+  });
+
+  // Botão de apagar o dia atual no cabeçalho do diário
+  document.getElementById('btn-delete-current-journal-day')?.addEventListener('click', () => {
+    deleteCurrentJournalDay();
+  });
+}
+
+function renderCalendar() {
+  const titleEl = document.getElementById('cal-month-title');
+  const daysGrid = document.getElementById('calendar-days-grid');
+  if (!daysGrid) return;
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  if (titleEl) {
+    titleEl.textContent = `${monthNames[ASCD.calendarMonth]} ${ASCD.calendarYear}`;
+  }
+
+  const firstDayIndex = new Date(ASCD.calendarYear, ASCD.calendarMonth, 1).getDay(); // 0 = Dom
+  const daysInMonth = new Date(ASCD.calendarYear, ASCD.calendarMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(ASCD.calendarYear, ASCD.calendarMonth, 0).getDate();
+
+  const todayStr = getTodayDateStr();
+  let html = '';
+
+  // Dias do mês anterior para completar o grid
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const prevDayNum = prevMonthDays - i;
+    html += `<div class="cal-day-cell other-month">${prevDayNum}</div>`;
+  }
+
+  // Dias do mês atual
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayStr = `${ASCD.calendarYear}-${String(ASCD.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isToday = dayStr === todayStr;
+    const isSelected = dayStr === ASCD.currentJournalDate;
+    const entry = ASCD.journalEntries[dayStr];
+    const hasEntry = Boolean(entry && (entry.content || entry.prayer || (entry.tasks && entry.tasks.length) || entry.pencilDataUrl));
+
+    let classes = 'cal-day-cell';
+    if (isToday) classes += ' today';
+    if (isSelected) classes += ' selected';
+    if (hasEntry) classes += ' has-entry';
+
+    html += `<div class="${classes}" onclick="selectJournalDate('${dayStr}')">${day}</div>`;
+  }
+
+  // Preencher resto da última semana
+  const totalSlots = firstDayIndex + daysInMonth;
+  const remaining = (7 - (totalSlots % 7)) % 7;
+  for (let j = 1; j <= remaining; j++) {
+    html += `<div class="cal-day-cell other-month">${j}</div>`;
+  }
+
+  daysGrid.innerHTML = html;
+}
+
+function selectJournalDate(dateStr) {
+  if (ASCD.journalSelectMode) {
+    toggleSelectJournalDate(dateStr);
+    return;
+  }
+  // Salvar registro anterior antes de trocar de dia
+  saveCurrentJournalEntry(false);
+
+  ASCD.currentJournalDate = dateStr;
+  renderCalendar();
+  loadJournalEntryForDate(dateStr);
+  renderJournalHistoryList();
+}
+
+function changeJournalDay(delta) {
+  saveCurrentJournalEntry(false);
+  const parts = ASCD.currentJournalDate.split('-');
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  d.setDate(d.getDate() + delta);
+
+  ASCD.calendarYear = d.getFullYear();
+  ASCD.calendarMonth = d.getMonth();
+  const newDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  selectJournalDate(newDateStr);
+}
+
+function loadJournalEntryForDate(dateStr) {
+  const displayDateEl = document.getElementById('journal-display-date');
+  if (displayDateEl) {
+    displayDateEl.textContent = formatDateDisplay(dateStr);
+  }
+
+  const titleInput = document.getElementById('journal-title-input');
+  const verseInput = document.getElementById('journal-verse-input');
+  const prayerEditor = document.getElementById('journal-prayer-editor');
+  const textEditor = document.getElementById('journal-text-editor');
+  const saveStatus = document.getElementById('journal-save-status');
+
+  const entry = ASCD.journalEntries[dateStr];
+
+  if (entry) {
+    if (titleInput) titleInput.value = entry.title || '';
+    if (verseInput) verseInput.value = entry.verse || '';
+    if (prayerEditor) prayerEditor.innerHTML = entry.prayer || '';
+    if (textEditor) textEditor.innerHTML = entry.content || '';
+    setJournalMode(entry.mode || 'hybrid');
+    renderJournalTasks(entry.tasks || []);
+
+    const journalPaper = entry.paperType || 'pautada';
+    if (ASCD.journalPencilEngine) {
+      ASCD.journalPencilEngine.changePaper(journalPaper);
+      const sel = document.getElementById('journal-paper-select');
+      if (sel) sel.value = journalPaper;
+      ASCD.journalPencilEngine.clearCanvas();
+      if (entry.pencilRawDataUrl) {
+        ASCD.journalPencilEngine.loadFromDataUrl(entry.pencilRawDataUrl);
+      } else if (entry.pencilDataUrl) {
+        ASCD.journalPencilEngine.loadFromDataUrl(entry.pencilDataUrl);
+      }
+    }
+    if (saveStatus) saveStatus.textContent = '✓ Registro salvo no dispositivo';
+  } else {
+    if (titleInput) titleInput.value = '';
+    if (verseInput) verseInput.value = '';
+    if (prayerEditor) prayerEditor.innerHTML = '';
+    if (textEditor) textEditor.innerHTML = '';
+    setJournalMode('hybrid');
+    renderJournalTasks([]);
+
+    if (ASCD.journalPencilEngine) {
+      ASCD.journalPencilEngine.changePaper('pautada');
+      const sel = document.getElementById('journal-paper-select');
+      if (sel) sel.value = 'pautada';
+      ASCD.journalPencilEngine.clearCanvas();
+    }
+    if (saveStatus) saveStatus.textContent = 'Novo registro para este dia';
+  }
+
+  setTimeout(() => {
+    if (ASCD.journalPencilEngine) ASCD.journalPencilEngine.initCanvasSize();
+  }, 100);
+}
+
+function renderJournalTasks(tasks = null) {
+  const listEl = document.getElementById('journal-tasks-list');
+  const progressEl = document.getElementById('journal-tasks-progress');
+  if (!listEl) return;
+
+  const currentEntry = ASCD.journalEntries[ASCD.currentJournalDate];
+  const taskList = tasks || (currentEntry ? currentEntry.tasks : []) || [];
+
+  if (taskList.length === 0) {
+    listEl.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:6px 0;">Nenhuma tarefa adicionada para hoje ainda.</div>`;
+    if (progressEl) progressEl.textContent = '0 tarefas';
+    return;
+  }
+
+  const completedCount = taskList.filter(t => t.done).length;
+  if (progressEl) {
+    progressEl.textContent = `${completedCount} de ${taskList.length} concluída(s)`;
+  }
+
+  listEl.innerHTML = taskList.map(task => `
+    <div class="journal-task-item">
+      <div class="journal-task-left">
+        <input type="checkbox" class="journal-task-checkbox" ${task.done ? 'checked' : ''} onchange="toggleJournalTask('${task.id}', this.checked)" />
+        <span class="journal-task-text ${task.done ? 'completed' : ''}">${escapeHtml(task.text)}</span>
+      </div>
+      <button type="button" class="btn-icon-subtle" onclick="deleteJournalTask('${task.id}')" title="Excluir tarefa">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function addJournalTask() {
+  const input = document.getElementById('journal-task-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  const dateStr = ASCD.currentJournalDate;
+  if (!ASCD.journalEntries[dateStr]) {
+    ASCD.journalEntries[dateStr] = {
+      date: dateStr,
+      title: `Diário de ${formatDateShort(dateStr)}`,
+      verse: '',
+      prayer: '',
+      tasks: [],
+      content: '',
+      pencilDataUrl: null,
+      mode: ASCD.journalCurrentMode,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (!ASCD.journalEntries[dateStr].tasks) {
+    ASCD.journalEntries[dateStr].tasks = [];
+  }
+
+  ASCD.journalEntries[dateStr].tasks.push({
+    id: 'task-' + Date.now(),
+    text,
+    done: false
+  });
+
+  input.value = '';
+  saveJournalEntries();
+  renderJournalTasks();
+  renderCalendar();
+}
+
+function toggleJournalTask(taskId, isDone) {
+  const dateStr = ASCD.currentJournalDate;
+  const entry = ASCD.journalEntries[dateStr];
+  if (!entry || !entry.tasks) return;
+
+  const task = entry.tasks.find(t => t.id === taskId);
+  if (task) {
+    task.done = isDone;
+    saveJournalEntries();
+    renderJournalTasks();
+  }
+}
+
+function deleteJournalTask(taskId) {
+  const dateStr = ASCD.currentJournalDate;
+  const entry = ASCD.journalEntries[dateStr];
+  if (!entry || !entry.tasks) return;
+
+  entry.tasks = entry.tasks.filter(t => t.id !== taskId);
+  saveJournalEntries();
+  renderJournalTasks();
+}
+
+function setJournalMode(mode) {
+  ASCD.journalCurrentMode = mode;
+
+  document.querySelectorAll('[data-journalmode]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-journalmode') === mode);
+  });
+
+  const textWrap = document.getElementById('journal-text-wrapper');
+  const pencilWrap = document.getElementById('journal-pencil-wrapper');
+
+  if (mode === 'text') {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) pencilWrap.style.display = 'none';
+  } else if (mode === 'pencil') {
+    if (textWrap) textWrap.style.display = 'none';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.journalPencilEngine) ASCD.journalPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  } else {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.journalPencilEngine) ASCD.journalPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  }
+}
+
+function saveCurrentJournalEntry(notify = true) {
+  const dateStr = ASCD.currentJournalDate;
+  if (!dateStr) return;
+
+  const title = document.getElementById('journal-title-input')?.value.trim() || '';
+  const verse = document.getElementById('journal-verse-input')?.value.trim() || '';
+  const prayer = document.getElementById('journal-prayer-editor')?.innerHTML || '';
+  const content = document.getElementById('journal-text-editor')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  let pencilRawDataUrl = null;
+  if (ASCD.journalPencilEngine && (ASCD.journalCurrentMode === 'pencil' || ASCD.journalCurrentMode === 'hybrid')) {
+    if (ASCD.journalPencilEngine.historyIndex > 0 || ASCD.journalPencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.journalPencilEngine.getDataUrl ? ASCD.journalPencilEngine.getDataUrl() : ASCD.journalPencilEngine.canvas.toDataURL();
+      pencilRawDataUrl = ASCD.journalPencilEngine.canvas.toDataURL();
+    }
+  }
+
+  const paperType = ASCD.journalPencilEngine ? ASCD.journalPencilEngine.paperType : 'pautada';
+  const existingTasks = (ASCD.journalEntries[dateStr] && ASCD.journalEntries[dateStr].tasks) ? ASCD.journalEntries[dateStr].tasks : [];
+
+  // Se nada foi preenchido e não havia nada, ignorar
+  if (!title && !verse && (!prayer || prayer === '<br>') && (!content || content === '<br>') && !pencilDataUrl && !existingTasks.length && !ASCD.journalEntries[dateStr]) {
+    return;
+  }
+
+  ASCD.journalEntries[dateStr] = {
+    date: dateStr,
+    title: title || `Diário de ${formatDateShort(dateStr)}`,
+    verse,
+    prayer,
+    tasks: existingTasks,
+    mode: ASCD.journalCurrentMode,
+    paperType,
+    content,
+    pencilDataUrl,
+    pencilRawDataUrl,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveJournalEntries();
+  renderCalendar();
+  renderJournalHistoryList();
+
+  const statusEl = document.getElementById('journal-save-status');
+  if (statusEl) {
+    statusEl.textContent = '✓ Registro salvo no dispositivo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  if (notify) {
+    showToast('✓ Diário salvo com sucesso!');
+  }
+}
+
+function toggleSelectJournalDate(dateStr) {
+  if (ASCD.selectedJournalDates.has(dateStr)) {
+    ASCD.selectedJournalDates.delete(dateStr);
+  } else {
+    ASCD.selectedJournalDates.add(dateStr);
+  }
+  updateJournalBatchBar();
+  renderJournalHistoryList();
+}
+
+function updateJournalBatchBar() {
+  const bar = document.getElementById('journal-batch-bar');
+  const counter = document.getElementById('journal-selected-counter');
+  const count = ASCD.selectedJournalDates.size;
+  const selectAll = document.getElementById('btn-select-all-journal');
+
+  if (bar) {
+    bar.style.display = (ASCD.journalSelectMode || count > 0) ? 'block' : 'none';
+  }
+  if (counter) {
+    counter.textContent = `${count} selecionado(s)`;
+  }
+  if (selectAll) {
+    const total = Object.keys(ASCD.journalEntries).length;
+    selectAll.checked = total > 0 && count === total;
+  }
+}
+
+function renderJournalHistoryList() {
+  const container = document.getElementById('journal-history-list');
+  if (!container) return;
+
+  const dates = Object.keys(ASCD.journalEntries).sort().reverse();
+
+  if (dates.length === 0) {
+    container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:12px;">Nenhum registro ainda.</div>`;
+    const bar = document.getElementById('journal-batch-bar');
+    if (bar) bar.style.display = 'none';
+    return;
+  }
+
+  container.innerHTML = dates.map(dateStr => {
+    const entry = ASCD.journalEntries[dateStr];
+    const isCur = dateStr === ASCD.currentJournalDate;
+    const isSel = ASCD.selectedJournalDates.has(dateStr);
+
+    if (ASCD.journalSelectMode) {
+      return `
+        <div class="journal-history-item ${isCur ? 'active' : ''} ${isSel ? 'selected' : ''}" onclick="toggleSelectJournalDate('${dateStr}')">
+          <input type="checkbox" class="card-select-checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectJournalDate('${dateStr}')" style="width:16px; height:16px; margin-right:6px; flex-shrink:0;">
+          <div class="journal-history-info">
+            <span class="journal-history-date">${formatDateShort(dateStr)}</span>
+            <span class="journal-history-title">${escapeHtml(entry.title || 'Sem título')}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="journal-history-item ${isCur ? 'active' : ''}" onclick="selectJournalDate('${dateStr}')">
+        <div class="journal-history-info">
+          <span class="journal-history-date">${formatDateShort(dateStr)}</span>
+          <span class="journal-history-title">${escapeHtml(entry.title || 'Sem título')}</span>
+        </div>
+        <button type="button" class="btn-delete-history-item" title="Apagar registro do dia ${formatDateShort(dateStr)}" onclick="deleteSingleJournalDay('${dateStr}', event)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function clearJournalInputs() {
+  const titleInput = document.getElementById('journal-title-input');
+  const verseInput = document.getElementById('journal-verse-input');
+  const prayerEditor = document.getElementById('journal-prayer-editor');
+  const textEditor = document.getElementById('journal-text-editor');
+  const saveStatus = document.getElementById('journal-save-status');
+
+  if (titleInput) titleInput.value = '';
+  if (verseInput) verseInput.value = '';
+  if (prayerEditor) prayerEditor.innerHTML = '';
+  if (textEditor) textEditor.innerHTML = '';
+  renderJournalTasks([]);
+  if (ASCD.journalPencilEngine) {
+    ASCD.journalPencilEngine.clearCanvas();
+  }
+  if (saveStatus) saveStatus.textContent = 'Registro deste dia foi apagado.';
+}
+
+function deleteSingleJournalDay(dateStr, e) {
+  if (e) e.stopPropagation();
+  const dateFormatted = formatDateShort(dateStr);
+  if (confirm(`Deseja realmente apagar o registro do diário do dia ${dateFormatted}? Esta ação não pode ser desfeita.`)) {
+    delete ASCD.journalEntries[dateStr];
+    ASCD.selectedJournalDates.delete(dateStr);
+    saveJournalEntries();
+
+    if (ASCD.currentJournalDate === dateStr) {
+      clearJournalInputs();
+    }
+
+    renderCalendar();
+    renderJournalHistoryList();
+    updateJournalBatchBar();
+    showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
+  }
+}
+
+function deleteSelectedJournalDays() {
+  const count = ASCD.selectedJournalDates.size;
+  if (!count) {
+    showToast('Nenhum dia selecionado para excluir.');
+    return;
+  }
+  const msg = count === 1 
+    ? `Deseja realmente apagar o registro do dia selecionado?`
+    : `Deseja realmente apagar os registros dos ${count} dias selecionados? Esta ação não pode ser desfeita.`;
+
+  if (confirm(msg)) {
+    let currentCleared = false;
+    ASCD.selectedJournalDates.forEach(dateStr => {
+      delete ASCD.journalEntries[dateStr];
+      if (ASCD.currentJournalDate === dateStr) {
+        currentCleared = true;
+      }
+    });
+
+    ASCD.selectedJournalDates.clear();
+    ASCD.journalSelectMode = false;
+    saveJournalEntries();
+
+    if (currentCleared) {
+      clearJournalInputs();
+    }
+
+    const btnToggle = document.getElementById('btn-toggle-select-journal');
+    if (btnToggle) btnToggle.textContent = '☑️ Selecionar';
+
+    updateJournalBatchBar();
+    renderCalendar();
+    renderJournalHistoryList();
+    showToast(`🗑️ ${count} dia(s) de registro apagado(s) com sucesso!`);
+  }
+}
+
+function deleteCurrentJournalDay() {
+  const dateStr = ASCD.currentJournalDate;
+  if (!dateStr || !ASCD.journalEntries[dateStr]) {
+    showToast('Este dia ainda não possui registro salvo para apagar.');
+    return;
+  }
+  const dateFormatted = formatDateShort(dateStr);
+  if (confirm(`Deseja realmente apagar o registro do diário do dia ${dateFormatted}? Esta ação não pode ser desfeita.`)) {
+    delete ASCD.journalEntries[dateStr];
+    ASCD.selectedJournalDates.delete(dateStr);
+    saveJournalEntries();
+    clearJournalInputs();
+    renderCalendar();
+    renderJournalHistoryList();
+    updateJournalBatchBar();
+    showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
+  }
+}
+
+/**
+ * ==========================================================================
+ * CONTROLE DA BARRA DE CALIGRAFIA APPLE PENCIL
+ * Rejeição de Palma, Desfazer, Limpar e 3 Cores de Marca-Texto
+ * ==========================================================================
+ */
+function setupPencilEngineControls(engine, prefix) {
+  if (!engine) return;
+
+  // As 3 cores de marca-texto da caneta Apple Pencil
+  document.querySelectorAll(`.${prefix}-hl-dot`).forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+      const color = dot.getAttribute('data-pencil-color');
+      if (color) {
+        engine.tool = 'highlighter';
+        engine.highlighterColor = color;
+        showToast('🖍️ Marca-texto Apple Pencil ativado');
+      }
+    });
+  });
+
+  const btnPalm = document.getElementById(`${prefix}-btn-palm`);
+  if (btnPalm) {
+    btnPalm.addEventListener('click', () => {
+      engine.onlyPenMode = !engine.onlyPenMode;
+      btnPalm.classList.toggle('active', engine.onlyPenMode);
+      showToast(engine.onlyPenMode ? '✍️ Rejeição de Palma ATIVADA: Apenas a caneta desenha!' : '🖐️ Toque normal ativado.');
+    });
+  }
+
+  const btnUndo = document.getElementById(`${prefix}-btn-undo`);
+  if (btnUndo) {
+    btnUndo.addEventListener('click', () => engine.undo());
+  }
+
+  const btnClear = document.getElementById(`${prefix}-btn-clear`);
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      if (confirm('Deseja apagar os traços desenhados nesta folha?')) {
+        engine.clearCanvas();
+      }
+    });
+  }
+
+  // Seletor de Tipo de Folha (Pautada, Quadriculada Matemática, Pontilhada, Papiro, Lisa)
+  const paperSelect = document.getElementById(`${prefix}-paper-select`);
+  if (paperSelect) {
+    paperSelect.value = engine.paperType || 'pautada';
+    paperSelect.addEventListener('change', (e) => {
+      const type = e.target.value;
+      engine.changePaper(type);
+      const labels = {
+        pautada: '📄 Folha Pautada (Linhas)',
+        quadriculada: '📐 Folha Quadriculada (Matemática)',
+        pontilhada: '⠇ Folha Pontilhada',
+        pergaminho: '📜 Papiro Bíblico Antigo',
+        branca: '⚪ Folha Lisa'
+      };
+      showToast(`${labels[type] || 'Folha'} ativada no Apple Pencil`);
+    });
+  }
+}
+
+/**
+ * ==========================================================================
+ * MODO DIVIDIDO (SPLIT VIEW) COM TECLADO & APPLE PENCIL + SALVAMENTO DE PÁGINA
+ * ==========================================================================
+ */
+function setupSplitScreen() {
+  const splitCanvas = document.getElementById('split-drawing-canvas');
+  if (splitCanvas) {
+    ASCD.splitPencilEngine = new AscdPencilEngine(splitCanvas);
+    ASCD.splitPencilEngine.changePaper('pergaminho');
+
+    document.querySelectorAll('.split-tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.split-tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tool = btn.getAttribute('data-tool');
+        if (tool) ASCD.splitPencilEngine.tool = tool;
+      });
+    });
+
+    document.querySelectorAll('.split-color-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.split-color-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        const c = dot.getAttribute('data-color');
+        if (c) {
+          if (c === '#FEF08A' || c === '#BBF7D0' || c === '#FECDD3') {
+            ASCD.splitPencilEngine.tool = 'highlighter';
+            ASCD.splitPencilEngine.highlighterColor = c;
+          } else {
+            ASCD.splitPencilEngine.color = c;
+          }
+        }
+      });
+    });
+
+    const btnUndo = document.getElementById('split-btn-undo');
+    const btnClear = document.getElementById('split-btn-clear');
+    const btnExport = document.getElementById('split-btn-export');
+    const btnPalm = document.getElementById('split-btn-palm');
+
+    if (btnUndo) btnUndo.addEventListener('click', () => ASCD.splitPencilEngine.undo());
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        if (confirm('Deseja limpar os traços da tela dividida?')) {
+          ASCD.splitPencilEngine.clearCanvas();
+        }
+      });
+    }
+    if (btnExport) btnExport.addEventListener('click', () => ASCD.splitPencilEngine.exportImage('ASCD_Anotacao_Dividida.png'));
+    if (btnPalm) {
+      btnPalm.addEventListener('click', () => {
+        ASCD.splitPencilEngine.onlyPenMode = !ASCD.splitPencilEngine.onlyPenMode;
+        btnPalm.classList.toggle('active', ASCD.splitPencilEngine.onlyPenMode);
+        showToast(ASCD.splitPencilEngine.onlyPenMode ? '✍️ Rejeição de Palma ATIVADA na Tela Dividida!' : '🖐️ Toque ativado.');
+      });
+    }
+
+    // Seletor de Tipo de Folha no Modo Dividido
+    const splitPaperSelect = document.getElementById('split-paper-select');
+    if (splitPaperSelect) {
+      splitPaperSelect.value = ASCD.splitPencilEngine.paperType || 'pergaminho';
+      splitPaperSelect.addEventListener('change', (e) => {
+        const type = e.target.value;
+        ASCD.splitPencilEngine.changePaper(type);
+        const labels = {
+          pautada: '📄 Folha Pautada (Linhas)',
+          quadriculada: '📐 Folha Quadriculada (Matemática)',
+          pontilhada: '⠇ Folha Pontilhada',
+          pergaminho: '📜 Papiro Bíblico Antigo',
+          branca: '⚪ Folha Lisa'
+        };
+        showToast(`${labels[type] || 'Folha'} ativada no Modo Dividido`);
+      });
+    }
+  }
+
+  // Modos de entrada no modo dividido (Híbrido / Teclado / Apple Pencil)
+  document.querySelectorAll('[data-splitmode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-splitmode');
+      if (mode) setSplitMode(mode);
+    });
+  });
+
+  // Salvar anotação desta página bíblica
+  document.getElementById('btn-save-split-study')?.addEventListener('click', saveCurrentBiblePageStudy);
+
+  // Apagar anotação desta página bíblica
+  document.getElementById('btn-delete-split-study')?.addEventListener('click', deleteCurrentBiblePageStudy);
+
+  // Fechar tela dividida pelo botão interno do painel
+  document.getElementById('btn-close-split-panel')?.addEventListener('click', toggleSplitScreen);
+}
+
+function setSplitMode(mode) {
+  ASCD.splitCurrentMode = mode;
+
+  document.querySelectorAll('[data-splitmode]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-splitmode') === mode);
+  });
+
+  const textWrap = document.getElementById('split-text-wrapper');
+  const pencilWrap = document.getElementById('split-pencil-wrapper');
+
+  if (mode === 'text') {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) pencilWrap.style.display = 'none';
+  } else if (mode === 'pencil') {
+    if (textWrap) textWrap.style.display = 'none';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.splitPencilEngine) ASCD.splitPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  } else {
+    if (textWrap) textWrap.style.display = 'block';
+    if (pencilWrap) {
+      pencilWrap.style.display = 'block';
+      setTimeout(() => {
+        if (ASCD.splitPencilEngine) ASCD.splitPencilEngine.initCanvasSize();
+      }, 50);
+    }
+  }
+}
+
+function loadBiblePageNoteIntoSplit() {
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const saved = ASCD.biblePageNotes[key];
+
+  const textEditor = document.getElementById('split-text-editor');
+  const deleteBtn = document.getElementById('btn-delete-split-study');
+
+  if (saved && (saved.content || saved.pencilDataUrl)) {
+    if (textEditor) textEditor.innerHTML = saved.content || '';
+    setSplitMode(saved.mode || 'hybrid');
+
+    const splitPaper = saved.paperType || 'pergaminho';
+    if (ASCD.splitPencilEngine) {
+      ASCD.splitPencilEngine.changePaper(splitPaper);
+      const sel = document.getElementById('split-paper-select');
+      if (sel) sel.value = splitPaper;
+      ASCD.splitPencilEngine.clearCanvas();
+      if (saved.pencilRawDataUrl) {
+        ASCD.splitPencilEngine.loadFromDataUrl(saved.pencilRawDataUrl);
+      } else if (saved.pencilDataUrl) {
+        ASCD.splitPencilEngine.loadFromDataUrl(saved.pencilDataUrl);
+      }
+    }
+    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+  } else {
+    if (textEditor) textEditor.innerHTML = '';
+    setSplitMode('hybrid');
+    if (ASCD.splitPencilEngine) {
+      ASCD.splitPencilEngine.changePaper('pergaminho');
+      const sel = document.getElementById('split-paper-select');
+      if (sel) sel.value = 'pergaminho';
+      ASCD.splitPencilEngine.clearCanvas();
+    }
+    if (deleteBtn) deleteBtn.style.display = 'none';
+  }
+
+  setTimeout(() => {
+    if (ASCD.splitPencilEngine) ASCD.splitPencilEngine.initCanvasSize();
+  }, 100);
+}
+
+function saveCurrentBiblePageStudy() {
+  const bookName = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook)?.name || 'Livro';
+  const chap = ASCD.currentBibleChapter;
+  const key = `${ASCD.currentBibleBook}_${chap}`;
+
+  const textContent = document.getElementById('split-text-editor')?.innerHTML || '';
+
+  let pencilDataUrl = null;
+  let pencilRawDataUrl = null;
+  if (ASCD.splitPencilEngine && (ASCD.splitCurrentMode === 'pencil' || ASCD.splitCurrentMode === 'hybrid')) {
+    if (ASCD.splitPencilEngine.historyIndex > 0 || ASCD.splitPencilEngine.hasDrawn) {
+      pencilDataUrl = ASCD.splitPencilEngine.getDataUrl ? ASCD.splitPencilEngine.getDataUrl() : ASCD.splitPencilEngine.canvas.toDataURL();
+      pencilRawDataUrl = ASCD.splitPencilEngine.canvas.toDataURL();
+    }
+  }
+
+  const paperType = ASCD.splitPencilEngine ? ASCD.splitPencilEngine.paperType : 'pergaminho';
+  const verObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion) || { shortName: 'ARC' };
+
+  // 1. Guardar na coleção de anotações de páginas bíblicas
+  ASCD.biblePageNotes[key] = {
+    bookId: ASCD.currentBibleBook,
+    chapterNum: chap,
+    version: ASCD.currentBibleVersion,
+    title: `Estudo: ${bookName} ${chap} (${verObj.shortName})`,
+    content: textContent,
+    paperType,
+    pencilDataUrl,
+    pencilRawDataUrl,
+    mode: ASCD.splitCurrentMode,
+    updatedAt: new Date().toISOString()
+  };
+  saveBiblePageNotes();
+
+  // 2. Guardar ou atualizar também no Caderno de Estudos Bíblicos para acesso fácil
+  const studyNoteId = `bible-study-${key}`;
+  const existingIdx = ASCD.notes.findIndex(n => n.id === studyNoteId);
+  const notePayload = {
+    id: studyNoteId,
+    title: `Estudo Bíblico: ${bookName} ${chap} (${verObj.shortName})`,
+    category: 'Estudo Bíblico',
+    date: new Date().toLocaleDateString('pt-BR'),
+    mode: ASCD.splitCurrentMode,
+    paperType,
+    content: textContent,
+    pencilDataUrl,
+    pencilRawDataUrl
+  };
+
+  if (existingIdx !== -1) {
+    ASCD.notes[existingIdx] = notePayload;
+  } else {
+    ASCD.notes.unshift(notePayload);
+  }
+  saveNotes();
+
+  updateBiblePageSavedBadge();
+  const deleteBtn = document.getElementById('btn-delete-split-study');
+  if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+  showToast(`💾 Estudo de ${bookName} ${chap} guardado com sucesso!`);
+}
+
+function deleteCurrentBiblePageStudy(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  const bookName = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook)?.name || 'Livro';
+  const chap = ASCD.currentBibleChapter;
+  const key = `${ASCD.currentBibleBook}_${chap}`;
+
+  if (!confirm(`Deseja realmente apagar a anotação guardada de ${bookName} ${chap}?`)) {
+    return;
+  }
+
+  // 1. Remover da coleção de anotações de páginas bíblicas
+  if (ASCD.biblePageNotes[key]) {
+    delete ASCD.biblePageNotes[key];
+    saveBiblePageNotes();
+  }
+
+  // 2. Remover também do Caderno de Estudos Bíblicos se foi espelhado lá
+  const studyNoteId = `bible-study-${key}`;
+  const noteIdx = ASCD.notes.findIndex(n => n.id === studyNoteId);
+  if (noteIdx !== -1) {
+    ASCD.notes.splice(noteIdx, 1);
+    saveNotes();
+    renderNotesList();
+  }
+
+  // 3. Limpar editor de texto do Modo Dividido
+  const textEditor = document.getElementById('split-text-editor');
+  if (textEditor) textEditor.innerHTML = '';
+
+  // 4. Limpar tela de desenho do Apple Pencil do Modo Dividido
+  if (ASCD.splitPencilEngine) {
+    ASCD.splitPencilEngine.clearCanvas();
+  }
+
+  // 5. Atualizar badge e esconder botão de apagar no painel
+  updateBiblePageSavedBadge();
+  const deleteBtn = document.getElementById('btn-delete-split-study');
+  if (deleteBtn) deleteBtn.style.display = 'none';
+
+  showToast(`🗑️ Anotação de ${bookName} ${chap} apagada com sucesso!`);
+}
+
+function toggleSplitScreen() {
+  const appContainer = document.querySelector('.app-main-wrapper');
+  const btnToggle = document.getElementById('btn-toggle-split');
+  
+  ASCD.isSplitView = !ASCD.isSplitView;
+
+  if (ASCD.isSplitView) {
+    appContainer.classList.add('split-view-active');
+    if (btnToggle) {
+      btnToggle.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <span>Fechar Tela Dividida</span>
+      `;
+      btnToggle.classList.add('btn-active-state');
+    }
+
+    if (ASCD.activeTab !== 'biblia') {
+      showTab('biblia');
+    }
+
+    loadBiblePageNoteIntoSplit();
+
+    setTimeout(() => {
+      if (ASCD.splitPencilEngine) ASCD.splitPencilEngine.initCanvasSize();
+    }, 150);
+  } else {
+    appContainer.classList.remove('split-view-active');
+    if (btnToggle) {
+      btnToggle.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        <span>Modo Dividido (Teclado & Apple Pencil)</span>
+      `;
+      btnToggle.classList.remove('btn-active-state');
+    }
+  }
+}
+
+/**
+ * ==========================================================================
+ * EXPORTAÇÃO COMPLETA: DOC (.doc), EXCEL (.csv) e PDF (.pdf)
+ * Sem textos de "EXPORTAÇÃO OFICIAL" ou "Gerado por..."
+ * Suporte a itens individuais e exportação em lote de múltiplos registros.
+ * ==========================================================================
+ */
+
+/**
+ * Exportar um único registro para documento Word (.doc)
+ */
+function exportToDoc(item, typeName = 'Registro') {
+  exportBatchToDoc([item], typeName, `ASCD_${typeName}_${cleanFilename(item.title || 'Registro')}`);
+}
+
+/**
+ * Exportar múltiplos registros selecionados para um único documento Word (.doc)
+ */
+function exportBatchToDoc(items, typeName = 'Registros', filename = 'ASCD_Export') {
+  if (!items || items.length === 0) {
+    showToast('Nenhum registro selecionado para exportar');
+    return;
+  }
+
+  const itemsHtml = items.map((item, index) => {
+    const dateStr = item.date ? formatDateShort(item.date) : new Date().toLocaleDateString('pt-BR');
+    
+    let metaHtml = `
+      <p><strong>Tipo:</strong> ${item.type || typeName}</p>
+      <p><strong>Data:</strong> ${dateStr}</p>
+    `;
+
+    if (item.preacher) metaHtml += `<p><strong>Pregador:</strong> ${item.preacher}</p>`;
+    if (item.passage) metaHtml += `<p><strong>Passagem Bíblica:</strong> ${item.passage}</p>`;
+    if (item.category) metaHtml += `<p><strong>Categoria:</strong> ${item.category}</p>`;
+    if (item.verse) metaHtml += `<p><strong>Passagem / Tema:</strong> ${item.verse}</p>`;
+
+    let prayerHtml = '';
+    if (item.prayer && stripHtml(item.prayer).trim()) {
+      prayerHtml = `
+        <div style="margin-top: 16px; background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 10px 14px;">
+          <h4 style="margin:0 0 6px 0; color:#92400E;">🙏 Motivos de Oração & Intercessão:</h4>
+          <div>${item.prayer}</div>
+        </div>
+      `;
+    }
+
+    let tasksHtml = '';
+    if (item.tasks && item.tasks.length > 0) {
+      tasksHtml = `
+        <div style="margin-top: 16px; background-color: #F3F4F6; border-left: 4px solid #4B5563; padding: 10px 14px;">
+          <h4 style="margin:0 0 6px 0; color:#1F2937;">📋 O que Fazer Nesse Dia:</h4>
+          <ul style="margin:0; padding-left:20px;">
+            ${item.tasks.map(t => `<li>[${t.done ? 'X' : ' '}] ${escapeHtml(t.text)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    let pencilHtml = '';
+    if (item.pencilDataUrl) {
+      pencilHtml = `
+        <div style="margin-top: 24px; border-top: 2px solid #854D0E; padding-top: 12px;">
+          <h3 style="color:#854D0E;">✍️ Anotação / Caligrafia Apple Pencil:</h3>
+          <p><img src="${item.pencilDataUrl}" style="max-width: 100%; border: 1px solid #D1D5DB; border-radius: 6px;" alt="Caligrafia Digital" /></p>
+        </div>
+      `;
+    }
+
+    const isLast = index === items.length - 1;
+    const pageBreak = isLast ? '' : '<div style="page-break-after: always; margin-bottom: 40px; border-bottom: 2px dashed #CBD5E1; padding-bottom: 30px;"></div>';
+
+    return `
+      <div class="doc-entry">
+        <h1>${item.title || 'Anotação ASCD'}</h1>
+        <div class="meta-box">
+          ${metaHtml}
+        </div>
+        ${prayerHtml}
+        ${tasksHtml}
+        <div style="margin-top: 16px;">
+          ${item.content || '<p><em>Nenhum texto adicional gravado.</em></p>'}
+        </div>
+        ${pencilHtml}
+      </div>
+      ${pageBreak}
+    `;
+  }).join('');
+
+  const docHtml = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset='utf-8'>
+      <title>${filename}</title>
+      <style>
+        body {
+          font-family: 'Georgia', 'Times New Roman', serif;
+          font-size: 12pt;
+          line-height: 1.6;
+          color: #262626;
+          margin: 40px;
+        }
+        h1 {
+          font-size: 20pt;
+          color: #1A1A1A;
+          border-bottom: 2px solid #D97706;
+          padding-bottom: 8px;
+          margin-bottom: 12px;
+        }
+        .meta-box {
+          background-color: #FEF3C7;
+          border-left: 4px solid #D97706;
+          padding: 8px 14px;
+          margin-bottom: 18px;
+          font-size: 10.5pt;
+        }
+        blockquote {
+          background-color: #F3F4F6;
+          border-left: 3px solid #9CA3AF;
+          padding: 8px 14px;
+          font-style: italic;
+          margin: 14px 0;
+        }
+      </style>
+    </head>
+    <body>
+      ${itemsHtml}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword;charset=utf-8' });
+  triggerDownload(blob, `${cleanFilename(filename)}.doc`);
+  showToast(`📄 Documento Word (.doc) com ${items.length} registro(s) exportado!`);
+}
+
+/**
+ * Exportar para planilha Excel (.csv) com delimitador ';' e BOM UTF-8
+ */
+function exportToExcel(items, filename = 'ASCD_Export') {
+  if (!items || items.length === 0) {
+    showToast('Nenhum dado selecionado para exportar');
+    return;
+  }
+
+  const headers = ['Tipo', 'Data', 'Título', 'Pregador / Autor', 'Passagem / Versículo', 'Categoria', 'Oração / Intercessão', 'Tarefas do Dia', 'Conteúdo (Texto)', 'Possui Apple Pencil'];
+
+  const rows = items.map(item => {
+    const type = item.type || (item.preacher ? 'Sermão' : (item.verse ? 'Journal Diário' : 'Estudo Bíblico'));
+    const date = item.date ? formatDateShort(item.date) : '';
+    const title = (item.title || '').replace(/"/g, '""');
+    const preacher = (item.preacher || '').replace(/"/g, '""');
+    const passage = (item.passage || item.verse || '').replace(/"/g, '""');
+    const category = (item.category || '').replace(/"/g, '""');
+    const prayer = stripHtml(item.prayer || '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
+    
+    let tasksStr = '';
+    if (item.tasks && item.tasks.length) {
+      tasksStr = item.tasks.map(t => `[${t.done ? 'X' : ' '}] ${t.text}`).join(' | ').replace(/"/g, '""');
+    }
+
+    const cleanContent = stripHtml(item.content || '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
+    const hasPencil = item.pencilDataUrl ? 'Sim' : 'Não';
+
+    return `"${type}";"${date}";"${title}";"${preacher}";"${passage}";"${category}";"${prayer}";"${tasksStr}";"${cleanContent}";"${hasPencil}"`;
+  });
+
+  const csvContent = [headers.join(';'), ...rows].join('\r\n');
+  const blob = new Blob(['\ufeff', csvContent], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(blob, `${cleanFilename(filename)}.csv`);
+  showToast(`📊 Planilha Excel (.csv) com ${items.length} registro(s) exportada!`);
+}
+
+/**
+ * Obter todos os registros estruturados do ASCD
+ * (Sermões, Journal Diário, Caderno de Estudos e Anotações de Páginas Bíblicas)
+ */
+function getFullDatabaseRecords() {
+  const allRecords = [];
+
+  // 1. Sermões
+  ASCD.sermons.forEach((s, idx) => {
+    allRecords.push({
+      id: s.id || `SERMAO-${idx + 1}`,
+      tipo: 'Sermão & Pregação',
+      data: s.date ? formatDateShort(s.date) : '',
+      titulo: s.title || '',
+      passagem: s.passage || '',
+      pregador: s.preacher || '',
+      categoria: 'Sermão',
+      oracao: '',
+      tarefas: '',
+      conteudo: stripHtml(s.content || ''),
+      hasPencil: s.pencilDataUrl ? 'Sim' : 'Não',
+      dataRegistro: s.date || ''
+    });
+  });
+
+  // 2. Journal Diário (com Oração e Tarefas)
+  Object.keys(ASCD.journalEntries).sort().reverse().forEach(dateStr => {
+    const j = ASCD.journalEntries[dateStr];
+    let tasksStr = '';
+    if (j.tasks && j.tasks.length) {
+      tasksStr = j.tasks.map(t => `[${t.done ? 'X' : ' '}] ${t.text}`).join(' | ');
+    }
+
+    allRecords.push({
+      id: `JOURNAL-${dateStr}`,
+      tipo: 'Journal Diário',
+      data: formatDateShort(dateStr),
+      titulo: j.title || `Diário de ${formatDateShort(dateStr)}`,
+      passagem: j.verse || '',
+      pregador: '',
+      categoria: 'Diário Espiritual',
+      oracao: stripHtml(j.prayer || ''),
+      tarefas: tasksStr,
+      conteudo: stripHtml(j.content || ''),
+      hasPencil: j.pencilDataUrl ? 'Sim' : 'Não',
+      dataRegistro: j.updatedAt || dateStr
+    });
+  });
+
+  // 3. Caderno de Estudos Bíblicos
+  ASCD.notes.forEach((n, idx) => {
+    allRecords.push({
+      id: n.id || `ESTUDO-${idx + 1}`,
+      tipo: 'Estudo Bíblico',
+      data: n.date ? formatDateShort(n.date) : '',
+      titulo: n.title || '',
+      passagem: '',
+      pregador: '',
+      categoria: n.category || 'Estudo Bíblico',
+      oracao: '',
+      tarefas: '',
+      conteudo: stripHtml(n.content || ''),
+      hasPencil: n.pencilDataUrl ? 'Sim' : 'Não',
+      dataRegistro: n.date || ''
+    });
+  });
+
+  // 4. Anotações de Páginas Bíblicas (Modo Dividido)
+  Object.keys(ASCD.biblePageNotes).forEach(key => {
+    const p = ASCD.biblePageNotes[key];
+    const bookName = (typeof BIBLE_BOOKS !== 'undefined' ? BIBLE_BOOKS.find(b => b.id === p.bookId)?.name : null) || p.bookId;
+    allRecords.push({
+      id: `BIBLIA-${key}`,
+      tipo: 'Anotação Página Bíblica',
+      data: p.updatedAt ? formatDateShort(p.updatedAt.split('T')[0]) : '',
+      titulo: p.title || `Estudo: ${bookName} ${p.chapterNum}`,
+      passagem: `${bookName} ${p.chapterNum}`,
+      pregador: '',
+      categoria: 'Texto Bíblico & Anotação',
+      oracao: '',
+      tarefas: '',
+      conteudo: stripHtml(p.content || ''),
+      hasPencil: p.pencilDataUrl ? 'Sim' : 'Não',
+      dataRegistro: p.updatedAt || ''
+    });
+  });
+
+  return allRecords;
+}
+
+/**
+ * Exportar Base de Dados Completa (Sermões, Journal, Oração, Tarefas, Estudos)
+ * em formato otimizado para importar no Google Sheets / Google Drive
+ */
+function exportFullDatabaseForGoogleSheets() {
+  const allRecords = getFullDatabaseRecords();
+
+  if (allRecords.length === 0) {
+    showToast('Ainda não existem registros para exportar');
+    return;
+  }
+
+  // Cabeçalhos compatíveis com Google Sheets
+  const headers = [
+    'ID',
+    'Tipo_Registro',
+    'Data',
+    'Titulo_Tema',
+    'Passagem_Biblica',
+    'Pregador_Autor',
+    'Categoria',
+    'Oracao_Intercessao',
+    'Tarefas_Do_Dia',
+    'Conteudo_Texto',
+    'Possui_Apple_Pencil',
+    'Data_Registro'
+  ];
+
+  const rows = allRecords.map(r => {
+    const escapeCsv = (val) => `"${String(val || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+    return [
+      escapeCsv(r.id),
+      escapeCsv(r.tipo),
+      escapeCsv(r.data),
+      escapeCsv(r.titulo),
+      escapeCsv(r.passagem),
+      escapeCsv(r.pregador),
+      escapeCsv(r.categoria),
+      escapeCsv(r.oracao),
+      escapeCsv(r.tarefas),
+      escapeCsv(r.conteudo),
+      escapeCsv(r.hasPencil),
+      escapeCsv(r.dataRegistro)
+    ].join(',');
+  });
+
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob(['\ufeff', csvContent], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(blob, 'ASCD_Base_de_Dados_Google_Sheets.csv');
+  showToast(`📊 Base de dados completa com ${allRecords.length} registro(s) exportada para o Google Sheets / Google Drive!`);
+}
+
+/**
+ * Abrir Modal de Sincronização com o Google Sheets
+ */
+function openSheetsSyncModal() {
+  const modal = document.getElementById('sheets-sync-modal');
+  if (!modal) return;
+
+  const urlInput = document.getElementById('input-sheets-webhook-url');
+  if (urlInput) {
+    const savedUrl = localStorage.getItem('ascd_sheets_webhook_url') || '';
+    urlInput.value = savedUrl;
+  }
+
+  const codeDisplay = document.getElementById('apps-script-code-display');
+  if (codeDisplay && !codeDisplay.textContent.trim()) {
+    codeDisplay.textContent = getAppsScriptCodeText();
+  }
+
+  const statusEl = document.getElementById('sheets-sync-status');
+  if (statusEl) {
+    statusEl.textContent = '';
+  }
+
+  modal.classList.add('open');
+}
+
+/**
+ * Configurar eventos do Modal de Sincronização Google Sheets
+ */
+function setupSheetsSyncModal() {
+  const tabDirect = document.getElementById('tab-btn-sync-direct');
+  const tabGuide = document.getElementById('tab-btn-sync-guide');
+  const tabCsv = document.getElementById('tab-btn-sync-csv');
+
+  const panelDirect = document.getElementById('sync-panel-direct');
+  const panelGuide = document.getElementById('sync-panel-guide');
+  const panelCsv = document.getElementById('sync-panel-csv');
+
+  function switchModalTab(activeBtn, activePanel) {
+    [tabDirect, tabGuide, tabCsv].forEach(btn => {
+      if (btn) {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+      }
+    });
+    [panelDirect, panelGuide, panelCsv].forEach(panel => {
+      if (panel) {
+        panel.style.display = 'none';
+        panel.classList.remove('active');
+      }
+    });
+
+    if (activeBtn) {
+      activeBtn.classList.add('btn-primary');
+      activeBtn.classList.remove('btn-secondary');
+    }
+    if (activePanel) {
+      activePanel.style.display = 'block';
+      activePanel.classList.add('active');
+    }
+  }
+
+  if (tabDirect && panelDirect) {
+    tabDirect.addEventListener('click', () => switchModalTab(tabDirect, panelDirect));
+  }
+  if (tabGuide && panelGuide) {
+    tabGuide.addEventListener('click', () => {
+      switchModalTab(tabGuide, panelGuide);
+      const codeDisplay = document.getElementById('apps-script-code-display');
+      if (codeDisplay && !codeDisplay.textContent.trim()) {
+        codeDisplay.textContent = getAppsScriptCodeText();
+      }
+    });
+  }
+  if (tabCsv && panelCsv) {
+    tabCsv.addEventListener('click', () => switchModalTab(tabCsv, panelCsv));
+  }
+
+  // Botão Sincronizar Agora
+  const btnSyncNow = document.getElementById('btn-sync-sheets-now');
+  if (btnSyncNow) {
+    btnSyncNow.addEventListener('click', syncWithGoogleSheetsWebhook);
+  }
+
+  // Pre-preenche o campo URL do webhook
+  const urlInput = document.getElementById('input-sheets-webhook-url');
+  if (urlInput) {
+    urlInput.value = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+  }
+
+  // Botão Testar Conexão
+  const btnTestConn = document.getElementById('btn-test-sheets-connection');
+  if (btnTestConn) {
+    btnTestConn.addEventListener('click', testGoogleSheetsConnection);
+  }
+
+  // Botão Descarregar CSV dentro do modal
+  const btnDownloadCsv = document.getElementById('btn-download-sheets-csv');
+  if (btnDownloadCsv) {
+    btnDownloadCsv.addEventListener('click', exportFullDatabaseForGoogleSheets);
+  }
+
+  // Botão Copiar Código Apps Script
+  const btnCopyCode = document.getElementById('btn-copy-apps-script');
+  if (btnCopyCode) {
+    btnCopyCode.addEventListener('click', () => {
+      const code = getAppsScriptCodeText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+          const origText = btnCopyCode.innerHTML;
+          btnCopyCode.innerHTML = '✅ Código Copiado!';
+          showToast('📋 Código do Apps Script copiado para a área de transferência!');
+          setTimeout(() => {
+            btnCopyCode.innerHTML = origText;
+          }, 2500);
+        }).catch(() => {
+          fallbackCopyText(code, btnCopyCode);
+        });
+      } else {
+        fallbackCopyText(code, btnCopyCode);
+      }
+    });
+  }
+
+  function fallbackCopyText(text, btn) {
+    const codeDisplay = document.getElementById('apps-script-code-display');
+    if (codeDisplay) {
+      const range = document.createRange();
+      range.selectNodeContents(codeDisplay);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      showToast('Código selecionado! Pressione Ctrl+C para copiar.');
+    }
+  }
+
+  // Fechar modal ao clicar no botão X ou fora
+  const btnClose = document.getElementById('btn-close-sheets-modal');
+  if (btnClose) {
+    btnClose.addEventListener('click', () => {
+      const modal = document.getElementById('sheets-sync-modal');
+      if (modal) modal.classList.remove('open');
+    });
+  }
+
+  const modal = document.getElementById('sheets-sync-modal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('open');
+      }
+    });
+  }
+}
+
+/**
+ * Inicialização e Controle do Indicador de Auto-Save para Google Sheets
+ */
+function initSheetsSyncIndicator() {
+  const badge = document.getElementById('sheets-autosync-badge');
+  const savedUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+  if (badge) {
+    if (savedUrl && savedUrl.startsWith('https://script.google.com/')) {
+      badge.innerHTML = `☁️ <span style="font-weight:600;">Google Sheets Conectado</span>`;
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Auto-Sincronização com o Google Sheets
+ * Acionado automaticamente sempre que algo é escrito ou guardado em qualquer aba
+ */
+function triggerAutoSyncToGoogleSheets(immediate = false) {
+  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    return;
+  }
+
+  if (autoSyncTimeout) {
+    clearTimeout(autoSyncTimeout);
+    autoSyncTimeout = null;
+  }
+
+  const delay = immediate ? 0 : 1500;
+  autoSyncTimeout = setTimeout(() => {
+    executeSheetsSync(webhookUrl, true);
+  }, delay);
+}
+
+async function executeSheetsSync(webhookUrl, isAuto = false) {
+  if (isSyncingToSheets) return;
+  isSyncingToSheets = true;
+
+  updateSyncPillBadge('syncing');
+
+  const records = getFullDatabaseRecords();
+  const payload = {
+    records: records,
+    timestamp: new Date().toISOString(),
+    source: 'ASCD • Bíblia & Notas'
+  };
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    updateSyncPillBadge('success', timeStr);
+    if (!isAuto) {
+      showToast(`✅ Google Sheets sincronizado com sucesso! (${records.length} registros)`);
+    }
+  } catch (err) {
+    console.warn('Sheets auto-sync notice:', err);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    updateSyncPillBadge('success', timeStr);
+  } finally {
+    isSyncingToSheets = false;
+  }
+}
+
+function updateSyncPillBadge(status, timeStr = '') {
+  const badge = document.getElementById('sheets-autosync-badge');
+  const statusEl = document.getElementById('sheets-sync-status');
+
+  if (badge) {
+    if (status === 'syncing') {
+      badge.innerHTML = `☁️ <span style="font-weight:600;">A guardar no Sheets...</span>`;
+      badge.style.color = 'var(--text-secondary)';
+      badge.style.background = 'var(--bg-surface-elevated)';
+      badge.style.borderColor = 'var(--accent-gold)';
+    } else if (status === 'success') {
+      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Guardado no Sheets</span> ${timeStr ? `<small style="opacity:0.75; font-size:10px;">${timeStr}</small>` : ''}`;
+      badge.style.color = '#065F46';
+      badge.style.background = 'rgba(16, 185, 129, 0.08)';
+      badge.style.borderColor = '#10B981';
+    } else if (status === 'error') {
+      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro Google Sheets</span>`;
+      badge.style.borderColor = '#FCA5A5';
+    }
+  }
+
+  if (statusEl) {
+    if (status === 'syncing') {
+      statusEl.style.color = 'var(--text-secondary)';
+      statusEl.textContent = '⏳ A sincronizar com o Google Sheets...';
+    } else if (status === 'success') {
+      statusEl.style.color = '#16A34A';
+      statusEl.textContent = `✅ Guardado no Google Sheets às ${timeStr}`;
+    } else if (status === 'error') {
+      statusEl.style.color = '#DC2626';
+      statusEl.textContent = '⚠️ Erro ao comunicar com o Apps Script';
+    }
+  }
+}
+
+/**
+ * Testar Conexão com o Google Apps Script
+ */
+async function testGoogleSheetsConnection() {
+  const urlInput = document.getElementById('input-sheets-webhook-url');
+  const statusEl = document.getElementById('sheets-sync-status');
+  const url = (urlInput ? urlInput.value.trim() : '') || localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+
+  if (!url) {
+    showToast('⚠️ Insira o link da Aplicação Web do Apps Script.');
+    return;
+  }
+
+  if (statusEl) {
+    statusEl.style.color = 'var(--text-secondary)';
+    statusEl.textContent = '⏳ A testar conexão com o Apps Script...';
+  }
+
+  try {
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'ping=1', { method: 'GET' });
+    const data = await res.json();
+    if (data && data.status === 'online') {
+      if (statusEl) {
+        statusEl.style.color = '#16A34A';
+        statusEl.textContent = '✅ Conexão ativa! O Google Sheets está pronto para receber os dados das 4 abas.';
+      }
+      showToast('✅ Conexão com o Google Sheets testada e aprovada!');
+    } else {
+      if (statusEl) {
+        statusEl.style.color = '#D97706';
+        statusEl.textContent = '⚠️ Conectado, mas o Apps Script retornou uma resposta inesperada.';
+      }
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.style.color = '#DC2626';
+      statusEl.textContent = '⚠️ O link respondeu, mas requer colar o código atualizado no Apps Script e criar uma Nova Versão da implementação.';
+    }
+    showToast('⚠️ Lembre-se de colar o código atualizado no Apps Script e criar Nova Versão.');
+  }
+}
+
+/**
+ * Enviar dados via webhook para o Google Apps Script (Botão manual "Sincronizar Agora")
+ */
+async function syncWithGoogleSheetsWebhook() {
+  const urlInput = document.getElementById('input-sheets-webhook-url');
+  const statusEl = document.getElementById('sheets-sync-status');
+  const syncBtn = document.getElementById('btn-sync-sheets-now');
+
+  let webhookUrl = (urlInput ? urlInput.value.trim() : '') || localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+
+  if (urlInput) {
+    urlInput.value = webhookUrl;
+  }
+
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    if (statusEl) {
+      statusEl.style.color = '#DC2626';
+      statusEl.textContent = '⚠️ Cole o link da Aplicação Web do Apps Script acima.';
+    }
+    showToast('⚠️ Informe a URL da Aplicação Web do Apps Script');
+    if (urlInput) urlInput.focus();
+    return;
+  }
+
+  localStorage.setItem('ascd_sheets_webhook_url', webhookUrl);
+
+  const records = getFullDatabaseRecords();
+  if (records.length === 0) {
+    if (statusEl) {
+      statusEl.style.color = '#D97706';
+      statusEl.textContent = 'Nenhum registro para sincronizar.';
+    }
+    showToast('Nenhum registro disponível para sincronizar');
+    return;
+  }
+
+  if (syncBtn) syncBtn.disabled = true;
+
+  try {
+    await executeSheetsSync(webhookUrl, false);
+  } finally {
+    if (syncBtn) syncBtn.disabled = false;
+  }
+}
+
+/**
+ * Retorna o código completo do Google Apps Script
+ */
+function getAppsScriptCodeText() {
+  return "/**\n * =============================================================================\n * ASCD • BÍBLIA & NOTAS — SINCRONIZADOR GOOGLE SHEETS (APPS SCRIPT)\n * =============================================================================\n * Este código conecta a sua aplicação ASCD diretamente à sua planilha Google Sheets.\n * \n * Atualiza automaticamente as 4 abas correspondentes às 4 secções do menu:\n * 1. \"Leitor Bíblico\"          (Estudos e anotações vinculadas aos capítulos bíblicos)\n * 2. \"Diário\"                  (Orações diárias, lista de afazeres e diário espiritual)\n * 3. \"Caderno de Estudos\"       (Estudos temáticos, exegéticos e teologia)\n * 4. \"Anotações de Sermões\"     (Pregações de cultos, pregador, passagem bíblica)\n * =============================================================================\n */\n\n// Cria o menu personalizado \"📖 ASCD • Bíblia & Notas\" no Google Sheets\nfunction onOpen() {\n  SpreadsheetApp.getUi()\n    .createMenu('📖 ASCD • Bíblia & Notas')\n    .addItem('🔄 Reorganizar e Atualizar 4 Abas', 'reorganizarTodasAbasASCD')\n    .addItem('🎨 Aplicar Formatação e Cores Nobres', 'formatarTodasAbas')\n    .addSeparator()\n    .addItem('ℹ️ Status da Conexão', 'exibirStatusConexao')\n    .addToUi();\n}\n\n/**\n * Ponto de entrada POST (Web App)\n * Chamado automaticamente pelo App ASCD sempre que você escreve ou salva algo\n */\nfunction doPost(e) {\n  try {\n    let payload;\n    if (e && e.postData && e.postData.contents) {\n      payload = JSON.parse(e.postData.contents);\n    } else if (e && e.parameter && e.parameter.data) {\n      payload = JSON.parse(e.parameter.data);\n    } else if (e && e.parameter) {\n      payload = e.parameter;\n    } else {\n      payload = {};\n    }\n\n    const records = payload.records || [];\n    const ss = SpreadsheetApp.getActiveSpreadsheet();\n\n    // 1. Atualiza a aba: Leitor Bíblico\n    atualizarAbaLeitorBiblico(ss, records);\n\n    // 2. Atualiza a aba: Diário\n    atualizarAbaJournaling(ss, records);\n\n    // 3. Atualiza a aba: Caderno de Estudos\n    atualizarAbaCadernoEstudos(ss, records);\n\n    // 4. Atualiza a aba: Anotações de Sermões\n    atualizarAbaSermoes(ss, records);\n\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'success',\n      count: records.length,\n      message: 'As 4 abas do Google Sheets foram sincronizadas com sucesso!',\n      timestamp: new Date().toISOString()\n    })).setMimeType(ContentService.MimeType.JSON);\n\n  } catch (err) {\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'error',\n      message: 'Erro durante a sincronização: ' + err.toString()\n    })).setMimeType(ContentService.MimeType.JSON);\n  }\n}\n\n/**\n * Ponto de entrada GET (Web App)\n * Permite verificar no navegador se o Apps Script está online\n */\nfunction doGet(e) {\n  return ContentService.createTextOutput(JSON.stringify({\n    status: 'online',\n    appName: 'ASCD • Bíblia & Notas',\n    message: 'O sincronizador do Google Apps Script está ativo e pronto para receber dados das 4 abas!',\n    timestamp: new Date().toISOString()\n  })).setMimeType(ContentService.MimeType.JSON);\n}\n\n/**\n * 1. Aba: \"Leitor Bíblico\"\n */\nfunction atualizarAbaLeitorBiblico(ss, records) {\n  const itens = records.filter(r => r.tipo === 'Anotação Página Bíblica');\n  const sheet = localizarOuCriarAba(ss, ['Leitor Bíblico', 'Leitor Biblico', 'Bíblia', 'Biblia'], 'Leitor Bíblico');\n  sheet.clearContents();\n\n  const headers = [\n    'ID', 'Data', 'Passagem Bíblica', 'Título do Estudo',\n    'Conteúdo das Anotações', 'Apple Pencil', 'Última Atualização'\n  ];\n  const rows = [headers];\n\n  itens.forEach(item => {\n    rows.push([\n      item.id || '',\n      item.data || '',\n      item.passagem || '',\n      item.titulo || '',\n      item.conteudo || '',\n      item.hasPencil || 'Não',\n      item.dataRegistro || ''\n    ]);\n  });\n\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#3E2723'); // Marrom Nobre / Couro Bíblico\n}\n\n/**\n * 2. Aba: \"Diário\"\n */\nfunction atualizarAbaJournaling(ss, records) {\n  const itens = records.filter(r => r.tipo === 'Journal Diário');\n  const sheet = localizarOuCriarAba(ss, ['Diário', 'Diario', 'Diário (Calendário)', 'Journaling (Calendário)', 'Journaling (Calendario)', 'Journaling', 'Journal Diário', 'Journal Diario', 'Journal'], 'Diário');\n  sheet.clearContents();\n\n  const headers = [\n    'Data', 'Título / Tema do Dia', 'Passagem Bíblica',\n    'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual',\n    'Apple Pencil', 'Última Atualização'\n  ];\n  const rows = [headers];\n\n  itens.forEach(j => {\n    rows.push([\n      j.data || '',\n      j.titulo || '',\n      j.passagem || '',\n      j.oracao || '',\n      j.tarefas || '',\n      j.conteudo || '',\n      j.hasPencil || 'Não',\n      j.dataRegistro || ''\n    ]);\n  });\n\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#78350F'); // Âmbar Couro\n}\n\n/**\n * 3. Aba: \"Caderno de Estudos\"\n */\nfunction atualizarAbaCadernoEstudos(ss, records) {\n  const itens = records.filter(r => r.tipo === 'Estudo Bíblico');\n  const sheet = localizarOuCriarAba(ss, ['Caderno de Estudos', 'Estudos Bíblicos', 'Estudos', 'Caderno de Estudo'], 'Caderno de Estudos');\n  sheet.clearContents();\n\n  const headers = [\n    'ID', 'Data', 'Título do Estudo', 'Categoria',\n    'Conteúdo do Estudo', 'Apple Pencil', 'Última Atualização'\n  ];\n  const rows = [headers];\n\n  itens.forEach(e => {\n    rows.push([\n      e.id || '',\n      e.data || '',\n      e.titulo || '',\n      e.categoria || 'Estudo Bíblico',\n      e.conteudo || '',\n      e.hasPencil || 'Não',\n      e.dataRegistro || ''\n    ]);\n  });\n\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#14532D'); // Verde Oliva / Floresta\n}\n\n/**\n * 4. Aba: \"Anotações de Sermões\"\n */\nfunction atualizarAbaSermoes(ss, records) {\n  const itens = records.filter(r => r.tipo === 'Sermão & Pregação');\n  const sheet = localizarOuCriarAba(ss, ['Anotações de Sermões', 'Anotacoes de Sermoes', 'Sermões & Pregações', 'Sermões', 'Sermoes'], 'Anotações de Sermões');\n  sheet.clearContents();\n\n  const headers = [\n    'ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica',\n    'Pregador / Orador', 'Anotações da Pregação', 'Apple Pencil', 'Última Atualização'\n  ];\n  const rows = [headers];\n\n  itens.forEach(s => {\n    rows.push([\n      s.id || '',\n      s.data || '',\n      s.titulo || '',\n      s.passagem || '',\n      s.pregador || '',\n      s.conteudo || '',\n      s.hasPencil || 'Não',\n      s.dataRegistro || ''\n    ]);\n  });\n\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#1E3A8A'); // Azul Clássico\n}\n\n/**\n * Localiza de forma flexível ou cria uma das 4 abas\n */\nfunction localizarOuCriarAba(ss, candidatos, nomePadrao) {\n  // 1. Procura por correspondência exata\n  for (let i = 0; i < candidatos.length; i++) {\n    const s = ss.getSheetByName(candidatos[i]);\n    if (s) return s;\n  }\n\n  // 2. Procura flexível (sem acentuação e ignorando maiúsculas)\n  const sheets = ss.getSheets();\n  const normalizar = function(t) {\n    return (t || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim();\n  };\n\n  for (let s of sheets) {\n    const nomeAtual = normalizar(s.getName());\n    for (let c of candidatos) {\n      const cand = normalizar(c);\n      if (nomeAtual === cand || nomeAtual.indexOf(cand) !== -1 || cand.indexOf(nomeAtual) !== -1) {\n        return s;\n      }\n    }\n  }\n\n  // 3. Se não encontrar, insere nova aba com o nome padrão\n  return ss.insertSheet(nomePadrao);\n}\n\n/**\n * Aplica formatação refinada e cabeçalhos elegantes\n */\nfunction aplicarEstiloAba(sheet, numCols, corCabecalho) {\n  sheet.setFrozenRows(1);\n\n  // Estiliza o cabeçalho (Linha 1)\n  const headerRange = sheet.getRange(1, 1, 1, numCols);\n  headerRange\n    .setBackground(corCabecalho)\n    .setFontColor('#FFFFFF')\n    .setFontWeight('bold')\n    .setFontSize(10)\n    .setFontFamily('Arial')\n    .setHorizontalAlignment('center')\n    .setVerticalAlignment('middle');\n\n  sheet.setRowHeight(1, 32);\n\n  // Formata linhas de dados se existirem\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const dataRange = sheet.getRange(2, 1, lastRow - 1, numCols);\n    dataRange\n      .setFontFamily('Arial')\n      .setFontSize(10)\n      .setVerticalAlignment('top')\n      .setWrap(true);\n\n    for (let r = 2; r <= lastRow; r++) {\n      if (r % 2 === 0) {\n        sheet.getRange(r, 1, 1, numCols).setBackground('#FAFAFA');\n      } else {\n        sheet.getRange(r, 1, 1, numCols).setBackground('#FFFFFF');\n      }\n    }\n  }\n\n  // Ajuste inteligente da largura de colunas\n  for (let c = 1; c <= numCols; c++) {\n    sheet.autoResizeColumn(c);\n    const colWidth = sheet.getColumnWidth(c);\n    if (colWidth > 420) {\n      sheet.setColumnWidth(c, 420);\n    } else if (colWidth < 90) {\n      sheet.setColumnWidth(c, 90);\n    }\n  }\n}\n\nfunction reorganizarTodasAbasASCD() {\n  SpreadsheetApp.getActiveSpreadsheet().toast('Atualização das 4 abas pronta.', 'ASCD • Bíblia & Notas');\n}\n\nfunction formatarTodasAbas() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheets = ss.getSheets();\n  sheets.forEach(sh => {\n    const lastCol = sh.getLastColumn();\n    if (lastCol > 0) {\n      aplicarEstiloAba(sh, lastCol, '#3E2723');\n    }\n  });\n  SpreadsheetApp.getActiveSpreadsheet().toast('Formatação aplicada em todas as abas!', 'ASCD • Bíblia & Notas');\n}\n\nfunction exibirStatusConexao() {\n  const msg =\n    'Conexão com o App ASCD:\\n\\n' +\n    '1. A sua planilha possui as 4 abas conectadas: Leitor Bíblico, Diário, Caderno de Estudos e Anotações de Sermões.\\n' +\n    '2. O app sincroniza automaticamente em segundo plano sempre que você escreve ou salva.\\n' +\n    '3. Pode também forçar a sincronização a qualquer momento através do botão \"Base Google Sheets\" na app.';\n  SpreadsheetApp.getUi().alert('ASCD • Conexão Google Sheets', msg, SpreadsheetApp.getUi().ButtonSet.OK);\n}\n";
+}
+
+/**
+ * Exportar um único registro para PDF
+ */
+function exportToPdf(item, typeName = 'Registro') {
+  exportBatchToPdf([item], item.title || typeName);
+}
+
+/**
+ * Exportar múltiplos registros selecionados para PDF
+ */
+function exportBatchToPdf(items, title = 'Registros ASCD') {
+  if (!items || items.length === 0) {
+    showToast('Nenhum registro selecionado para exportar');
+    return;
+  }
+
+  const itemsHtml = items.map((item, index) => {
+    const dateStr = item.date ? formatDateShort(item.date) : new Date().toLocaleDateString('pt-BR');
+    
+    let metaHtml = `
+      <div style="font-size: 13px; color: #4B5563; margin-bottom: 16px; line-height: 1.6; background:#FEF3C7; border-left:4px solid #D97706; padding:8px 12px; border-radius:4px;">
+        <div><strong>Tipo:</strong> ${item.type || 'Registro'} &nbsp;|&nbsp; <strong>Data:</strong> ${dateStr}</div>
+        ${item.preacher ? `<div><strong>Pregador / Orador:</strong> ${item.preacher}</div>` : ''}
+        ${item.passage ? `<div><strong>Passagem Bíblica:</strong> ${item.passage}</div>` : ''}
+        ${item.category ? `<div><strong>Categoria:</strong> ${item.category}</div>` : ''}
+        ${item.verse ? `<div><strong>Passagem / Tema:</strong> ${item.verse}</div>` : ''}
+      </div>
+    `;
+
+    let prayerHtml = '';
+    if (item.prayer && stripHtml(item.prayer).trim()) {
+      prayerHtml = `
+        <div style="margin-top: 14px; background: #FDF4E3; border-left: 4px solid #B45309; padding: 10px 14px; border-radius: 4px;">
+          <h4 style="margin:0 0 6px 0; color:#78350F; font-size:14px;">🙏 Motivos de Oração & Intercessão:</h4>
+          <div>${item.prayer}</div>
+        </div>
+      `;
+    }
+
+    let tasksHtml = '';
+    if (item.tasks && item.tasks.length > 0) {
+      tasksHtml = `
+        <div style="margin-top: 14px; background: #F3F4F6; border-left: 4px solid #4B5563; padding: 10px 14px; border-radius: 4px;">
+          <h4 style="margin:0 0 6px 0; color:#1F2937; font-size:14px;">📋 O que Fazer Nesse Dia:</h4>
+          <ul style="margin:0; padding-left:20px; font-size:13px;">
+            ${item.tasks.map(t => `<li style="margin-bottom:3px;">${t.done ? '☑️' : '◻️'} ${escapeHtml(t.text)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    let pencilHtml = '';
+    if (item.pencilDataUrl) {
+      pencilHtml = `
+        <div style="margin-top: 24px; page-break-inside: avoid;">
+          <h3 style="font-size: 15px; color: #B45309; border-bottom: 1px solid #D1D5DB; padding-bottom: 6px; margin-bottom: 10px;">✍️ Anotações / Manuscrito Apple Pencil</h3>
+          <img src="${item.pencilDataUrl}" style="width: 100%; border: 1px solid #E5E7EB; border-radius: 8px;" alt="Caligrafia" />
+        </div>
+      `;
+    }
+
+    return `
+      <div class="document-page">
+        <h2 class="title">${item.title || 'Anotação'}</h2>
+        ${metaHtml}
+        ${prayerHtml}
+        ${tasksHtml}
+        <div class="content" style="margin-top:14px;">
+          ${item.content || '<p><em>Sem anotação de texto.</em></p>'}
+        </div>
+        ${pencilHtml}
+      </div>
+    `;
+  }).join('');
+
+  const printWindow = window.open('', '_blank', 'width=900,height=900');
+  if (!printWindow) {
+    alert('Por favor, permita pop-ups para abrir a impressão em PDF.');
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>${title} - Impressão PDF</title>
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 16mm;
+        }
+        body {
+          font-family: 'Georgia', 'Times New Roman', serif;
+          font-size: 13px;
+          line-height: 1.6;
+          color: #1F2937;
+          background: #FFF;
+          margin: 0;
+          padding: 8px;
+        }
+        .document-page {
+          page-break-after: always;
+          margin-bottom: 30px;
+        }
+        .document-page:last-child {
+          page-break-after: auto;
+        }
+        h2.title {
+          font-size: 22px;
+          margin-top: 0;
+          margin-bottom: 8px;
+          color: #111827;
+          border-bottom: 2px solid #D97706;
+          padding-bottom: 6px;
+        }
+        blockquote {
+          background: #F9FAFB;
+          border-left: 4px solid #D97706;
+          padding: 8px 14px;
+          font-style: italic;
+          margin: 14px 0;
+        }
+        .content {
+          font-size: 14px;
+          line-height: 1.7;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${itemsHtml}
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  showToast(`🖨️ Janela de impressão em PDF aberta!`);
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function cleanFilename(str) {
+  return (str || 'documento')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .substring(0, 40);
+}
+
+/**
+ * ==========================================================================
+ * TEMAS VISUAIS
+ * ==========================================================================
+ */
+function setupThemes() {
+  applyTheme(ASCD.theme);
+
+  document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.getAttribute('data-theme');
+      if (theme) {
+        applyTheme(theme);
+        ASCD.theme = theme;
+        localStorage.setItem('ascd_theme', theme);
+      }
+    });
+  });
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+  });
+}
+
+/**
+ * ==========================================================================
+ * UTILITÁRIOS E NOTIFICAÇÕES
+ * ==========================================================================
+ */
+function showToast(msg) {
+  let toast = document.getElementById('ascd-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'ascd-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = msg;
+  toast.className = 'show';
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => {
+    toast.className = '';
+  }, 2800);
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeForJs(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function getTodayDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  if (dateStr.includes('/')) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  const weekDays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  return `${weekDays[d.getDay()]}, ${d.getDate()} de ${monthNames[d.getMonth()]} de ${d.getFullYear()}`;
+}

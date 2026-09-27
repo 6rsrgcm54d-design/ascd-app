@@ -1,0 +1,2195 @@
+/* ==========================================================================
+   ASCD - Devocional & Estudo Bíblico
+   Design System & Estilos - Otimizado para iPadOS, Apple Pencil & Desktop
+   ========================================================================== */
+
+:root {
+  /* Variáveis do Tema Pergaminho (Padrão) */
+  --bg-app: #F5EFE0;
+  --bg-surface: #FCF9F2;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-hover: #F2E8D3;
+  --text-primary: #2A2118;
+  --text-secondary: #6B5E4F;
+  --text-muted: #9E8F7F;
+  
+  --border-color: #E2D3BE;
+  --border-subtle: #EDE3D4;
+  
+  --primary: #8B4513;          /* Marrom couro bíblico */
+  --primary-hover: #72360E;
+  --accent-gold: #C28E2C;      /* Dourado sacro */
+  --accent-gold-light: #F9EED9;
+  --accent-wine: #7E1D2D;
+  --accent-forest: #22543D;
+  
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --shadow-sm: 0 1px 3px rgba(42, 33, 24, 0.05);
+  --shadow-md: 0 4px 12px rgba(42, 33, 24, 0.08);
+  --shadow-lg: 0 10px 25px rgba(42, 33, 24, 0.12);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  
+  --sidebar-width: 250px;
+  --header-height: 64px;
+}
+
+[data-theme="claro"] {
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-hover: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-color: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --primary: #1E3A8A;
+  --primary-hover: #172554;
+  --accent-gold: #D97706;
+  --accent-gold-light: #FEF3C7;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="escuro"] {
+  --bg-app: #0D1117;
+  --bg-surface: #161B22;
+  --bg-surface-elevated: #21262D;
+  --bg-surface-hover: #30363D;
+  --text-primary: #F0F6FC;
+  --text-secondary: #8B949E;
+  --text-muted: #6E7681;
+  --border-color: #30363D;
+  --border-subtle: #21262D;
+  --primary: #D29922;
+  --primary-hover: #BB8009;
+  --accent-gold: #F59E0B;
+  --accent-gold-light: rgba(245, 158, 11, 0.15);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Estrutura Principal */
+.app-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Barra Lateral de Navegação (Sidebar) */
+.app-sidebar {
+  width: var(--sidebar-width);
+  height: 100%;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 50;
+  transition: transform 0.25s ease;
+}
+
+.sidebar-header {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.brand-symbol {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-gold) 100%);
+  color: #FFF;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(139, 69, 19, 0.25);
+}
+
+.brand-text h1 {
+  font-size: 18px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.brand-text span {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.nav-btn.active {
+  background: var(--accent-gold-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.nav-btn svg {
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: 16px 14px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.theme-selector {
+  display: flex;
+  background: var(--bg-app);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.theme-opt-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-opt-btn.active {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Área Principal de Conteúdo */
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Barra Superior (Topbar) */
+.app-topbar {
+  height: var(--header-height);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-topbar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-topbar-action:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-gold);
+}
+
+.btn-topbar-action.btn-active-state {
+  background: var(--primary);
+  color: #FFF;
+  border-color: var(--primary);
+}
+
+.btn-topbar-action.playing {
+  background: var(--accent-forest);
+  color: #FFF;
+  border-color: var(--accent-forest);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(34, 84, 61, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(34, 84, 61, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 84, 61, 0); }
+}
+
+@keyframes ascd-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Área de Telas */
+.app-main-wrapper {
+  flex: 1;
+  display: flex;
+  height: calc(100% - var(--header-height));
+  position: relative;
+  overflow: hidden;
+}
+
+.app-section {
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px 64px 32px;
+}
+
+.app-section.active {
+  display: block;
+}
+
+/* Específico para o Caderno Pencil (sem rolagem padrão, canvas livre) */
+#sec-pencil-caderno.active {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* MODO DIVIDIDO (SPLIT VIEW) */
+.split-workspace-panel {
+  display: none;
+  width: 50%;
+  height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-color);
+  flex-direction: column;
+  position: relative;
+  z-index: 20;
+}
+
+.app-main-wrapper.split-view-active .app-section.active {
+  width: 50%;
+}
+
+.app-main-wrapper.split-view-active .split-workspace-panel {
+  display: flex;
+}
+
+/* ==========================================================================
+   BARRA DE FORMATAÇÃO RICA DE NOTAS (TECLADO & TEXTO)
+   Fontes diversas, tamanhos de letra, negrito, sublinhado e 3 cores de marca-texto
+   ========================================================================== */
+.note-rich-formatting-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.fmt-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fmt-icon-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.fmt-select {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.fmt-select:focus {
+  border-color: var(--accent-gold);
+}
+
+.fmt-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.fmt-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fmt-btn:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-gold);
+}
+
+.fmt-btn.active {
+  background: var(--primary);
+  color: #FFF;
+  border-color: var(--primary);
+}
+
+/* Os 3 Marca-Textos Solicitados: Vermelho Claro, Verde e Amarelo */
+.fmt-highlighters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fmt-hl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.fmt-hl-btn:hover {
+  transform: translateY(-1px);
+}
+
+.hl-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+#hl-color-red:hover {
+  background: #FFE4E6;
+  border-color: #F43F5E;
+}
+
+#hl-color-green:hover {
+  background: #DCFCE7;
+  border-color: #22C55E;
+}
+
+#hl-color-yellow:hover {
+  background: #FEF9C3;
+  border-color: #EAB308;
+}
+
+.fmt-btn-clear {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  gap: 4px;
+}
+
+.fmt-btn-clear:hover {
+  color: var(--text-primary);
+}
+
+/* Área de Texto com Suporte aos Realces */
+.rich-editor-box {
+  min-height: 220px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  background: var(--bg-surface-elevated);
+  outline: none;
+  overflow-y: auto;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.rich-editor-box:focus {
+  border-color: var(--accent-gold);
+}
+
+.rich-editor-box mark,
+.rich-editor-box span.highlight-red {
+  background-color: #FECDD3 !important;
+  color: #1A1A1A;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.rich-editor-box span.highlight-green {
+  background-color: #BBF7D0 !important;
+  color: #1A1A1A;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.rich-editor-box span.highlight-yellow {
+  background-color: #FEF08A !important;
+  color: #1A1A1A;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+
+
+/* Leitor Bíblico */
+.bible-reader-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.bible-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.bible-selects-group {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-select {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input-wrapper svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.btn-nav-arrow {
+  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-nav-arrow:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.btn-nav-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bible-bottom-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bible-loading-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-secondary);
+}
+
+.bible-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: ascd-spin 0.8s linear infinite;
+  margin: 0 auto 16px auto;
+}
+
+.bible-reading-paper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: var(--shadow-sm);
+}
+
+.bible-chapter-header {
+  text-align: center;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 20px;
+}
+
+.bible-chapter-header h2 {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.chapter-subtitle {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.bible-version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent-gold-bg, rgba(212, 175, 55, 0.12));
+  color: var(--accent-gold, #c4972e);
+  border: 1px solid var(--accent-gold, #c4972e);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.verse-row {
+  display: flex;
+  align-items: baseline;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.verse-row:hover {
+  background: var(--bg-surface-hover);
+}
+
+.verse-row.verse-highlighted {
+  background: rgba(253, 224, 71, 0.35);
+  border-radius: 4px;
+}
+
+.verse-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-gold);
+  margin-right: 12px;
+  min-width: 22px;
+  user-select: none;
+}
+
+.verse-text {
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.verse-actions {
+  display: none;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.verse-row:hover .verse-actions {
+  display: flex;
+}
+
+.verse-action-btn {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.verse-action-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.verse-ref-tag {
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-right: 12px;
+}
+
+/* CADERNO APPLE PENCIL FULLSCREEN & STUDIO */
+.pencil-studio-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--bg-app);
+}
+
+/* Barra de Ferramentas Flutuante Apple Pencil */
+.pencil-floating-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+  max-width: 95%;
+  overflow-x: auto;
+}
+
+[data-theme="escuro"] .pencil-floating-toolbar {
+  background: rgba(22, 27, 34, 0.9);
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+}
+
+.pencil-tool-btn {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.pencil-tool-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.pencil-tool-btn.active {
+  background: var(--primary);
+  color: #FFF;
+}
+
+/* Indicador de Palma (Palm Rejection) */
+.btn-palm {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.btn-palm.active {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #86EFAC;
+}
+
+[data-theme="escuro"] .btn-palm.active {
+  background: rgba(22, 101, 52, 0.3);
+  color: #86EFAC;
+  border-color: #166534;
+}
+
+/* Paleta de Cores de Caligrafia */
+.color-palette-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.color-palette-item {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-palette-item:hover {
+  transform: scale(1.15);
+}
+
+.color-palette-item.selected {
+  transform: scale(1.2);
+  border-color: #FFF;
+  box-shadow: 0 0 0 2px var(--accent-gold);
+}
+
+/* Área do Canvas */
+.pencil-canvas-viewport {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 80px 20px 20px 20px;
+}
+
+.drawing-canvas-element {
+  touch-action: none; /* ESSENCIAL PARA EVITAR ROLAGEM AO ESCREVER COM APPLE PENCIL */
+  background: transparent;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: block;
+  cursor: crosshair;
+  width: 900px;
+  max-width: 100%;
+  min-height: 1100px;
+}
+
+/* Abas de Folhas (Caderno Múltiplo) */
+.canvas-sheets-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.sheet-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sheet-tab.active {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-light);
+  color: var(--primary);
+}
+
+.sheet-del-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Bloco Dividido de Apple Pencil */
+.split-toolbar {
+  padding: 10px 14px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.split-canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.split-canvas-element {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  display: block;
+}
+
+/* Anotações de Texto / Sermões */
+.notes-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.section-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.section-top-header h2 {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.note-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+}
+
+.note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-gold);
+}
+
+.note-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+}
+
+.note-category-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  background: var(--accent-gold-light);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.note-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.note-card-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.note-card-preview {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  flex: 1;
+  margin-bottom: 16px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.note-card-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Estilos do Caderno de Notas Híbrido (Teclado & Apple Pencil) */
+.note-mode-tag {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  background: var(--bg-app);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.note-card-pencil-thumb {
+  width: 100%;
+  height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: #FFF;
+  object-fit: cover;
+  margin-bottom: 12px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.modal-dialog-large {
+  max-width: 900px !important;
+  width: 95% !important;
+  height: 90vh !important;
+}
+
+.note-section-block {
+  margin-bottom: 16px;
+}
+
+.note-canvas-container {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #FFF;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.note-canvas-element {
+  width: 100%;
+  min-height: 380px;
+  touch-action: none; /* Previne scroll no iPad durante escrita */
+  display: block;
+  cursor: crosshair;
+}
+
+/* ==========================================================================
+   TIPOS DE FOLHAS PARA ESCRITA COM APPLE PENCIL
+   Pautada (com Linhas), Quadriculada (Matemática), Pontilhada, Papiro, Lisa
+   ========================================================================== */
+
+/* 1. Folha Pautada com Linhas Clássicas e Margem Vermelha */
+.paper-pautada {
+  background-color: #FFFFFF !important;
+  background-image:
+    linear-gradient(90deg, transparent 58px, rgba(239, 68, 68, 0.55) 59px, rgba(239, 68, 68, 0.55) 60px, transparent 61px),
+    linear-gradient(rgba(59, 130, 246, 0.35) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 32px !important;
+  background-position: 0 0, 0 38px !important;
+  background-repeat: no-repeat, repeat-y !important;
+}
+
+/* 2. Folha Quadriculada Matemática (Grade de precisão 5mm / 24px) */
+.paper-quadriculada {
+  background-color: #FFFFFF !important;
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.28) 1px, transparent 1px) !important;
+  background-size: 24px 24px, 24px 24px !important;
+  background-position: 0 0, 0 0 !important;
+  background-repeat: repeat, repeat !important;
+}
+
+/* 3. Folha Pontilhada (Bullet Journal Dot Grid) */
+.paper-pontilhada {
+  background-color: #FAFAFA !important;
+  background-image: radial-gradient(circle, rgba(71, 85, 105, 0.45) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px !important;
+  background-position: 12px 12px !important;
+  background-repeat: repeat !important;
+}
+
+/* 4. Folha Papiro / Pergaminho Bíblico */
+.paper-pergaminho {
+  background-color: #FDF8EE !important;
+  background-image:
+    linear-gradient(90deg, transparent 62px, rgba(180, 83, 9, 0.45) 63px, rgba(180, 83, 9, 0.45) 64px, transparent 65px),
+    linear-gradient(rgba(163, 131, 91, 0.35) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 34px !important;
+  background-position: 0 0, 0 42px !important;
+  background-repeat: no-repeat, repeat-y !important;
+}
+
+/* 5. Folha Lisa / Branca */
+.paper-branca {
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+}
+
+/* Ajustes para Tema Escuro */
+[data-theme="escuro"] .paper-pautada {
+  background-color: #1A1F26 !important;
+  background-image:
+    linear-gradient(90deg, transparent 58px, rgba(239, 68, 68, 0.5) 59px, transparent 60px),
+    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 32px !important;
+  background-position: 0 0, 0 38px !important;
+  background-repeat: no-repeat, repeat-y !important;
+}
+[data-theme="escuro"] .paper-quadriculada {
+  background-color: #1A1F26 !important;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px) !important;
+  background-size: 24px 24px, 24px 24px !important;
+  background-position: 0 0, 0 0 !important;
+  background-repeat: repeat, repeat !important;
+}
+[data-theme="escuro"] .paper-pontilhada {
+  background-color: #1A1F26 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.35) 1.5px, transparent 1.5px) !important;
+  background-size: 24px 24px !important;
+  background-position: 12px 12px !important;
+  background-repeat: repeat !important;
+}
+[data-theme="escuro"] .paper-pergaminho {
+  background-color: #241D17 !important;
+  background-image:
+    linear-gradient(90deg, transparent 62px, rgba(217, 119, 6, 0.45) 63px, transparent 64px),
+    linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 34px !important;
+  background-position: 0 0, 0 42px !important;
+  background-repeat: no-repeat, repeat-y !important;
+}
+[data-theme="escuro"] .paper-branca {
+  background-color: #1A1F26 !important;
+  background-image: none !important;
+}
+
+/* Controles de Seleção de Tipo de Folha */
+.paper-type-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  transition: all 0.2s ease;
+}
+
+.paper-type-control:hover {
+  border-color: var(--accent-gold);
+}
+
+.paper-control-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+}
+
+.paper-select {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  padding: 2px 2px;
+}
+
+.paper-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+
+
+/* Plano de Leitura */
+.reading-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.progress-banner-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.progress-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-banner-header h3 {
+  font-family: var(--font-serif);
+  font-size: 18px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 12px;
+  background: var(--bg-app);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-gold) 0%, var(--primary) 100%);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.reading-plan-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s ease;
+}
+
+.reading-plan-card.done {
+  opacity: 0.75;
+  background: var(--bg-surface-hover);
+}
+
+.custom-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.custom-checkbox-container input {
+  display: none;
+}
+
+.checkmark {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--accent-gold);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox-container input:checked ~ .checkmark {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.custom-checkbox-container input:checked ~ .checkmark::after {
+  content: '✓';
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.plan-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.plan-ref {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Modais */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 620px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-family: var(--font-serif);
+  font-size: 20px;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-input {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--accent-gold);
+}
+
+.rich-editor-box {
+  min-height: 180px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  background: var(--bg-surface-elevated);
+  outline: none;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Botões Comuns */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #FFF;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+}
+
+.btn-outline-success {
+  background: transparent;
+  color: #166534;
+  border: 1px solid #166534;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.btn-outline-success:hover {
+  background: #DCFCE7;
+}
+
+.btn-icon-subtle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon-subtle:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+/* Toast Notifier */
+#ascd-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(42, 33, 24, 0.94);
+  color: #FFF;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#ascd-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+/* Seletor de Modo Pílula (Híbrido / Teclado / Apple Pencil) */
+.input-mode-pill-selector {
+  display: inline-flex;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-pill-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mode-pill-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.mode-pill-btn.active {
+  background: var(--primary);
+  color: #FFF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* ==========================================================================
+   LAYOUT DE JOURNALING & CALENDÁRIO
+   ========================================================================== */
+.journal-layout-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.journal-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.calendar-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.calendar-nav-bar h3 {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  margin: 0;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.calendar-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.cal-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cal-day-cell:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-color);
+}
+
+.cal-day-cell.other-month {
+  color: var(--text-muted);
+  opacity: 0.35;
+}
+
+.cal-day-cell.today {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  font-weight: 800;
+}
+
+.cal-day-cell.selected {
+  background: var(--primary) !important;
+  color: #FFF !important;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.cal-day-cell.has-entry::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+}
+
+.cal-day-cell.selected.has-entry::after {
+  background: #FFF;
+}
+
+.calendar-footer-action {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+/* Histórico de dias gravados */
+.journal-history-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.journal-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.journal-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 8px;
+}
+
+.journal-history-item:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-surface-hover);
+}
+
+.journal-history-item.active {
+  border-color: var(--primary);
+  background: var(--accent-gold-light);
+}
+
+.journal-history-item.selected {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-light);
+  box-shadow: 0 0 0 1.5px var(--accent-gold);
+}
+
+.journal-history-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.journal-history-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.journal-history-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-delete-history-item {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.btn-delete-history-item:hover {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.12);
+  opacity: 1;
+}
+
+/* Painel Principal do Diário / Journal */
+.journal-main-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.journal-entry-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.journal-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 18px;
+}
+
+.date-navigator-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.journal-badge-date {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  letter-spacing: 0.8px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.date-navigator-group h2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.journal-meta-inputs {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.journal-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.journal-editor {
+  min-height: 220px;
+}
+
+.journal-canvas-container {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #FFF;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.journal-canvas-element {
+  width: 100%;
+  min-height: 340px;
+  touch-action: none;
+  display: block;
+  cursor: crosshair;
+}
+
+.journal-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 18px;
+}
+
+.journal-save-status {
+  font-size: 12px;
+  color: #166534;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.export-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Sermão Card Meta Info */
+.sermon-meta-row {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.sermon-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.sermon-meta-item strong {
+  color: var(--text-secondary);
+}
+
+.card-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-export-mini-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.btn-mini-export {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-mini-export:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-gold);
+  color: var(--primary);
+}
+
+/* Barra de Ações em Lote (Multi-Seleção para Sermões e Notas) */
+.batch-actions-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.batch-actions-bar.active {
+  display: flex;
+}
+
+.batch-counter {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--primary);
+  margin-right: 8px;
+}
+
+.card-select-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+.note-card.selected, .sermon-card.selected {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--accent-gold);
+}
+
+/* Journal: Tarefas e Oração */
+.journal-tasks-section {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.journal-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.journal-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.journal-task-item:hover {
+  border-color: var(--accent-gold);
+}
+
+.journal-task-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.journal-task-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.journal-task-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.journal-task-text.completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Modo Dividido (Split View) com Teclado + Apple Pencil */
+.split-header-bar {
+  padding: 12px 16px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.split-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.split-study-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #86EFAC;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.split-study-badge:hover {
+  background: #BBF7D0;
+}
+
+/* Responsividade para iPad e Telas Menores */
+@media (max-width: 900px) {
+  .app-sidebar {
+    width: 72px;
+  }
+  .brand-text, .nav-btn span, .sidebar-footer {
+    display: none;
+  }
+  .sidebar-header {
+    justify-content: center;
+    padding: 16px 0;
+  }
+  .nav-btn {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .app-section {
+    padding: 16px;
+  }
+  .app-main-wrapper.split-view-active .app-section.active {
+    width: 100%;
+    display: none;
+  }
+  .app-main-wrapper.split-view-active .split-workspace-panel {
+    width: 100%;
+  }
+  .journal-layout-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Indicador de Sincronização Google Sheets */
+.sheets-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.sheets-sync-pill:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-gold);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+

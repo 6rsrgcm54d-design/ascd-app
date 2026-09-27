@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="pergaminho">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCD - Bíblia & Notas</title>
+  
+  <!-- Otimizações para iPadOS, Safari e Apple Pencil -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ASCD">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+
+  <!-- Tipografia Refinada com Fontes Clássicas, Modernas e Caligráficas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fira+Code:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Barra Lateral de Navegação (Sidebar) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-symbol">AS</div>
+        <div class="brand-text">
+          <h1>ASCD</h1>
+          <span>Bíblia & Notas</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- 1. Leitor Bíblico -->
+        <button class="nav-btn active" data-tab="biblia">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span>Leitor Bíblico</span>
+        </button>
+
+        <!-- 2. Anotações de Sermões -->
+        <button class="nav-btn" data-tab="sermoes">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span>Anotações de Sermões</span>
+        </button>
+
+        <!-- 3. Diário (com Calendário) -->
+        <button class="nav-btn" data-tab="journal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>
+          <span>Diário</span>
+        </button>
+
+        <!-- 4. Caderno de Estudos Bíblicos / Notas Gerais -->
+        <button class="nav-btn" data-tab="notas">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span>Caderno de Estudos</span>
+        </button>
+
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-selector">
+          <button class="theme-opt-btn active" data-theme="pergaminho">Papiro</button>
+          <button class="theme-opt-btn" data-theme="claro">Claro</button>
+          <button class="theme-opt-btn" data-theme="escuro">Escuro</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <div class="app-content">
+      <!-- Topbar com Ações Rápidas -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <span style="font-weight: 700; font-family: var(--font-serif); font-size: 16px; color: var(--accent-gold);">
+            ASCD • Bíblia & Notas
+          </span>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Indicador de Sincronização Automática com Google Sheets -->
+          <span id="sheets-autosync-badge" class="sheets-sync-pill" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" style="cursor:pointer;" title="Sincronização automática com Google Sheets">
+            ☁️ <span style="font-weight:600;">Google Sheets Conectado</span>
+          </span>
+
+          <!-- Modo Dividido: Bíblia + Bloco de Notas Lado a Lado -->
+          <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            <span>Modo Dividido (Teclado & Apple Pencil)</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Área de Telas e Workspace -->
+      <main class="app-main-wrapper">
+        
+        <!-- 1. ABA LEITOR BÍBLICO -->
+        <section class="app-section active" id="sec-biblia">
+          <div class="bible-reader-container">
+            <div class="bible-controls-bar">
+              <div class="bible-selects-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <select id="bible-version-select" class="custom-select" title="Escolha a versão da Bíblia (ARC, AA, TB)"></select>
+                <select id="bible-book-select" class="custom-select" title="Escolha o Livro"></select>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <button type="button" class="btn-nav-arrow" id="btn-prev-chapter" title="Capítulo Anterior (◀)">◀</button>
+                  <select id="bible-chapter-select" class="custom-select" title="Escolha o Capítulo"></select>
+                  <button type="button" class="btn-nav-arrow" id="btn-next-chapter" title="Próximo Capítulo (▶)">▶</button>
+                </div>
+              </div>
+
+              <div class="search-input-wrapper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
+              </div>
+            </div>
+
+            <!-- Folha de Leitura Bíblica -->
+            <div class="bible-reading-paper">
+              <div class="bible-chapter-header" id="bible-chapter-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <h2 id="bible-header-title" style="margin:0;">Salmos 23</h2>
+                    <span class="bible-version-badge" id="bible-header-version-badge" title="Versão Bíblica Ativa">ARC</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap;">
+                    <span class="chapter-subtitle" id="bible-header-sub">O Bom Pastor</span>
+                    <span style="color:var(--text-muted); font-size:12px;">•</span>
+                    <span id="bible-header-version-fullname" style="color:var(--text-muted); font-size:12px; font-weight:500;">Almeida Revista e Corrigida (1911) • Domínio Público</span>
+                  </div>
+                </div>
+                <div id="bible-chapter-badge-container"></div>
+              </div>
+
+              <div id="bible-verses-display"></div>
+
+              <!-- Navegação Inferior de Capítulos -->
+              <div class="bible-bottom-nav">
+                <button type="button" class="btn btn-secondary" id="btn-bottom-prev-chap" style="display:flex; align-items:center; gap:6px;">
+                  <span>◀</span>
+                  <span>Capítulo Anterior</span>
+                </button>
+                <span id="bible-bottom-chap-indicator" style="font-size:14px; font-weight:600; color:var(--text-secondary);">Salmos — Capítulo 23 de 150</span>
+                <button type="button" class="btn btn-secondary" id="btn-bottom-next-chap" style="display:flex; align-items:center; gap:6px;">
+                  <span>Próximo Capítulo</span>
+                  <span>▶</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. ABA ANOTAÇÕES DE SERMÕES -->
+        <section class="app-section" id="sec-sermoes">
+          <div class="notes-container">
+            <div class="section-top-header">
+              <div>
+                <h2>Anotações de Sermões & Pregações</h2>
+                <p style="color: var(--text-secondary); font-size: 14px;">Registre pregações de cultos e conferências com dados do pregador, passagem, digitação e Apple Pencil.</p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" id="btn-toggle-select-sermons" title="Selecionar vários sermões para exportar ao mesmo tempo">
+                  ☑️ Selecionar Vários
+                </button>
+                <button class="btn btn-secondary" id="btn-export-all-sermons-excel" title="Exportar todos os sermões para arquivo Excel">
+                  📊 Exportar Excel
+                </button>
+                <button class="btn btn-primary" id="btn-new-sermon">
+                  + Novo Sermão
+                </button>
+              </div>
+            </div>
+
+            <!-- Barra de Ações em Lote para Sermões -->
+            <div class="batch-actions-bar" id="sermons-batch-bar">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600;">
+                <input type="checkbox" id="btn-select-all-sermons" class="card-select-checkbox">
+                <span>Selecionar Todos</span>
+              </label>
+              <span class="batch-counter" id="sermons-selected-counter">0 selecionados</span>
+              <div style="display:flex; gap:6px; align-items:center; margin-left:auto; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" id="btn-batch-sermons-doc">📄 Exportar DOC</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-sermons-excel">📊 Exportar Excel</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-sermons-pdf">🖨️ Exportar PDF</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-sermons-del" style="color:#B91C1C; border-color:#F87171;">🗑️ Excluir</button>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 24px; max-width: 400px;">
+              <div class="search-input-wrapper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="sermons-search-input" placeholder="Buscar por tema, pregador ou versículo...">
+              </div>
+            </div>
+
+            <!-- Grid de Sermões -->
+            <div class="notes-grid" id="sermons-cards-grid"></div>
+          </div>
+        </section>
+
+        <!-- 3. ABA JOURNALING COM CALENDÁRIO -->
+        <section class="app-section" id="sec-journal">
+          <div class="journal-layout-container">
+            
+            <!-- Painel Esquerdo: Calendário Mensal e Histórico de Dias Gravados -->
+            <div class="journal-sidebar-panel">
+              <div class="calendar-card">
+                <div class="calendar-nav-bar">
+                  <button class="btn-icon-subtle" id="cal-prev-month" title="Mês Anterior">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <h3 id="cal-month-title">Setembro 2026</h3>
+                  <button class="btn-icon-subtle" id="cal-next-month" title="Próximo Mês">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                </div>
+
+                <div class="calendar-grid-header">
+                  <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                </div>
+
+                <div class="calendar-days-grid" id="calendar-days-grid"></div>
+
+                <div class="calendar-footer-action">
+                  <button class="btn btn-secondary btn-sm" id="cal-btn-today" style="width: 100%;">
+                    Ir para Hoje
+                  </button>
+                </div>
+              </div>
+
+              <!-- Histórico de dias com Journal gravado -->
+              <div class="journal-history-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
+                  <h4 style="margin:0;">Dias com Registro</h4>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button class="btn btn-secondary btn-sm" id="btn-toggle-select-journal" title="Selecionar um ou mais dias para apagar">
+                      ☑️ Selecionar
+                    </button>
+                    <button class="btn-icon-subtle" id="btn-export-all-journal-excel" title="Exportar todo o histórico do Diário para Excel">
+                      📊 Excel
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Barra de Ações em Lote para Dias do Diário -->
+                <div class="journal-batch-bar" id="journal-batch-bar" style="display:none; margin-bottom:10px; padding:8px 10px; background:var(--accent-gold-light); border:1px solid var(--accent-gold); border-radius:var(--radius-sm);">
+                  <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:6px; flex-wrap:wrap;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; font-weight:600;">
+                      <input type="checkbox" id="btn-select-all-journal" class="card-select-checkbox" style="width:16px; height:16px;">
+                      <span>Todos</span>
+                    </label>
+                    <span class="batch-counter" id="journal-selected-counter" style="font-size:12px; margin:0;">0 selecionado(s)</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-journal-del" style="color:#B91C1C; border-color:#F87171; padding:4px 8px; font-size:12px;" title="Excluir dias selecionados">
+                      🗑️ Excluir
+                    </button>
+                  </div>
+                </div>
+
+                <div class="journal-history-list" id="journal-history-list"></div>
+              </div>
+            </div>
+
+            <!-- Painel Direito: Registro do Diário do Dia Selecionado -->
+            <div class="journal-main-panel">
+              <article class="journal-entry-card">
+                
+                <div class="journal-date-header">
+                  <div class="date-navigator-group">
+                    <button class="btn-icon-subtle" id="journal-prev-day" title="Dia Anterior">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <div>
+                      <span class="journal-badge-date">Registro do Diário</span>
+                      <h2 id="journal-display-date">Sábado, 26 de Setembro de 2026</h2>
+                    </div>
+                    <button class="btn-icon-subtle" id="journal-next-day" title="Dia Seguinte">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  </div>
+
+                  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <!-- Botão para Apagar Registro Deste Dia -->
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-delete-current-journal-day" style="color:#B91C1C; border-color:#F87171; display:flex; align-items:center; gap:5px;" title="Apagar o registro deste dia atual">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      <span>Apagar Dia</span>
+                    </button>
+
+                    <!-- Seletor de Modo de Entrada -->
+                    <div class="input-mode-pill-selector">
+                      <button type="button" class="mode-pill-btn active" data-journalmode="hybrid" id="btn-jmode-hybrid">✨ Híbrido</button>
+                      <button type="button" class="mode-pill-btn" data-journalmode="text" id="btn-jmode-text">⌨️ Teclado</button>
+                      <button type="button" class="mode-pill-btn" data-journalmode="pencil" id="btn-jmode-pencil">✍️ Apple Pencil</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metadados do Dia -->
+                <div class="journal-meta-inputs">
+                  <div class="form-group" style="flex: 2;">
+                    <label>Título / Tema do Dia</label>
+                    <input type="text" id="journal-title-input" class="form-input" placeholder="Ex: Meditações matinais, reflexões e orações">
+                  </div>
+                  <div class="form-group" style="flex: 1.5;">
+                    <label>Passagem Bíblica (Opcional)</label>
+                    <input type="text" id="journal-verse-input" class="form-input" placeholder="Ex: Salmos 23:1-6">
+                  </div>
+                </div>
+
+                <!-- 1. SEÇÃO DE ORAÇÃO & INTERCESSÃO -->
+                <div class="journal-section-block" id="journal-prayer-section">
+                  <label style="font-size:13px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
+                    <span>🙏 Motivos de Oração, Intercessão & Agradecimento</span>
+                  </label>
+                  <div id="journal-prayer-editor" class="rich-editor-box" contenteditable="true" style="min-height:90px;" placeholder="Escreva aqui os seus motivos de oração do dia, pedidos a Deus, intercessões por outras pessoas e agradecimentos..."></div>
+                </div>
+
+                <!-- 2. SEÇÃO: O QUE FAZER NESSE DIA (TAREFAS & PRIORIDADES) -->
+                <div class="journal-tasks-section" id="journal-tasks-wrapper">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
+                      📋 O que Fazer Nesse Dia (Metas & Prioridades)
+                    </label>
+                    <span id="journal-tasks-progress" style="font-size:12px; color:var(--accent-gold); font-weight:700;">0 tarefas</span>
+                  </div>
+                  <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="text" id="journal-task-input" class="form-input" style="flex:1;" placeholder="Adicionar tarefa para este dia... (Pressione Enter)">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-add-journal-task">+ Adicionar</button>
+                  </div>
+                  <div class="journal-tasks-list" id="journal-tasks-list">
+                    <!-- Lista de tarefas com checkbox e botão de remover -->
+                  </div>
+                </div>
+
+                <!-- SEÇÃO TECLADO DO JOURNAL (REFLEXÃO / MEDITAÇÃO) -->
+                <div id="journal-text-wrapper" class="journal-section-block">
+                  <label style="font-size:13px; font-weight:700; color:var(--text-secondary); margin-bottom:4px;">
+                    📖 Reflexão, Aprendizado & Diário Espiritual
+                  </label>
+                  <div class="note-rich-formatting-toolbar" id="journal-formatting-toolbar">
+                    <!-- Fonte -->
+                    <div class="fmt-group">
+                      <span class="fmt-icon-label">Fonte:</span>
+                      <select id="jfmt-font-family" class="fmt-select">
+                        <option value="'Playfair Display', Georgia, serif" selected>Playfair (Serif Bíblica)</option>
+                        <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta (Moderna)</option>
+                        <option value="'Lora', Georgia, serif">Lora (Editorial)</option>
+                        <option value="'Caveat', cursive">Caveat (Cursiva / Manuscrito)</option>
+                        <option value="'Fira Code', monospace">Fira Code (Máquina)</option>
+                      </select>
+                    </div>
+
+                    <!-- Tamanho -->
+                    <div class="fmt-group">
+                      <span class="fmt-icon-label">Tamanho:</span>
+                      <select id="jfmt-font-size" class="fmt-select">
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
+                        <option value="18px">18px</option>
+                        <option value="22px">22px</option>
+                        <option value="26px">26px</option>
+                        <option value="32px">32px</option>
+                      </select>
+                    </div>
+
+                    <div class="fmt-divider"></div>
+
+                    <!-- Negrito (B) -->
+                    <button type="button" class="fmt-btn" id="jfmt-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+                    <!-- Itálico (I) -->
+                    <button type="button" class="fmt-btn" id="jfmt-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+                    <!-- Sublinhar (U) -->
+                    <button type="button" class="fmt-btn" id="jfmt-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+                    <div class="fmt-divider"></div>
+
+                    <!-- 3 Cores de Marca-Texto -->
+                    <div class="fmt-group fmt-highlighters">
+                      <span class="fmt-icon-label">Realce:</span>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-red" data-color="#FECDD3" title="Marca-Texto Vermelho Claro">
+                        <span class="hl-swatch" style="background:#FECDD3;"></span>
+                        <span>Vermelho</span>
+                      </button>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-green" data-color="#BBF7D0" title="Marca-Texto Verde">
+                        <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                        <span>Verde</span>
+                      </button>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-yellow" data-color="#FEF08A" title="Marca-Texto Amarelo">
+                        <span class="hl-swatch" style="background:#FEF08A;"></span>
+                        <span>Amarelo</span>
+                      </button>
+                      <button type="button" class="fmt-btn fmt-btn-clear" id="jhl-color-clear" title="Remover marcação">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="journal-text-editor" class="rich-editor-box journal-editor" contenteditable="true" placeholder="Escreva aqui o seu diário espiritual do dia, agradecimentos, aprendizados e pensamentos..."></div>
+                </div>
+
+                <!-- SEÇÃO APPLE PENCIL DO JOURNAL -->
+                <div id="journal-pencil-wrapper" class="journal-section-block">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                      <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
+                        ✍️ Apple Pencil
+                      </label>
+                      <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
+                        <span class="paper-control-label">Folha:</span>
+                        <select class="paper-select" id="journal-paper-select">
+                          <option value="pautada">📄 Pautada (Linhas)</option>
+                          <option value="quadriculada">📐 Quadriculada (Matemática)</option>
+                          <option value="pontilhada">⠇ Pontilhada</option>
+                          <option value="pergaminho">📜 Papiro Nobre</option>
+                          <option value="branca">⚪ Folha Lisa</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="toolbar-group">
+                      <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
+                        <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
+                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
+                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
+                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+                      </div>
+                      <button type="button" class="btn-palm" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+                      <button type="button" class="btn-icon-subtle" id="journal-btn-undo" title="Desfazer">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                      </button>
+                      <button type="button" class="btn-icon-subtle" id="journal-btn-clear" title="Limpar Caligrafia">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="journal-canvas-container paper-pautada" id="journal-canvas-container">
+                    <canvas id="journal-drawing-canvas" class="journal-canvas-element"></canvas>
+                  </div>
+                </div>
+
+                <!-- Rodapé do Journal com Salvamento e EXPORTAÇÕES (DOC, EXCEL, PDF) -->
+                <div class="journal-card-footer">
+                  <div class="journal-save-status" id="journal-save-status">
+                    ✓ Alterações salvas no dispositivo
+                  </div>
+
+                  <div class="export-actions-row">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Exportar:</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-export-journal-doc" title="Exportar para documento Word (.doc)">
+                      📄 DOC
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-export-journal-excel" title="Exportar para planilha Excel (.csv)">
+                      📊 Excel
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-export-journal-pdf" title="Exportar / Imprimir em PDF">
+                      🖨️ PDF
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-save-journal-entry">
+                      Salvar Registro
+                    </button>
+                  </div>
+                </div>
+
+              </article>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 4. ABA CADERNO DE ESTUDOS BÍBLICOS (GERAIS) -->
+        <section class="app-section" id="sec-notas">
+          <div class="notes-container">
+            <div class="section-top-header">
+              <div>
+                <h2>Caderno de Estudos Bíblicos</h2>
+                <p style="color: var(--text-secondary); font-size: 14px;">Anote teologia, comentários e estudos temáticos com formatação avançada ou Apple Pencil.</p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" id="btn-toggle-select-notes" title="Selecionar várias anotações para exportar ao mesmo tempo">
+                  ☑️ Selecionar Várias
+                </button>
+                <button class="btn btn-secondary" id="btn-export-all-notes-excel" title="Exportar todas as notas para arquivo Excel">
+                  📊 Exportar Excel
+                </button>
+                <button class="btn btn-primary" id="btn-new-text-note">
+                  + Nova Anotação
+                </button>
+              </div>
+            </div>
+
+            <!-- Barra de Ações em Lote para Anotações -->
+            <div class="batch-actions-bar" id="notes-batch-bar">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600;">
+                <input type="checkbox" id="btn-select-all-notes" class="card-select-checkbox">
+                <span>Selecionar Todas</span>
+              </label>
+              <span class="batch-counter" id="notes-selected-counter">0 selecionadas</span>
+              <div style="display:flex; gap:6px; align-items:center; margin-left:auto; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" id="btn-batch-notes-doc">📄 Exportar DOC</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-notes-excel">📊 Exportar Excel</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-notes-pdf">🖨️ Exportar PDF</button>
+                <button class="btn btn-secondary btn-sm" id="btn-batch-notes-del" style="color:#B91C1C; border-color:#F87171;">🗑️ Excluir</button>
+              </div>
+            </div>
+
+            <!-- Campo de Busca em Notas -->
+            <div style="margin-bottom: 24px; max-width: 400px;">
+              <div class="search-input-wrapper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="notes-search-input" placeholder="Buscar em suas anotações de estudo...">
+              </div>
+            </div>
+
+            <!-- Grid de Cartões de Anotações -->
+            <div class="notes-grid" id="notes-cards-grid"></div>
+          </div>
+        </section>
+
+        <!-- PAINEL LATERAL PARA O MODO DIVIDIDO (SPLIT VIEW) COM TECLADO & APPLE PENCIL -->
+        <aside class="split-workspace-panel" id="split-workspace">
+          <!-- Topo do Modo Dividido -->
+          <div class="split-header-bar">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span id="split-study-title" style="font-family:var(--font-serif); font-size:15px; font-weight:700; color:var(--text-primary);">Estudo: Salmos 23</span>
+              <span style="font-size:11px; color:var(--text-muted);">Anotação vinculada a esta página da Bíblia</span>
+            </div>
+
+            <div class="input-mode-pill-selector">
+              <button type="button" class="mode-pill-btn active" id="split-mode-hybrid" data-splitmode="hybrid">✨ Híbrido</button>
+              <button type="button" class="mode-pill-btn" id="split-mode-text" data-splitmode="text">⌨️ Teclado</button>
+              <button type="button" class="mode-pill-btn" id="split-mode-pencil" data-splitmode="pencil">✍️ Apple Pencil</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-save-split-study" title="Guardar anotação desta página bíblica no Caderno">
+                💾 Guardar Estudo Desta Página
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-delete-split-study" title="Apagar a anotação guardada desta página bíblica" style="display:none; color:#DC2626; border-color:#FCA5A5; background:#FEF2F2; font-weight:600;">
+                🗑️ Apagar
+              </button>
+              <button type="button" class="btn-icon-subtle" id="btn-close-split-panel" title="Fechar Tela Dividida">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Área com rolagem de conteúdo do modo dividido -->
+          <div class="split-content-area" id="split-content-area">
+            <!-- 1. Editor de Texto / Teclado da Página Bíblica -->
+            <div id="split-text-wrapper" class="note-section-block">
+              <div class="note-rich-formatting-toolbar" id="split-formatting-toolbar">
+                <div class="fmt-group">
+                  <span class="fmt-icon-label">Fonte:</span>
+                  <select id="split-fmt-font-family" class="fmt-select">
+                    <option value="'Playfair Display', Georgia, serif" selected>Playfair (Serif)</option>
+                    <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta</option>
+                    <option value="'Lora', Georgia, serif">Lora</option>
+                    <option value="'Caveat', cursive">Caveat</option>
+                    <option value="'Fira Code', monospace">Fira Code</option>
+                  </select>
+                </div>
+
+                <div class="fmt-group">
+                  <span class="fmt-icon-label">Tamanho:</span>
+                  <select id="split-fmt-font-size" class="fmt-select">
+                    <option value="12px">12px</option>
+                    <option value="14px">14px</option>
+                    <option value="16px" selected>16px</option>
+                    <option value="18px">18px</option>
+                    <option value="22px">22px</option>
+                  </select>
+                </div>
+
+                <div class="fmt-divider"></div>
+
+                <button type="button" class="fmt-btn" id="split-fmt-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+                <button type="button" class="fmt-btn" id="split-fmt-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+                <button type="button" class="fmt-btn" id="split-fmt-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+                <div class="fmt-divider"></div>
+
+                <div class="fmt-group fmt-highlighters">
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-red" data-color="#FECDD3" title="Vermelho Claro">
+                    <span class="hl-swatch" style="background:#FECDD3;"></span>
+                  </button>
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-green" data-color="#BBF7D0" title="Verde">
+                    <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                  </button>
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-yellow" data-color="#FEF08A" title="Amarelo">
+                    <span class="hl-swatch" style="background:#FEF08A;"></span>
+                  </button>
+                  <button type="button" class="fmt-btn fmt-btn-clear" id="split-hl-color-clear" title="Remover marcação">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div id="split-text-editor" class="rich-editor-box" contenteditable="true" style="min-height:160px;" placeholder="Escreva aqui observações, notas de rodapé, comentários e reflexões para este capítulo da Bíblia..."></div>
+            </div>
+
+            <!-- 2. Caligrafia Apple Pencil da Página Bíblica -->
+            <div id="split-pencil-wrapper" class="note-section-block">
+              <div class="split-toolbar" style="border-radius: var(--radius-sm); margin-bottom: 6px;">
+                <div style="display:flex; align-items:center; gap: 6px;">
+                  <button class="pencil-tool-btn split-tool-btn active" data-tool="pen" title="Caneta">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                  </button>
+                  <button class="pencil-tool-btn split-tool-btn" data-tool="highlighter" title="Marca-Texto">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l-6 6v3h3l6-6"/><path d="M22 2l-7 7 3 3 7-7z"/></svg>
+                  </button>
+                  <button class="pencil-tool-btn split-tool-btn" data-tool="eraser" title="Borracha">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
+                  </button>
+                </div>
+
+                <div style="display:flex; align-items:center; gap: 4px;">
+                  <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Preto Tinta"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Azul Real"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+                </div>
+
+                <div class="paper-type-control" title="Escolha o tipo de folha da página">
+                  <span class="paper-control-label">Folha:</span>
+                  <select class="paper-select" id="split-paper-select">
+                    <option value="pergaminho">📜 Papiro</option>
+                    <option value="pautada">📄 Pautada</option>
+                    <option value="quadriculada">📐 Quadriculada</option>
+                    <option value="pontilhada">⠇ Pontilhada</option>
+                    <option value="branca">⚪ Lisa</option>
+                  </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap: 4px;">
+                  <button class="btn-palm" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
+                  <button class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                  </button>
+                  <button class="btn-icon-subtle" id="split-btn-clear" title="Limpar">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  </button>
+                  <button class="btn-icon-subtle" id="split-btn-export" title="Exportar PNG">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="note-canvas-container paper-pergaminho" id="split-canvas-container">
+                <canvas id="split-drawing-canvas" class="note-canvas-element" style="min-height:300px;"></canvas>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITOR DE SERMÃO (PREGADOR, PASSAGEM, ITÁLICO, APPLE PENCIL & EXPORTAÇÕES) -->
+  <div class="modal-overlay" id="sermon-editor-modal">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <h3>Anotação de Sermão / Pregação</h3>
+        <div class="input-mode-pill-selector" style="margin-left: auto; margin-right: 14px;">
+          <button type="button" class="mode-pill-btn active" id="sermon-mode-hybrid" data-sermonmode="hybrid">✨ Híbrido</button>
+          <button type="button" class="mode-pill-btn" id="sermon-mode-text" data-sermonmode="text">⌨️ Teclado</button>
+          <button type="button" class="mode-pill-btn" id="sermon-mode-pencil" data-sermonmode="pencil">✍️ Apple Pencil</button>
+        </div>
+        <button class="modal-close-btn" id="btn-close-sermon-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div class="form-group" style="flex: 2; min-width: 200px;">
+            <label for="edit-sermon-title">Tema / Título do Sermão</label>
+            <input type="text" id="edit-sermon-title" class="form-input" placeholder="Ex: O Poder da Cruz e a Graça Imerecida">
+          </div>
+          <div class="form-group" style="flex: 1.2; min-width: 150px;">
+            <label for="edit-sermon-preacher">Pregador / Orador</label>
+            <input type="text" id="edit-sermon-preacher" class="form-input" placeholder="Ex: Pastor João Silva">
+          </div>
+          <div class="form-group" style="flex: 1.2; min-width: 150px;">
+            <label for="edit-sermon-passage">Passagem Bíblica</label>
+            <input type="text" id="edit-sermon-passage" class="form-input" placeholder="Ex: Romanos 8:31-39">
+          </div>
+          <div class="form-group" style="flex: 0.8; min-width: 120px;">
+            <label for="edit-sermon-date">Data</label>
+            <input type="date" id="edit-sermon-date" class="form-input">
+          </div>
+        </div>
+
+        <!-- Seção de Texto do Sermão com Formatação Rica e Itálico -->
+        <div id="sermon-text-wrapper" class="note-section-block">
+          <div class="note-rich-formatting-toolbar" id="sermon-formatting-toolbar">
+            <div class="fmt-group">
+              <span class="fmt-icon-label">Fonte:</span>
+              <select id="sfmt-font-family" class="fmt-select">
+                <option value="'Playfair Display', Georgia, serif" selected>Playfair (Serif Bíblica)</option>
+                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta (Moderna)</option>
+                <option value="'Lora', Georgia, serif">Lora (Editorial)</option>
+                <option value="'Caveat', cursive">Caveat (Cursiva)</option>
+                <option value="'Fira Code', monospace">Fira Code (Máquina)</option>
+              </select>
+            </div>
+
+            <div class="fmt-group">
+              <span class="fmt-icon-label">Tamanho:</span>
+              <select id="sfmt-font-size" class="fmt-select">
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px" selected>16px</option>
+                <option value="18px">18px</option>
+                <option value="22px">22px</option>
+                <option value="26px">26px</option>
+                <option value="32px">32px</option>
+              </select>
+            </div>
+
+            <div class="fmt-divider"></div>
+
+            <button type="button" class="fmt-btn" id="sfmt-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="fmt-btn" id="sfmt-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="fmt-btn" id="sfmt-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+            <div class="fmt-divider"></div>
+
+            <div class="fmt-group fmt-highlighters">
+              <span class="fmt-icon-label">Realce:</span>
+              <button type="button" class="fmt-hl-btn" id="shl-color-red" data-color="#FECDD3" title="Marca-Texto Vermelho Claro">
+                <span class="hl-swatch" style="background:#FECDD3;"></span>
+                <span>Vermelho</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="shl-color-green" data-color="#BBF7D0" title="Marca-Texto Verde">
+                <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                <span>Verde</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="shl-color-yellow" data-color="#FEF08A" title="Marca-Texto Amarelo">
+                <span class="hl-swatch" style="background:#FEF08A;"></span>
+                <span>Amarelo</span>
+              </button>
+              <button type="button" class="fmt-btn fmt-btn-clear" id="shl-color-clear" title="Remover marcação">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="edit-sermon-content" class="rich-editor-box" contenteditable="true" placeholder="Tópicos da pregação, ilustrações, citações bíblicas e aplicação prática..."></div>
+        </div>
+
+        <!-- Seção Apple Pencil do Sermão -->
+        <div id="sermon-pencil-wrapper" class="note-section-block">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
+                ✍️ Apple Pencil
+              </label>
+              <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
+                <span class="paper-control-label">Folha:</span>
+                <select class="paper-select" id="sermon-paper-select">
+                  <option value="pautada">📄 Pautada (Linhas)</option>
+                  <option value="quadriculada">📐 Quadriculada (Matemática)</option>
+                  <option value="pontilhada">⠇ Pontilhada</option>
+                  <option value="pergaminho">📜 Papiro Nobre</option>
+                  <option value="branca">⚪ Folha Lisa</option>
+                </select>
+              </div>
+            </div>
+            <div class="toolbar-group">
+              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
+                <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
+                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
+                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
+                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+              </div>
+              <button type="button" class="btn-palm" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-icon-subtle" id="sermon-btn-undo" title="Desfazer">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+              </button>
+              <button type="button" class="btn-icon-subtle" id="sermon-btn-clear" title="Limpar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="note-canvas-container paper-pautada" id="sermon-canvas-container">
+            <canvas id="sermon-drawing-canvas" class="note-canvas-element"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <!-- Exportações do Sermão -->
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Exportar:</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-sermon-doc">📄 DOC</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-sermon-excel">📊 Excel</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-sermon-pdf">🖨️ PDF</button>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('sermon-editor-modal').classList.remove('open')">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-save-sermon-modal">Salvar Sermão</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITOR DE NOTA DE ESTUDO BÍBLICO (COM ITÁLICO, APPLE PENCIL & EXPORTAÇÕES) -->
+  <div class="modal-overlay" id="note-editor-modal">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <h3>Anotação & Estudo Bíblico</h3>
+        <div class="input-mode-pill-selector" style="margin-left: auto; margin-right: 14px;">
+          <button type="button" class="mode-pill-btn active" id="note-mode-hybrid" data-notemode="hybrid">✨ Híbrido</button>
+          <button type="button" class="mode-pill-btn" id="note-mode-text" data-notemode="text">⌨️ Teclado</button>
+          <button type="button" class="mode-pill-btn" id="note-mode-pencil" data-notemode="pencil">✍️ Apple Pencil</button>
+        </div>
+        <button class="modal-close-btn" id="btn-close-note-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div class="form-group" style="flex: 2; min-width: 200px;">
+            <label for="edit-note-title">Título da Anotação</label>
+            <input type="text" id="edit-note-title" class="form-input" placeholder="Ex: Estudo de Romanos 8 - Vida no Espírito">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 150px;">
+            <label for="edit-note-category">Categoria</label>
+            <select id="edit-note-category" class="form-input custom-select">
+              <option value="Estudo Bíblico">Estudo Bíblico</option>
+              <option value="Teologia">Teologia & Doutrina</option>
+              <option value="Comentário Exegético">Comentário Exegético</option>
+              <option value="Anotações Gerais">Anotações Gerais</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Seção de Texto da Nota com Barra de Formatação (Com Itálico) -->
+        <div id="note-text-wrapper" class="note-section-block">
+          <div class="note-rich-formatting-toolbar" id="note-formatting-toolbar">
+            <div class="fmt-group">
+              <span class="fmt-icon-label">Fonte:</span>
+              <select id="fmt-font-family" class="fmt-select">
+                <option value="'Playfair Display', Georgia, serif" selected>Playfair (Serif Bíblica)</option>
+                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta (Moderna)</option>
+                <option value="'Lora', Georgia, serif">Lora (Editorial)</option>
+                <option value="'Caveat', cursive">Caveat (Cursiva)</option>
+                <option value="'Fira Code', monospace">Fira Code (Máquina)</option>
+              </select>
+            </div>
+
+            <div class="fmt-group">
+              <span class="fmt-icon-label">Tamanho:</span>
+              <select id="fmt-font-size" class="fmt-select">
+                <option value="12px">12px</option>
+                <option value="14px">14px</option>
+                <option value="16px" selected>16px</option>
+                <option value="18px">18px</option>
+                <option value="22px">22px</option>
+                <option value="26px">26px</option>
+                <option value="32px">32px</option>
+              </select>
+            </div>
+
+            <div class="fmt-divider"></div>
+
+            <button type="button" class="fmt-btn" id="fmt-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="fmt-btn" id="fmt-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="fmt-btn" id="fmt-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+            <div class="fmt-divider"></div>
+
+            <div class="fmt-group fmt-highlighters">
+              <span class="fmt-icon-label">Realce:</span>
+              <button type="button" class="fmt-hl-btn" id="hl-color-red" data-color="#FECDD3" title="Marca-Texto Vermelho Claro">
+                <span class="hl-swatch" style="background:#FECDD3;"></span>
+                <span>Vermelho</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="hl-color-green" data-color="#BBF7D0" title="Marca-Texto Verde">
+                <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                <span>Verde</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="hl-color-yellow" data-color="#FEF08A" title="Marca-Texto Amarelo">
+                <span class="hl-swatch" style="background:#FEF08A;"></span>
+                <span>Amarelo</span>
+              </button>
+              <button type="button" class="fmt-btn fmt-btn-clear" id="hl-color-clear" title="Remover marcação">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="edit-note-content" class="rich-editor-box" contenteditable="true" placeholder="Escreva observações de estudo bíblico, referências, exegese..."></div>
+        </div>
+
+        <!-- Seção Apple Pencil da Nota -->
+        <div id="note-pencil-wrapper" class="note-section-block">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
+                ✍️ Apple Pencil
+              </label>
+              <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
+                <span class="paper-control-label">Folha:</span>
+                <select class="paper-select" id="note-paper-select">
+                  <option value="pautada">📄 Pautada (Linhas)</option>
+                  <option value="quadriculada">📐 Quadriculada (Matemática)</option>
+                  <option value="pontilhada">⠇ Pontilhada</option>
+                  <option value="pergaminho">📜 Papiro Nobre</option>
+                  <option value="branca">⚪ Folha Lisa</option>
+                </select>
+              </div>
+            </div>
+            <div class="toolbar-group">
+              <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px;">
+                <span style="font-size: 11px; color: var(--text-muted);">Marca-Texto:</span>
+                <div class="color-palette-item note-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
+                <div class="color-palette-item note-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
+                <div class="color-palette-item note-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
+              </div>
+
+              <button type="button" class="btn-palm" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-icon-subtle" id="note-btn-undo" title="Desfazer">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+              </button>
+              <button type="button" class="btn-icon-subtle" id="note-btn-clear" title="Limpar Folha">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="note-canvas-container paper-pautada" id="note-canvas-container">
+            <canvas id="note-drawing-canvas" class="note-canvas-element"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <!-- Exportações da Nota -->
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Exportar:</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-note-doc">📄 DOC</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-note-excel">📊 Excel</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-note-pdf">🖨️ PDF</button>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('note-editor-modal').classList.remove('open')">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-save-note-modal">Salvar Anotação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BASE DE DADOS & SINCRONIZAÇÃO GOOGLE SHEETS / GOOGLE DRIVE -->
+  <div class="modal-overlay" id="sheets-sync-modal">
+    <div class="modal-dialog modal-dialog-large" style="max-width: 780px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <h3 style="margin:0;">Base de Dados & Google Sheets</h3>
+        </div>
+        <button class="modal-close-btn" id="btn-close-sheets-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <!-- Seletor de Abas do Modal -->
+        <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:12px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm btn-primary" id="tab-btn-sync-direct">⚡ Sincronização Direta</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-guide">📋 Código do Apps Script & Guia</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-csv">📥 Descarregar CSV (Manual)</button>
+        </div>
+
+        <!-- ABA 1: SINCRONIZAÇÃO DIRETA VIA WEB APP -->
+        <div id="sync-panel-direct" class="sync-panel active">
+          <p style="color:var(--text-secondary); font-size:14px; margin-top:0;">
+            Sincronize todas as suas anotações, sermões e registros de diário diretamente com a sua folha de cálculo no <strong>Google Sheets</strong> em tempo real.
+          </p>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label for="input-sheets-webhook-url" style="font-weight:700;">URL da Aplicação Web do Apps Script (Web App URL):</label>
+            <input type="url" id="input-sheets-webhook-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:monospace; font-size:13px;">
+            <span style="font-size:12px; color:var(--text-muted); margin-top:4px; display:block;">
+              Cole aqui o link gerado após implementar o Apps Script na sua folha do Google Sheets (veja o guia na aba ao lado).
+            </span>
+          </div>
+
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+            <button type="button" class="btn btn-primary" id="btn-sync-sheets-now" style="display:flex; align-items:center; gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Sincronizar Agora com Google Sheets</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-test-sheets-connection" style="display:flex; align-items:center; gap:6px;">
+              <span>🔌 Testar Conexão</span>
+            </button>
+            <span id="sheets-sync-status" style="font-size:13px; color:var(--text-muted); font-weight:600;"></span>
+          </div>
+
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 18px; font-size:13px; line-height:1.6;">
+            <strong>✨ Sincronização Automática em Tempo Real:</strong>
+            <p style="margin:4px 0 8px 0; color:var(--text-secondary); font-size:12.5px;">
+              Sempre que você escreve, guarda ou apaga qualquer anotação na app, os dados são enviados automaticamente para as <strong>4 abas</strong> da sua folha de cálculo:
+            </p>
+            <ul style="margin:6px 0 0 18px; padding:0; font-size:12.5px; color:var(--text-secondary);">
+              <li>📖 <strong>Leitor Bíblico:</strong> Estudos e anotações vinculadas aos capítulos bíblicos.</li>
+              <li>📅 <strong>Diário:</strong> Orações diárias, lista de afazeres e diário espiritual.</li>
+              <li>📝 <strong>Caderno de Estudos:</strong> Estudos temáticos, teologia e anotações gerais.</li>
+              <li>🎙️ <strong>Anotações de Sermões:</strong> Mensagens de cultos, pregador, passagem bíblica e esboços.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ABA 2: CÓDIGO DO APPS SCRIPT E GUIA PASSO A PASSO -->
+        <div id="sync-panel-guide" class="sync-panel" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <h4 style="margin:0; font-family:var(--font-serif);">Como Configurar o Google Apps Script (Passo a Passo)</h4>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-copy-apps-script">
+              📋 Copiar Código Apps Script
+            </button>
+          </div>
+
+          <ol style="font-size:13px; line-height:1.7; padding-left:20px; color:var(--text-secondary); margin-bottom:18px;">
+            <li>No seu navegador, abra a aba do seu projeto Apps Script (ou aceda ao Google Sheets &gt; <strong>Extensões</strong> &gt; <strong>Apps Script</strong>).</li>
+            <li>No arquivo <code>Código.gs</code>, selecione tudo (<strong>Ctrl + A</strong>), apague e cole o código abaixo.</li>
+            <li>Clique no ícone de disquete 💾 (<strong>Guardar projeto</strong>).</li>
+            <li>No canto superior direito, clique em <strong>Implementar</strong> &gt; <strong>Gerir implementações</strong> (<em>Deploy &gt; Manage deployments</em>).</li>
+            <li>Clique no ícone do <strong>Lápis (Editar)</strong> no canto superior direito da janela de implementação.</li>
+            <li>No campo <strong>Versão</strong>, selecione <strong>"Nova versão"</strong> (essencial para carregar o código novo).</li>
+            <li>Verifique se <em>Quem tem acesso</em> está como <em>"Qualquer pessoa" (Anyone)</em> e clique em <strong>Implementar</strong>.</li>
+            <li>Pronto! O link da Web App já está configurado na sua app e as 4 abas serão sincronizadas automaticamente!</li>
+          </ol>
+
+          <div style="position:relative;">
+            <pre id="apps-script-code-display" style="background:#1E1E1E; color:#D4D4D4; padding:14px; border-radius:var(--radius-md); font-family:Consolas, monospace; font-size:12px; max-height:240px; overflow-y:auto; line-height:1.45; white-space:pre-wrap; border:1px solid var(--border-color);"></pre>
+          </div>
+        </div>
+
+        <!-- ABA 3: DESCARREGAR CSV MANUAL -->
+        <div id="sync-panel-csv" class="sync-panel" style="display:none;">
+          <p style="color:var(--text-secondary); font-size:14px; margin-top:0;">
+            Se preferir não usar o Apps Script, pode descarregar diretamente o ficheiro CSV e colocá-lo no seu Google Drive:
+          </p>
+
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <button type="button" class="btn btn-primary" id="btn-download-sheets-csv" style="display:flex; align-items:center; gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Descarregar Ficheiro CSV Completo</span>
+            </button>
+          </div>
+
+          <ol style="font-size:13px; line-height:1.7; padding-left:20px; color:var(--text-secondary);">
+            <li>Clique no botão acima para descarregar o ficheiro <code>ASCD_Base_de_Dados_Google_Sheets.csv</code>.</li>
+            <li>Aceda ao seu <a href="https://drive.google.com" target="_blank" style="color:var(--accent-gold); font-weight:700;">Google Drive</a>.</li>
+            <li>Arraste o ficheiro para a pasta desejada no Google Drive.</li>
+            <li>Dê dois cliques no ficheiro e selecione <strong>"Abrir com o Planilhas Google"</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('sheets-sync-modal').classList.remove('open')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/bible-data.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
