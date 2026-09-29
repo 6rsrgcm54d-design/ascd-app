@@ -80,10 +80,28 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSplitScreen();
   setupSheetsSyncModal();
   initSheetsSyncIndicator();
+  // Salvar imediatamente se o usuário fechar a aba, recarregar ou suspender o app no iPad/telemóvel
+  window.addEventListener('beforeunload', () => saveActiveWork());
+  window.addEventListener('pagehide', () => saveActiveWork());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveActiveWork();
+  });
 
   // Abrir na aba inicial (Bíblia)
   showTab('biblia');
 });
+
+function saveActiveWork() {
+  try {
+    if (ASCD.activeTab === 'journal') {
+      saveCurrentJournalEntry(false);
+    } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+      saveCurrentBiblePageStudy(false);
+    }
+  } catch (e) {
+    console.warn('Erro ao salvar trabalho ativo:', e);
+  }
+}
 
 /**
  * ==========================================================================
@@ -316,6 +334,13 @@ function setupNavigation() {
 }
 
 function showTab(tabId) {
+  // Salvar os dados da aba atual antes de mudar para não perder o que foi escrito!
+  if (ASCD.activeTab === 'journal') {
+    saveCurrentJournalEntry(false);
+  } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+    saveCurrentBiblePageStudy(false);
+  }
+
   // Sair de qualquer modo de ecrã inteiro ao mudar de aba
   if (document.body.classList.contains('ascd-in-fullscreen') || document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .devo-fullscreen-active')) {
     exitAllFullscreens();
@@ -778,6 +803,11 @@ function navigateToNextChapter() {
 }
 
 async function loadBibleChapter(bookId, chapterNum) {
+  // Se o modo dividido estiver ativo, salva automaticamente as anotações do capítulo anterior
+  if (ASCD.isSplitView) {
+    saveCurrentBiblePageStudy(false);
+  }
+
   const book = BIBLE_BOOKS.find(b => b.id === bookId) || BIBLE_BOOKS[0];
   const validChap = Math.min(Math.max(1, chapterNum), book.chapters);
 
@@ -1906,11 +1936,36 @@ function setupJournal() {
     });
   }
 
-  // Salvar registro
+  // Salvar registro manual
   document.getElementById('btn-save-journal-entry')?.addEventListener('click', () => {
     saveCurrentJournalEntry();
     showToast('💾 Registro diário salvo no seu dispositivo!');
   });
+
+  // Auto-salvamento em tempo real no Journal enquanto digita ou desenha
+  let journalDebounceTimer = null;
+  const triggerJournalAutoSave = () => {
+    clearTimeout(journalDebounceTimer);
+    journalDebounceTimer = setTimeout(() => {
+      saveCurrentJournalEntry(false);
+    }, 400);
+  };
+
+  ['journal-title-input', 'journal-verse-input'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', triggerJournalAutoSave);
+  });
+  ['journal-prayer-editor', 'journal-text-editor'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', triggerJournalAutoSave);
+  });
+  document.getElementById('journal-paper-select')?.addEventListener('change', () => {
+    saveCurrentJournalEntry(false);
+  });
+
+  if (ASCD.journalPencilEngine) {
+    ASCD.journalPencilEngine.onCanvasChange = () => {
+      saveCurrentJournalEntry(false);
+    };
+  }
 
   // Exportações do Journal
   document.getElementById('btn-export-journal-doc')?.addEventListener('click', () => {
@@ -2670,8 +2725,30 @@ function setupSplitScreen() {
     });
   });
 
-  // Salvar anotação desta página bíblica
-  document.getElementById('btn-save-split-study')?.addEventListener('click', saveCurrentBiblePageStudy);
+  // Salvar anotação desta página bíblica (botão manual)
+  document.getElementById('btn-save-split-study')?.addEventListener('click', () => saveCurrentBiblePageStudy(true));
+
+  // Auto-salvamento em tempo real no Modo Dividido da Bíblia enquanto digita
+  let splitDebounceTimer = null;
+  const splitTextEditor = document.getElementById('split-text-editor');
+  if (splitTextEditor) {
+    splitTextEditor.addEventListener('input', () => {
+      clearTimeout(splitDebounceTimer);
+      splitDebounceTimer = setTimeout(() => {
+        saveCurrentBiblePageStudy(false);
+      }, 400);
+    });
+  }
+
+  document.getElementById('split-paper-select')?.addEventListener('change', () => {
+    saveCurrentBiblePageStudy(false);
+  });
+
+  if (ASCD.splitPencilEngine) {
+    ASCD.splitPencilEngine.onCanvasChange = () => {
+      saveCurrentBiblePageStudy(false);
+    };
+  }
 
   // Apagar anotação desta página bíblica
   document.getElementById('btn-delete-split-study')?.addEventListener('click', deleteCurrentBiblePageStudy);
@@ -3075,12 +3152,13 @@ function loadBiblePageNoteIntoSplit() {
   }, 100);
 }
 
-function saveCurrentBiblePageStudy() {
+function saveCurrentBiblePageStudy(notify = true) {
   const bookName = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook)?.name || 'Livro';
   const chap = ASCD.currentBibleChapter;
   const key = `${ASCD.currentBibleBook}_${chap}`;
 
   const textContent = document.getElementById('split-text-editor')?.innerHTML || '';
+  const cleanText = textContent.replace(/<br\s*\/?>/gi, '').trim();
 
   let pencilDataUrl = null;
   let pencilRawDataUrl = null;
@@ -3089,6 +3167,11 @@ function saveCurrentBiblePageStudy() {
       pencilDataUrl = ASCD.splitPencilEngine.getDataUrl ? ASCD.splitPencilEngine.getDataUrl() : ASCD.splitPencilEngine.canvas.toDataURL();
       pencilRawDataUrl = ASCD.splitPencilEngine.canvas.toDataURL();
     }
+  }
+
+  // Se nada foi escrito nem desenhado e não havia nada guardado para este capítulo, ignora
+  if (!cleanText && !pencilDataUrl && !ASCD.biblePageNotes[key]) {
+    return;
   }
 
   const paperType = ASCD.splitPencilEngine ? ASCD.splitPencilEngine.paperType : 'pergaminho';
@@ -3134,7 +3217,9 @@ function saveCurrentBiblePageStudy() {
   updateBiblePageSavedBadge();
   const deleteBtn = document.getElementById('btn-delete-split-study');
   if (deleteBtn) deleteBtn.style.display = 'inline-flex';
-  showToast(`💾 Estudo de ${bookName} ${chap} guardado com sucesso!`);
+  if (notify) {
+    showToast(`💾 Estudo de ${bookName} ${chap} guardado com sucesso!`);
+  }
 }
 
 function deleteCurrentBiblePageStudy(e) {
@@ -3215,6 +3300,7 @@ function toggleSplitScreen() {
       if (ASCD.splitPencilEngine) ASCD.splitPencilEngine.initCanvasSize();
     }, 150);
   } else {
+    saveCurrentBiblePageStudy(false);
     appContainer.classList.remove('split-view-active');
     if (btnToggle) {
       btnToggle.innerHTML = `
