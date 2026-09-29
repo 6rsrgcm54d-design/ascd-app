@@ -728,6 +728,20 @@ html, body {
   border-radius: 4px;
 }
 
+.verse-row.verse-devotional-highlight {
+  background: var(--accent-gold-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  box-shadow: 0 2px 10px rgba(194, 142, 44, 0.25);
+  transition: all 0.4s ease;
+  animation: pulse-verse-gold 1.2s ease-in-out;
+}
+
+@keyframes pulse-verse-gold {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
 .verse-num {
   font-size: 11px;
   font-weight: 800;
@@ -2346,35 +2360,49 @@ body.ascd-in-fullscreen {
   display: none;
   position: fixed;
   top: 14px;
+  top: max(14px, env(safe-area-inset-top, 14px));
   right: 18px;
-  z-index: 10000000 !important; /* Acima de absolutamente qualquer elemento */
-  background: #DC2626; /* Vermelho vivo com contraste perfeito */
-  color: #FFFFFF;
-  border: 2px solid rgba(255, 255, 255, 0.95);
-  border-radius: var(--radius-full);
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
-  cursor: pointer;
+  right: max(18px, env(safe-area-inset-right, 18px));
+  z-index: 2147483647 !important; /* Valor máximo de 32-bit int: acima de tudo */
+  background: #DC2626 !important; /* Vermelho vivo com contraste perfeito */
+  color: #FFFFFF !important;
+  border: 2px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: var(--radius-full) !important;
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5) !important;
+  cursor: pointer !important;
   align-items: center;
   gap: 7px;
   transition: all 0.2s ease;
-  user-select: none;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: manipulation !important;
+  pointer-events: auto !important;
 }
 
-.btn-exit-fullscreen-floating:hover {
-  background: #B91C1C;
+.btn-exit-fullscreen-floating:hover,
+.btn-exit-fullscreen-floating:active {
+  background: #B91C1C !important;
   transform: translateY(-1px) scale(1.04);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6) !important;
 }
 
 .btn-exit-fullscreen-floating svg {
-  stroke: #FFFFFF;
+  stroke: #FFFFFF !important;
 }
 
-body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
+body.ascd-in-fullscreen .btn-exit-fullscreen-floating,
+body:has(.pencil-section-fullscreen) .btn-exit-fullscreen-floating,
+body:has(.text-section-fullscreen) .btn-exit-fullscreen-floating,
+body:has(.bible-fullscreen-active) .btn-exit-fullscreen-floating,
+body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
+.app-main-wrapper.bible-fullscreen-active ~ .btn-exit-fullscreen-floating,
+:fullscreen .btn-exit-fullscreen-floating,
+:-webkit-full-screen .btn-exit-fullscreen-floating {
   display: inline-flex !important;
+  pointer-events: auto !important;
 }
 
 /* Botão de Alternar Ecrã Inteiro na Barra Apple Pencil */
@@ -2392,6 +2420,7 @@ body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
   transition: all 0.2s ease !important;
   user-select: none !important;
   box-shadow: var(--shadow-sm) !important;
+  touch-action: manipulation !important;
 }
 
 .btn-fullscreen-toggle:hover {
@@ -2400,14 +2429,20 @@ body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
   border-color: var(--accent-gold) !important;
 }
 
-.btn-fullscreen-toggle.is-active {
-  background: var(--accent-gold) !important;
+/* Estado ativo: indica claramente que o clique SAI do ecrã inteiro com botão vermelho */
+.btn-fullscreen-toggle.is-active,
+#bible-btn-fullscreen.is-active,
+#btn-devo-fullscreen.is-active {
+  background: #DC2626 !important;
   color: #FFFFFF !important;
-  border-color: var(--accent-gold) !important;
-  box-shadow: 0 2px 10px rgba(180, 83, 9, 0.4) !important;
+  border-color: #DC2626 !important;
+  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.45) !important;
+  font-weight: 700 !important;
 }
 
-.btn-fullscreen-toggle.is-active svg {
+.btn-fullscreen-toggle.is-active svg,
+#bible-btn-fullscreen.is-active svg,
+#btn-devo-fullscreen.is-active svg {
   stroke: #FFFFFF !important;
 }
 
@@ -2423,6 +2458,7 @@ body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+  touch-action: manipulation !important;
 }
 
 .btn-text-fullscreen:hover {
@@ -2431,9 +2467,11 @@ body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
 }
 
 .btn-text-fullscreen.is-active {
-  background: var(--accent-gold) !important;
+  background: #DC2626 !important;
   color: #FFFFFF !important;
-  border-color: var(--accent-gold) !important;
+  border-color: #DC2626 !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.4) !important;
+  font-weight: 700 !important;
 }
 
 .btn-text-fullscreen.is-active svg {
@@ -2757,6 +2795,492 @@ body.ascd-in-fullscreen .btn-exit-fullscreen-floating {
   inset: 0 !important;
   z-index: 9999999 !important;
   display: block !important;
+}
+
+/* ==========================================================================
+   DEVOCIONAL DIÁRIO (OUR DAILY BREAD / PÃO DIÁRIO)
+   ========================================================================== */
+
+.devotional-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 60px;
+}
+
+.devotional-top-header {
+  margin-bottom: 24px;
+}
+
+.devotional-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-full);
+  padding: 4px 14px;
+  margin-bottom: 8px;
+}
+
+.odb-logo-icon {
+  font-size: 16px;
+}
+
+.odb-brand-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary);
+  letter-spacing: 0.3px;
+}
+
+.odb-edition-tag {
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-left: 1px solid var(--border-color);
+  padding-left: 8px;
+  font-weight: 500;
+}
+
+.devotional-tagline {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.devotional-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.devotional-date-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.devo-date-input {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.devo-font-size-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 2px 6px;
+}
+
+/* Card Principal do Devocional */
+.devotional-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 36px 42px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.devotional-hero {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 22px;
+  margin-bottom: 24px;
+}
+
+.devo-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devo-calendar-date-badge {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent-gold);
+}
+
+.devo-author-badge {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.devo-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin: 0 0 16px 0;
+}
+
+.devo-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.devo-passage-pill,
+.devo-plan-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.devo-passage-pill strong {
+  color: var(--primary);
+}
+
+.btn-link-action {
+  background: none;
+  border: none;
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0 4px;
+  margin-left: 4px;
+}
+
+.btn-link-action:hover {
+  color: var(--primary);
+}
+
+/* Barra de Áudio / Podcast */
+.devotional-audio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-gold-light);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-bottom: 28px;
+  gap: 14px;
+}
+
+.devo-audio-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-devo-play {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(139, 69, 19, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-devo-play:hover {
+  transform: scale(1.05);
+  background: var(--primary-hover);
+}
+
+.devo-audio-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.devo-audio-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.devo-audio-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.devo-audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Versículo-Chave Destacado */
+.devotional-verse-box {
+  background: var(--bg-surface-elevated);
+  border-left: 4px solid var(--accent-gold);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 20px 24px 20px 28px;
+  margin-bottom: 28px;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.devo-quote-mark {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  font-family: var(--font-serif);
+  font-size: 50px;
+  color: var(--accent-gold);
+  opacity: 0.3;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.devo-verse-quote {
+  margin: 0 0 8px 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.devo-verse-ref {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  text-align: right;
+  font-style: normal;
+}
+
+/* Corpo do Devocional */
+.devotional-body {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--text-primary);
+  margin-bottom: 32px;
+}
+
+.devotional-body p {
+  margin-bottom: 18px;
+  text-indent: 1.5em;
+}
+
+.devotional-body p:first-of-type {
+  text-indent: 0;
+}
+
+.devotional-body p:first-of-type::first-letter {
+  font-family: var(--font-serif);
+  font-size: 2.8em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 8px;
+  margin-top: 4px;
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+/* Blocos de Reflexão & Oração */
+.devotional-reflect-box,
+.devotional-prayer-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 22px;
+  margin-bottom: 20px;
+}
+
+.reflect-header,
+.prayer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.reflect-header h4,
+.prayer-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.reflect-content,
+.prayer-content {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.prayer-content em {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+/* Botões do Rodapé do Devocional */
+.devotional-footer-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Gaveta de Favoritos e Lista Recente */
+.devotional-sidebar-drawer {
+  margin-top: 36px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+}
+
+.drawer-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.drawer-tab-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.drawer-tab-btn.active {
+  background: var(--accent-gold-light);
+  color: var(--primary);
+}
+
+.drawer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.devo-drawer-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.devo-drawer-card:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.devo-drawer-card.active-devo {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-light);
+}
+
+.devo-drawer-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+}
+
+.devo-drawer-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.devo-drawer-ref {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Modo Ecrã Inteiro no Devocional */
+#sec-devocional.devo-fullscreen-active {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  background: var(--bg-app) !important;
+  padding: 24px 32px !important;
+  overflow-y: auto !important;
+}
+
+#sec-devocional.devo-fullscreen-active .devotional-top-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: var(--bg-surface) !important;
+  padding: 12px 18px !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--border-color) !important;
+  margin-bottom: 20px !important;
+}
+
+/* Responsividade iPad / Mobile para o Devocional */
+@media (max-width: 900px) {
+  .devotional-card {
+    padding: 24px 20px;
+  }
+  .devo-title {
+    font-size: 26px;
+  }
+  .devotional-header-controls {
+    justify-content: flex-start;
+  }
+  .devotional-body {
+    font-size: 16px;
+  }
+  .drawer-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 

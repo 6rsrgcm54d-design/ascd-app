@@ -44,7 +44,13 @@
           <span>Leitor Bíblico</span>
         </button>
 
-        <!-- 2. Anotações de Sermões -->
+        <!-- 2. Devocional Diário (Our Daily Bread / Pão Diário) -->
+        <button class="nav-btn" data-tab="devocional">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span>Pão Diário</span>
+        </button>
+
+        <!-- 3. Anotações de Sermões -->
         <button class="nav-btn" data-tab="sermoes">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           <span>Anotações de Sermões</span>
@@ -174,7 +180,169 @@
           </div>
         </section>
 
-        <!-- 2. ABA ANOTAÇÕES DE SERMÕES -->
+        <!-- 2. ABA DEVOCIONAL DIÁRIO (OUR DAILY BREAD / PÃO DIÁRIO) -->
+        <section class="app-section" id="sec-devocional">
+          <div class="devotional-container">
+            
+            <!-- Barra Superior de Navegação do Devocional -->
+            <div class="section-top-header devotional-top-header">
+              <div>
+                <div class="devotional-brand-badge">
+                  <span class="odb-logo-icon">🍞</span>
+                  <span class="odb-brand-name">Nosso Pão Diário</span>
+                  <span class="odb-edition-tag">Our Daily Bread Ministries</span>
+                </div>
+                <p class="devotional-tagline">Alimento espiritual e meditação bíblica para cada dia da sua jornada cristã.</p>
+              </div>
+
+              <!-- Controles de Data, Tamanho de Letra e Ecrã Inteiro -->
+              <div class="devotional-header-controls">
+                <div class="devotional-date-nav-group">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-devo-prev-day" title="Dia anterior">
+                    ◀ Anterior
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-devo-today" title="Ir para o devocional de hoje">
+                    Hoje
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-devo-next-day" title="Próximo dia">
+                    Próximo ▶
+                  </button>
+                  <input type="date" id="devo-date-input" class="devo-date-input" title="Escolher uma data específica no calendário">
+                </div>
+
+                <!-- Zoom de Leitura -->
+                <div class="devo-font-size-group" title="Ajustar tamanho da letra para leitura">
+                  <button type="button" class="btn-icon-subtle" id="btn-devo-font-decrease">A-</button>
+                  <span id="devo-font-indicator" style="font-size:12px; font-weight:600; min-width:32px; text-align:center;">100%</span>
+                  <button type="button" class="btn-icon-subtle" id="btn-devo-font-increase">A+</button>
+                </div>
+
+                <!-- Ecrã Inteiro no iPad -->
+                <button type="button" class="btn btn-secondary btn-sm btn-fullscreen-toggle" id="btn-devo-fullscreen" title="Modo Foco / Ecrã Inteiro no iPad">
+                  <svg class="fs-icon-enter" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  <svg class="fs-icon-exit" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                  <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Cartão Principal do Devocional -->
+            <article class="devotional-card" id="devotional-main-card">
+              <!-- Cabeçalho com Título, Data, Autor e Referências -->
+              <div class="devotional-hero">
+                <div class="devo-date-row">
+                  <span class="devo-calendar-date-badge" id="devo-card-date">Terça-feira, 29 de Setembro de 2026</span>
+                  <span class="devo-author-badge" id="devo-card-author">Por Arthur Jackson</span>
+                </div>
+
+                <h1 class="devo-title" id="devo-card-title">Coração saudável</h1>
+
+                <!-- Pílulas de Passagem Bíblica e Plano de 1 Ano -->
+                <div class="devo-meta-bar">
+                  <div class="devo-passage-pill">
+                    <span class="devo-pill-icon">📖</span>
+                    <span class="devo-pill-label">Leitura de Hoje:</span>
+                    <strong id="devo-card-passage">Provérbios 4:20-27</strong>
+                    <button type="button" class="btn-link-action" id="btn-devo-open-bible" title="Ler este capítulo completo no Leitor Bíblico">
+                      Abrir na Bíblia ↗
+                    </button>
+                  </div>
+
+                  <div class="devo-plan-pill" title="Plano de leitura bíblica anual">
+                    <span class="devo-pill-icon">🗓️</span>
+                    <span class="devo-pill-label">Bíblia em 1 Ano:</span>
+                    <span id="devo-card-plan">Isaías 7–8; Efésios 2</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra de Narração / Áudio do Devocional -->
+              <div class="devotional-audio-bar" id="devo-audio-bar">
+                <div class="devo-audio-left">
+                  <button type="button" class="btn-devo-play" id="btn-devo-audio-play" title="Ouvir Devocional em Áudio">
+                    <span id="devo-play-icon">▶</span>
+                  </button>
+                  <div class="devo-audio-info">
+                    <span class="devo-audio-title" id="devo-audio-status">Ouvir Devocional</span>
+                    <span class="devo-audio-sub">Narração em voz natural e clara em Português</span>
+                  </div>
+                </div>
+
+                <div class="devo-audio-controls">
+                  <button type="button" class="btn-icon-subtle btn-sm" id="btn-devo-audio-speed" title="Velocidade da leitura">1.0x</button>
+                  <button type="button" class="btn-icon-subtle btn-sm" id="btn-devo-audio-stop" style="display:none;" title="Parar reprodução">⏹ Parar</button>
+                </div>
+              </div>
+
+              <!-- Versículo-Chave com Destaque -->
+              <div class="devotional-verse-box" id="devo-verse-box">
+                <div class="devo-quote-mark">“</div>
+                <blockquote class="devo-verse-quote" id="devo-card-verse-quote">
+                  Sobre tudo o que se deve guardar, guarda o teu coração, porque dele procedem as fontes da vida.
+                </blockquote>
+                <cite class="devo-verse-ref" id="devo-card-verse-ref">— Provérbios 4:23</cite>
+              </div>
+
+              <!-- Corpo do Devocional -->
+              <div class="devotional-body" id="devo-card-body"></div>
+
+              <!-- Bloco "Para Meditar" -->
+              <div class="devotional-reflect-box" id="devo-reflect-box">
+                <div class="reflect-header">
+                  <span class="reflect-icon">💡</span>
+                  <h4>Para Meditar & Refletir</h4>
+                </div>
+                <div class="reflect-content" id="devo-card-reflect"></div>
+              </div>
+
+              <!-- Bloco "Oração do Dia" -->
+              <div class="devotional-prayer-box" id="devo-prayer-box">
+                <div class="prayer-header">
+                  <span class="prayer-icon">🙏</span>
+                  <h4>Oração do Dia</h4>
+                </div>
+                <div class="prayer-content" id="devo-card-prayer"></div>
+              </div>
+
+              <!-- Ações no Rodapé do Devocional -->
+              <div class="devotional-footer-actions">
+                <button type="button" class="btn btn-primary" id="btn-devo-to-journal" title="Carregar este devocional no Diário para escrever ou desenhar">
+                  <span>✍️ Anotar no Diário (Apple Pencil & Teclado)</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="btn-devo-to-study" title="Criar um estudo bíblico aprofundado no Caderno">
+                  <span>📓 Criar Estudo no Caderno</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="btn-devo-fav" title="Guardar este devocional na lista de favoritos">
+                  <span id="devo-fav-btn-label">⭐ Guardar nos Favoritos</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="btn-devo-share" title="Copiar texto completo para partilhar">
+                  <span>📋 Copiar Devocional</span>
+                </button>
+
+                <a href="https://paodiario.org" target="_blank" rel="noopener" class="btn btn-secondary" id="btn-devo-link-official" title="Aceder à página oficial no paodiario.org">
+                  <span>🌐 Abrir paodiario.org ↗</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- Gaveta de Histórico & Favoritos -->
+            <div class="devotional-sidebar-drawer" id="devo-history-drawer">
+              <div class="drawer-header">
+                <div class="drawer-tabs">
+                  <button type="button" class="drawer-tab-btn active" id="tab-btn-devo-recent">Devocionais Recentes</button>
+                  <button type="button" class="drawer-tab-btn" id="tab-btn-devo-favs">⭐ Favoritos (<span id="devo-fav-count">0</span>)</button>
+                </div>
+              </div>
+              <div class="drawer-list" id="devo-drawer-items"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 3. ABA ANOTAÇÕES DE SERMÕES -->
         <section class="app-section" id="sec-sermoes">
           <div class="notes-container">
             <div class="section-top-header">
@@ -1230,6 +1398,7 @@
 
   <!-- Scripts -->
   <script src="js/bible-data.js"></script>
+  <script src="js/devotional-data.js"></script>
   <script src="js/canvas.js"></script>
   <script src="js/app.js"></script>
   <script>

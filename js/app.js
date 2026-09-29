@@ -49,6 +49,15 @@ const ASCD = {
   biblePageNotes: {}, // chave: `${bookId}_${chapterNum}`
   splitCurrentMode: 'hybrid',
 
+  // Devocional Diário (Our Daily Bread / Pão Diário)
+  currentDevotionalDate: '',
+  devotionalFavorites: [],
+  devotionalFontSize: 100,
+  devotionalAudioPlaying: false,
+  devotionalAudioRate: 1.0,
+  devotionalSpeechUtterance: null,
+  devotionalDrawerTab: 'recent',
+
   // Conexão Google Sheets
   sheetsWebhookUrl: 'https://script.google.com/macros/s/AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I/exec'
 };
@@ -63,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupThemes();
   setupBibleReader();
+  setupDevotional();
   setupTextToolbars();
   setupHybridNotes();
   setupSermons();
@@ -167,6 +177,12 @@ function loadStoredData() {
     if (!savedWebhook) {
       localStorage.setItem('ascd_sheets_webhook_url', DEFAULT_SHEETS_WEBHOOK_URL);
     }
+
+    // 8. Devocionais Favoritos & Tamanho de Letra
+    const savedDevoFavs = localStorage.getItem('ascd_devotional_favs');
+    if (savedDevoFavs) ASCD.devotionalFavorites = JSON.parse(savedDevoFavs);
+    const savedDevoFontSize = localStorage.getItem('ascd_devotional_font_size');
+    if (savedDevoFontSize) ASCD.devotionalFontSize = parseInt(savedDevoFontSize, 10);
   } catch (err) {
     console.warn('Erro ao carregar dados locais:', err);
   }
@@ -264,18 +280,26 @@ function setupNavigation() {
   // Botão Flutuante Global de Sair do Ecrã Inteiro
   const btnGlobalExitFs = document.getElementById('global-exit-fullscreen-btn');
   if (btnGlobalExitFs) {
-    btnGlobalExitFs.addEventListener('click', (e) => {
-      e.preventDefault();
-      exitAllFullscreens();
-      if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
+    const handleGlobalExit = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
       }
+      exitAllFullscreens();
       showToast('Modo normal restaurado.');
-    });
+    };
+    btnGlobalExitFs.addEventListener('click', handleGlobalExit);
+    btnGlobalExitFs.addEventListener('touchend', handleGlobalExit, { passive: false });
+    btnGlobalExitFs.addEventListener('pointerup', handleGlobalExit);
   }
 }
 
 function showTab(tabId) {
+  // Sair de qualquer modo de ecrã inteiro ao mudar de aba
+  if (document.body.classList.contains('ascd-in-fullscreen') || document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .devo-fullscreen-active')) {
+    exitAllFullscreens();
+  }
+
   ASCD.activeTab = tabId;
 
   // Se mudar para outra aba que não seja a Bíblia e a tela dividida estiver aberta, fecha a tela dividida
@@ -304,6 +328,8 @@ function showTab(tabId) {
     setTimeout(() => {
       if (ASCD.journalPencilEngine) ASCD.journalPencilEngine.initCanvasSize();
     }, 150);
+  } else if (tabId === 'devocional') {
+    renderCurrentDevotional();
   } else if (tabId === 'sermoes') {
     renderSermonsList();
   } else if (tabId === 'notas') {
@@ -2673,40 +2699,45 @@ function setSplitMode(mode) {
 function togglePencilFullscreen(wrapper, engine, btnElement) {
   if (!wrapper) return;
 
-  const isFullscreen = wrapper.classList.toggle('pencil-section-fullscreen');
+  const isFullscreen = wrapper.classList.contains('pencil-section-fullscreen');
+  if (isFullscreen) {
+    exitAllFullscreens();
+    showToast('Modo normal restaurado.');
+    return;
+  }
+
+  wrapper.classList.add('pencil-section-fullscreen');
   const modalDialog = wrapper.closest('.modal-dialog');
   const modalBody = wrapper.closest('.modal-body');
   const splitWorkspace = wrapper.closest('.split-workspace-panel');
   
-  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
-  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
-  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalDialog) modalDialog.classList.add('has-fullscreen-child');
+  if (modalBody) modalBody.classList.add('has-fullscreen-child');
+  if (splitWorkspace) splitWorkspace.classList.add('has-fullscreen-child');
 
-  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+  document.body.classList.add('ascd-in-fullscreen');
 
   if (btnElement) {
-    btnElement.classList.toggle('is-active', isFullscreen);
+    btnElement.classList.add('is-active');
     const enterIcon = btnElement.querySelector('.fs-icon-enter');
     const exitIcon = btnElement.querySelector('.fs-icon-exit');
     const label = btnElement.querySelector('.fs-label');
-    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
-    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
-    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
-    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+    if (enterIcon) enterIcon.style.display = 'none';
+    if (exitIcon) exitIcon.style.display = 'inline-block';
+    if (label) label.textContent = 'Sair';
+    btnElement.title = 'Sair do Ecrã Inteiro (Pressione ESC ou clique em Sair)';
   }
 
-  // Tentar Fullscreen API nativo do navegador quando suportado
-  if (isFullscreen) {
+  // Tentar Fullscreen API nativo do navegador / Safari quando suportado
+  try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.documentElement.webkitRequestFullscreen && !document.webkitFullscreenElement) {
+      document.documentElement.webkitRequestFullscreen().catch(() => {});
     }
-    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
-  } else {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    }
-    showToast('Modo normal restaurado.');
-  }
+  } catch (err) {}
+
+  showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
 
   // Redimensionar e preservar caligrafia com nitidez Retina
   if (engine && typeof engine.handleResizePreserve === 'function') {
@@ -2718,58 +2749,72 @@ function togglePencilFullscreen(wrapper, engine, btnElement) {
 function toggleTextFullscreen(wrapper, btnElement) {
   if (!wrapper) return;
 
-  const isFullscreen = wrapper.classList.toggle('text-section-fullscreen');
+  const isFullscreen = wrapper.classList.contains('text-section-fullscreen');
+  if (isFullscreen) {
+    exitAllFullscreens();
+    showToast('Modo normal restaurado.');
+    return;
+  }
+
+  wrapper.classList.add('text-section-fullscreen');
   const modalDialog = wrapper.closest('.modal-dialog');
   const modalBody = wrapper.closest('.modal-body');
   const splitWorkspace = wrapper.closest('.split-workspace-panel');
   
-  if (modalDialog) modalDialog.classList.toggle('has-fullscreen-child', isFullscreen);
-  if (modalBody) modalBody.classList.toggle('has-fullscreen-child', isFullscreen);
-  if (splitWorkspace) splitWorkspace.classList.toggle('has-fullscreen-child', isFullscreen);
+  if (modalDialog) modalDialog.classList.add('has-fullscreen-child');
+  if (modalBody) modalBody.classList.add('has-fullscreen-child');
+  if (splitWorkspace) splitWorkspace.classList.add('has-fullscreen-child');
 
-  document.body.classList.toggle('ascd-in-fullscreen', isFullscreen);
+  document.body.classList.add('ascd-in-fullscreen');
 
   if (btnElement) {
-    btnElement.classList.toggle('is-active', isFullscreen);
+    btnElement.classList.add('is-active');
     const enterIcon = btnElement.querySelector('.fs-icon-enter');
     const exitIcon = btnElement.querySelector('.fs-icon-exit');
     const label = btnElement.querySelector('.fs-label');
-    if (enterIcon) enterIcon.style.display = isFullscreen ? 'none' : 'inline-block';
-    if (exitIcon) exitIcon.style.display = isFullscreen ? 'inline-block' : 'none';
-    if (label) label.textContent = isFullscreen ? 'Sair' : 'Ecrã Inteiro';
-    btnElement.title = isFullscreen ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Foco de Escrita';
+    if (enterIcon) enterIcon.style.display = 'none';
+    if (exitIcon) exitIcon.style.display = 'inline-block';
+    if (label) label.textContent = 'Sair';
+    btnElement.title = 'Sair do Ecrã Inteiro (Pressione ESC ou clique em Sair)';
   }
 
-  if (isFullscreen) {
+  try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.documentElement.webkitRequestFullscreen && !document.webkitFullscreenElement) {
+      document.documentElement.webkitRequestFullscreen().catch(() => {});
     }
-    showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
-  } else {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    }
-    showToast('Modo normal restaurado.');
-  }
+  } catch (err) {}
+
+  showToast('⛶ Modo Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
 }
 
 function toggleBibleFullscreen() {
   const mainWrapper = document.querySelector('.app-main-wrapper');
   if (!mainWrapper) return;
 
-  const isFs = mainWrapper.classList.toggle('bible-fullscreen-active');
-  document.body.classList.toggle('ascd-in-fullscreen', isFs);
+  const isFs = mainWrapper.classList.contains('bible-fullscreen-active');
+  if (isFs) {
+    exitAllFullscreens();
+    showToast('Modo normal restaurado.');
+    return;
+  }
+
+  mainWrapper.classList.add('bible-fullscreen-active');
+  const secBiblia = document.getElementById('sec-biblia');
+  if (secBiblia) secBiblia.classList.add('bible-section-fullscreen');
+  document.body.classList.add('ascd-in-fullscreen');
 
   const btn = document.getElementById('bible-btn-fullscreen');
   if (btn) {
-    btn.classList.toggle('is-active', isFs);
+    btn.classList.add('is-active');
     const enterIcon = btn.querySelector('.fs-icon-enter');
     const exitIcon = btn.querySelector('.fs-icon-exit');
     const label = btn.querySelector('.fs-label');
-    if (enterIcon) enterIcon.style.display = isFs ? 'none' : 'inline-block';
-    if (exitIcon) exitIcon.style.display = isFs ? 'inline-block' : 'none';
-    if (label) label.textContent = isFs ? 'Sair' : 'Ecrã Inteiro';
-    btn.title = isFs ? 'Sair do Ecrã Inteiro (Pressione ESC)' : 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
+    if (enterIcon) enterIcon.style.display = 'none';
+    if (exitIcon) exitIcon.style.display = 'inline-block';
+    if (label) label.textContent = 'Sair';
+    btn.title = 'Sair do Ecrã Inteiro (Pressione ESC ou clique em Sair)';
   }
 
   // Se estiver com tela dividida ativa, redimensiona o canvas para preservar nitidez
@@ -2778,17 +2823,15 @@ function toggleBibleFullscreen() {
     setTimeout(() => ASCD.splitPencilEngine.handleResizePreserve(), 220);
   }
 
-  if (isFs) {
+  try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.documentElement.webkitRequestFullscreen && !document.webkitFullscreenElement) {
+      document.documentElement.webkitRequestFullscreen().catch(() => {});
     }
-    showToast('⛶ Leitor Bíblico em Ecrã Inteiro. Pressione ESC ou clique em Sair para voltar.');
-  } else {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    }
-    showToast('Modo normal restaurado.');
-  }
+  } catch (err) {}
+
+  showToast('⛶ Leitor Bíblico em Ecrã Inteiro. Pressione ESC ou clique em Sair para voltar.');
 }
 
 function exitAllFullscreens() {
@@ -2808,10 +2851,39 @@ function exitAllFullscreens() {
     }
   });
 
+  // Resetar todos os botões de caligrafia conhecidos
+  ['journal', 'sermon', 'note', 'split'].forEach(prefix => {
+    const btn = document.getElementById(`${prefix}-btn-fullscreen`);
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Tela Cheia (Apple Pencil)';
+    }
+  });
+
   // 2. Desativar fullscreen em editores de texto
   document.querySelectorAll('.text-section-fullscreen').forEach(wrapper => {
     wrapper.classList.remove('text-section-fullscreen');
     const btn = wrapper.querySelector('.btn-text-fullscreen');
+    if (btn) {
+      btn.classList.remove('is-active');
+      const enterIcon = btn.querySelector('.fs-icon-enter');
+      const exitIcon = btn.querySelector('.fs-icon-exit');
+      const label = btn.querySelector('.fs-label');
+      if (enterIcon) enterIcon.style.display = 'inline-block';
+      if (exitIcon) exitIcon.style.display = 'none';
+      if (label) label.textContent = 'Ecrã Inteiro';
+      btn.title = 'Ecrã Inteiro / Foco de Escrita';
+    }
+  });
+
+  ['jfmt', 'sfmt', 'fmt', 'split-fmt'].forEach(prefix => {
+    const btn = document.getElementById(`${prefix}-btn-fullscreen`);
     if (btn) {
       btn.classList.remove('is-active');
       const enterIcon = btn.querySelector('.fs-icon-enter');
@@ -2843,11 +2915,36 @@ function exitAllFullscreens() {
     bibleFsBtn.title = 'Ecrã Inteiro / Tela Cheia (Leitor Bíblico)';
   }
 
-  // 4. Limpar classes auxiliares e body
+  // 4. Desativar fullscreen no Devocional Pão Diário
+  const secDevo = document.getElementById('sec-devocional');
+  if (secDevo) secDevo.classList.remove('devo-fullscreen-active');
+
+  const btnDevoFs = document.getElementById('btn-devo-fullscreen');
+  if (btnDevoFs) {
+    btnDevoFs.classList.remove('is-active');
+    const enterIcon = btnDevoFs.querySelector('.fs-icon-enter');
+    const exitIcon = btnDevoFs.querySelector('.fs-icon-exit');
+    const label = btnDevoFs.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = 'inline-block';
+    if (exitIcon) exitIcon.style.display = 'none';
+    if (label) label.textContent = 'Ecrã Inteiro';
+    btnDevoFs.title = 'Modo Foco / Ecrã Inteiro no iPad';
+  }
+
+  // 5. Limpar classes auxiliares e body
   document.querySelectorAll('.has-fullscreen-child').forEach(el => el.classList.remove('has-fullscreen-child'));
   document.body.classList.remove('ascd-in-fullscreen');
 
-  // 5. Redimensionar os engines ativos após retorno ao modo normal
+  // 6. Fechar Fullscreen API nativo do navegador / Safari se ativo
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      document.webkitExitFullscreen().catch(() => {});
+    }
+  } catch (err) {}
+
+  // 7. Redimensionar os engines ativos após retorno ao modo normal
   [ASCD.journalPencilEngine, ASCD.sermonPencilEngine, ASCD.notePencilEngine, ASCD.splitPencilEngine].forEach(eng => {
     if (eng && typeof eng.handleResizePreserve === 'function') {
       setTimeout(() => eng.handleResizePreserve(), 60);
@@ -2860,12 +2957,12 @@ function exitAllFullscreens() {
 document.addEventListener('keydown', (e) => {
   // 1. ESC para sair de ecrã inteiro
   if (e.key === 'Escape') {
-    const hasAnyFs = document.body.classList.contains('ascd-in-fullscreen') || document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .bible-section-fullscreen');
+    const hasAnyFs = document.body.classList.contains('ascd-in-fullscreen') || 
+      document.querySelector('.pencil-section-fullscreen, .text-section-fullscreen, .bible-fullscreen-active, .bible-section-fullscreen, .devo-fullscreen-active') ||
+      document.fullscreenElement ||
+      document.webkitFullscreenElement;
     if (hasAnyFs) {
       exitAllFullscreens();
-      if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
       showToast('Modo normal restaurado.');
     }
   }
@@ -2896,6 +2993,11 @@ document.addEventListener('keydown', (e) => {
 // Listener de saída do fullscreen nativo do navegador
 document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement) {
+    exitAllFullscreens();
+  }
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  if (!document.webkitFullscreenElement) {
     exitAllFullscreens();
   }
 });
@@ -4044,3 +4146,771 @@ function formatDateDisplay(dateStr) {
 
   return `${weekDays[d.getDay()]}, ${d.getDate()} de ${monthNames[d.getMonth()]} de ${d.getFullYear()}`;
 }
+
+/**
+ * ==========================================================================
+ * DEVOCIONAL DIÁRIO (OUR DAILY BREAD / PÃO DIÁRIO)
+ * ==========================================================================
+ */
+
+function setupDevotional() {
+  if (!ASCD.currentDevotionalDate) {
+    ASCD.currentDevotionalDate = getTodayDateStr();
+  }
+
+  // 1. Navegação de Datas
+  const btnPrev = document.getElementById('btn-devo-prev-day');
+  const btnToday = document.getElementById('btn-devo-today');
+  const btnNext = document.getElementById('btn-devo-next-day');
+  const dateInput = document.getElementById('devo-date-input');
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => changeDevotionalDay(-1));
+  }
+  if (btnToday) {
+    btnToday.addEventListener('click', () => {
+      ASCD.currentDevotionalDate = getTodayDateStr();
+      loadDevotionalForDate(ASCD.currentDevotionalDate);
+      showToast('Exibindo o devocional de hoje.');
+    });
+  }
+  if (btnNext) {
+    btnNext.addEventListener('click', () => changeDevotionalDay(1));
+  }
+  if (dateInput) {
+    dateInput.value = ASCD.currentDevotionalDate;
+    dateInput.addEventListener('change', (e) => {
+      if (e.target.value) {
+        ASCD.currentDevotionalDate = e.target.value;
+        loadDevotionalForDate(ASCD.currentDevotionalDate);
+      }
+    });
+  }
+
+  // 2. Controles de Tamanho de Fonte
+  const btnDecFont = document.getElementById('btn-devo-font-decrease');
+  const btnIncFont = document.getElementById('btn-devo-font-increase');
+  if (btnDecFont) {
+    btnDecFont.addEventListener('click', () => adjustDevotionalFontSize(-10));
+  }
+  if (btnIncFont) {
+    btnIncFont.addEventListener('click', () => adjustDevotionalFontSize(10));
+  }
+
+  // 3. Ecrã Inteiro no Devocional (iPad)
+  const btnFullscreen = document.getElementById('btn-devo-fullscreen');
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', toggleDevotionalFullscreen);
+  }
+
+  // 4. Áudio / Narração
+  const btnAudioPlay = document.getElementById('btn-devo-audio-play');
+  const btnAudioSpeed = document.getElementById('btn-devo-audio-speed');
+  const btnAudioStop = document.getElementById('btn-devo-audio-stop');
+
+  if (btnAudioPlay) {
+    btnAudioPlay.addEventListener('click', () => {
+      const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+      if (devo) toggleDevotionalAudio(devo);
+    });
+  }
+  if (btnAudioSpeed) {
+    btnAudioSpeed.addEventListener('click', () => {
+      const rates = [1.0, 1.25, 1.5];
+      const curIdx = rates.indexOf(ASCD.devotionalAudioRate || 1.0);
+      const nextIdx = (curIdx + 1) % rates.length;
+      ASCD.devotionalAudioRate = rates[nextIdx];
+      btnAudioSpeed.textContent = `${ASCD.devotionalAudioRate.toFixed(2).replace('.00', '.0')}x`;
+      if (ASCD.devotionalAudioPlaying) {
+        stopDevotionalAudio();
+        const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+        if (devo) toggleDevotionalAudio(devo);
+      }
+    });
+  }
+  if (btnAudioStop) {
+    btnAudioStop.addEventListener('click', stopDevotionalAudio);
+  }
+
+  // 5. Abrir Leitura Bíblica Direta (no Leitor Bíblico da App)
+  const openBibleHandler = (e) => {
+    if (e) e.preventDefault();
+    const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+    if (devo && (devo.scripture || devo.bibleVerse)) {
+      openDevotionalInBible(devo.scripture || devo.bibleVerse);
+    }
+  };
+
+  const btnOpenBible = document.getElementById('btn-devo-open-bible');
+  if (btnOpenBible) {
+    btnOpenBible.addEventListener('click', openBibleHandler);
+  }
+
+  const passageEl = document.getElementById('devo-card-passage');
+  if (passageEl) {
+    passageEl.style.cursor = 'pointer';
+    passageEl.title = 'Abrir este livro e capítulo no Leitor Bíblico';
+    passageEl.addEventListener('click', openBibleHandler);
+  }
+
+  const verseRefEl = document.getElementById('devo-card-verse-ref');
+  if (verseRefEl) {
+    verseRefEl.style.cursor = 'pointer';
+    verseRefEl.title = 'Ler este versículo no contexto bíblico';
+    verseRefEl.addEventListener('click', openBibleHandler);
+  }
+
+  const planEl = document.getElementById('devo-card-plan');
+  if (planEl) {
+    planEl.style.cursor = 'pointer';
+    planEl.title = 'Abrir leitura do plano anual no Leitor Bíblico';
+    planEl.addEventListener('click', () => {
+      const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+      if (devo && devo.bibleInAYear) {
+        const firstPassage = devo.bibleInAYear.split(';')[0].trim();
+        openDevotionalInBible(firstPassage);
+      }
+    });
+  }
+
+  // 6. Ações Integradas
+  const btnToJournal = document.getElementById('btn-devo-to-journal');
+  if (btnToJournal) {
+    btnToJournal.addEventListener('click', () => {
+      const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+      if (devo) writeDevotionalInJournal(devo);
+    });
+  }
+
+  const btnToStudy = document.getElementById('btn-devo-to-study');
+  if (btnToStudy) {
+    btnToStudy.addEventListener('click', () => {
+      const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+      if (devo) createStudyFromDevotional(devo);
+    });
+  }
+
+  const btnFav = document.getElementById('btn-devo-fav');
+  if (btnFav) {
+    btnFav.addEventListener('click', () => {
+      toggleDevotionalFavorite(ASCD.currentDevotionalDate);
+    });
+  }
+
+  const btnShare = document.getElementById('btn-devo-share');
+  if (btnShare) {
+    btnShare.addEventListener('click', () => {
+      const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(ASCD.currentDevotionalDate) : null;
+      if (devo) copyDevotionalText(devo);
+    });
+  }
+
+  // 7. Abas da Gaveta Inferior (Recentes / Favoritos)
+  const tabRecent = document.getElementById('tab-btn-devo-recent');
+  const tabFavs = document.getElementById('tab-btn-devo-favs');
+  if (tabRecent) {
+    tabRecent.addEventListener('click', () => {
+      ASCD.devotionalDrawerTab = 'recent';
+      tabRecent.classList.add('active');
+      if (tabFavs) tabFavs.classList.remove('active');
+      renderDevotionalDrawer();
+    });
+  }
+  if (tabFavs) {
+    tabFavs.addEventListener('click', () => {
+      ASCD.devotionalDrawerTab = 'favs';
+      tabFavs.classList.add('active');
+      if (tabRecent) tabRecent.classList.remove('active');
+      renderDevotionalDrawer();
+    });
+  }
+
+  // Aplicar tamanho de fonte salvo se houver
+  if (ASCD.devotionalFontSize && ASCD.devotionalFontSize !== 100) {
+    adjustDevotionalFontSize(0);
+  }
+
+  // Carregar inicial
+  loadDevotionalForDate(ASCD.currentDevotionalDate);
+}
+
+function changeDevotionalDay(delta) {
+  stopDevotionalAudio();
+  const parts = ASCD.currentDevotionalDate.split('-').map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  d.setDate(d.getDate() + delta);
+  
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  ASCD.currentDevotionalDate = `${y}-${m}-${day}`;
+  
+  loadDevotionalForDate(ASCD.currentDevotionalDate);
+}
+
+function loadDevotionalForDate(dateStr) {
+  ASCD.currentDevotionalDate = dateStr;
+  const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(dateStr) : null;
+  if (!devo) return;
+
+  // Atualizar input date
+  const dateInput = document.getElementById('devo-date-input');
+  if (dateInput && dateInput.value !== dateStr) {
+    dateInput.value = dateStr;
+  }
+
+  // Preencher cabeçalhos do cartão
+  const dateEl = document.getElementById('devo-card-date');
+  if (dateEl) {
+    dateEl.textContent = devo.date || (typeof formatDevotionalDateDisplay === 'function' ? formatDevotionalDateDisplay(dateStr) : formatDateDisplay(dateStr));
+  }
+
+  const authorEl = document.getElementById('devo-card-author');
+  if (authorEl) {
+    authorEl.textContent = devo.author ? `Por ${devo.author}` : 'Ministérios Pão Diário';
+  }
+
+  const titleEl = document.getElementById('devo-card-title');
+  if (titleEl) {
+    titleEl.textContent = devo.title || 'Devocional Diário';
+  }
+
+  const passageEl = document.getElementById('devo-card-passage');
+  if (passageEl) {
+    passageEl.textContent = devo.scripture || devo.bibleVerse || 'Salmos 23';
+  }
+
+  const planEl = document.getElementById('devo-card-plan');
+  if (planEl) {
+    planEl.textContent = devo.bibleInAYear || 'Leitura diária';
+  }
+
+  // Versículo em destaque
+  const quoteEl = document.getElementById('devo-card-verse-quote');
+  const refEl = document.getElementById('devo-card-verse-ref');
+  if (quoteEl) {
+    quoteEl.textContent = devo.keyVerseText || (devo.body ? extractFirstKeyQuote(devo.body) : 'Guarda o teu coração, porque dele procedem as fontes da vida.');
+  }
+  if (refEl) {
+    refEl.textContent = `— ${devo.bibleVerse || devo.scripture || ''}`;
+  }
+
+  // Corpo da mensagem
+  const bodyEl = document.getElementById('devo-card-body');
+  if (bodyEl) {
+    bodyEl.innerHTML = devo.body || '<p>Medite na palavra do Senhor neste dia.</p>';
+  }
+
+  // Para Meditar
+  const reflectBox = document.getElementById('devo-reflect-box');
+  const reflectEl = document.getElementById('devo-card-reflect');
+  if (reflectEl) {
+    if (devo.reflect && devo.reflect.trim()) {
+      reflectEl.innerHTML = devo.reflect;
+      if (reflectBox) reflectBox.style.display = 'block';
+    } else {
+      if (reflectBox) reflectBox.style.display = 'none';
+    }
+  }
+
+  // Oração do Dia
+  const prayerBox = document.getElementById('devo-prayer-box');
+  const prayerEl = document.getElementById('devo-card-prayer');
+  if (prayerEl) {
+    if (devo.prayer && devo.prayer.trim()) {
+      prayerEl.innerHTML = devo.prayer;
+      if (prayerBox) prayerBox.style.display = 'block';
+    } else {
+      if (prayerBox) prayerBox.style.display = 'none';
+    }
+  }
+
+  // Link Oficial
+  const linkOfficial = document.getElementById('btn-devo-link-official');
+  if (linkOfficial) {
+    linkOfficial.href = devo.url || 'https://paodiario.org';
+  }
+
+  updateDevotionalFavButton();
+  renderDevotionalDrawer();
+}
+
+function extractFirstKeyQuote(html) {
+  const match = html.match(/“([^”]+)”/);
+  if (match) return match[1];
+  const pMatch = html.match(/<p>([\s\S]*?)<\/p>/);
+  if (pMatch) {
+    const text = pMatch[1].replace(/<[^>]+>/g, '');
+    return text.length > 150 ? text.slice(0, 147) + '...' : text;
+  }
+  return 'Lâmpada para os meus pés é tua palavra e luz, para o meu caminho.';
+}
+
+function renderCurrentDevotional() {
+  loadDevotionalForDate(ASCD.currentDevotionalDate || getTodayDateStr());
+}
+
+function adjustDevotionalFontSize(delta) {
+  let cur = ASCD.devotionalFontSize || 100;
+  if (delta !== 0) {
+    cur = Math.min(Math.max(80, cur + delta), 150);
+    ASCD.devotionalFontSize = cur;
+    localStorage.setItem('ascd_devotional_font_size', cur);
+  }
+
+  const indicator = document.getElementById('devo-font-indicator');
+  if (indicator) indicator.textContent = `${cur}%`;
+
+  const bodyEl = document.getElementById('devo-card-body');
+  if (bodyEl) {
+    bodyEl.style.fontSize = `${(17 * cur) / 100}px`;
+  }
+}
+
+function toggleDevotionalFullscreen() {
+  const sec = document.getElementById('sec-devocional');
+  const btn = document.getElementById('btn-devo-fullscreen');
+  if (!sec) return;
+
+  const isFullscreen = sec.classList.contains('devo-fullscreen-active');
+  if (isFullscreen) {
+    exitAllFullscreens();
+    showToast('Modo normal restaurado.');
+    return;
+  }
+
+  sec.classList.add('devo-fullscreen-active');
+  document.body.classList.add('ascd-in-fullscreen');
+
+  if (btn) {
+    btn.classList.add('is-active');
+    const enterIcon = btn.querySelector('.fs-icon-enter');
+    const exitIcon = btn.querySelector('.fs-icon-exit');
+    const label = btn.querySelector('.fs-label');
+    if (enterIcon) enterIcon.style.display = 'none';
+    if (exitIcon) exitIcon.style.display = 'inline-block';
+    if (label) label.textContent = 'Sair do Ecrã Inteiro';
+    btn.title = 'Sair do Ecrã Inteiro (Pressione ESC ou toque para sair)';
+  }
+
+  try {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.documentElement.webkitRequestFullscreen && !document.webkitFullscreenElement) {
+      document.documentElement.webkitRequestFullscreen().catch(() => {});
+    }
+  } catch (err) {}
+
+  showToast('⛶ Modo Foco em Ecrã Inteiro ativado. Pressione ESC ou clique em Sair para voltar.');
+}
+
+function toggleDevotionalAudio(devotional) {
+  if (!('speechSynthesis' in window)) {
+    showToast('A síntese de voz em áudio não é suportada pelo seu navegador.');
+    return;
+  }
+
+  if (ASCD.devotionalAudioPlaying) {
+    window.speechSynthesis.pause();
+    ASCD.devotionalAudioPlaying = false;
+    updateDevotionalAudioUI(false, true);
+    showToast('Áudio pausado.');
+    return;
+  }
+
+  if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume();
+    ASCD.devotionalAudioPlaying = true;
+    updateDevotionalAudioUI(true, false);
+    showToast('Retomando leitura...');
+    return;
+  }
+
+  // Iniciar nova leitura
+  window.speechSynthesis.cancel();
+
+  const title = devotional.title || '';
+  const passage = devotional.scripture || devotional.bibleVerse || '';
+  const verseText = devotional.keyVerseText || '';
+  const bodyText = (devotional.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const reflectText = (devotional.reflect || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const prayerText = (devotional.prayer || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+  const fullTextToSpeak = `${title}. Leitura bíblica: ${passage}. ${verseText ? 'Versículo-chave: ' + verseText + '.' : ''} ${bodyText} ${reflectText ? 'Para meditar: ' + reflectText : ''} ${prayerText ? 'Oração: ' + prayerText : ''}`;
+
+  const utterance = new SpeechSynthesisUtterance(fullTextToSpeak);
+  utterance.lang = 'pt-PT';
+  utterance.rate = ASCD.devotionalAudioRate || 1.0;
+
+  const voices = window.speechSynthesis.getVoices();
+  const ptVoice = voices.find(v => v.lang.startsWith('pt') || v.name.toLowerCase().includes('portuguese'));
+  if (ptVoice) utterance.voice = ptVoice;
+
+  utterance.onstart = () => {
+    ASCD.devotionalAudioPlaying = true;
+    updateDevotionalAudioUI(true, false);
+  };
+  utterance.onend = () => {
+    ASCD.devotionalAudioPlaying = false;
+    updateDevotionalAudioUI(false, false);
+  };
+  utterance.onerror = () => {
+    ASCD.devotionalAudioPlaying = false;
+    updateDevotionalAudioUI(false, false);
+  };
+
+  ASCD.devotionalSpeechUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+  showToast('A reproduzir narração em Português...');
+}
+
+function stopDevotionalAudio() {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  ASCD.devotionalAudioPlaying = false;
+  updateDevotionalAudioUI(false, false);
+}
+
+function updateDevotionalAudioUI(isPlaying, isPaused) {
+  const icon = document.getElementById('devo-play-icon');
+  const statusEl = document.getElementById('devo-audio-status');
+  const stopBtn = document.getElementById('btn-devo-audio-stop');
+
+  if (icon) {
+    icon.textContent = isPlaying ? '⏸' : '▶';
+  }
+  if (statusEl) {
+    if (isPlaying) {
+      statusEl.textContent = 'A reproduzir narração em Português...';
+    } else if (isPaused) {
+      statusEl.textContent = 'Narração em pausa (toque para retomar)';
+    } else {
+      statusEl.textContent = 'Ouvir Devocional em Áudio';
+    }
+  }
+  if (stopBtn) {
+    stopBtn.style.display = (isPlaying || isPaused) ? 'inline-flex' : 'none';
+  }
+}
+
+const BIBLE_BOOK_ALIASES = {
+  'salmo': 'sl',
+  'salmos': 'sl',
+  'psalms': 'sl',
+  'proverbios': 'pv',
+  'proverbio': 'pv',
+  'cantico dos canticos': 'ct',
+  'canticos': 'ct',
+  'cantares': 'ct',
+  'genesis': 'gn',
+  'exodo': 'ex',
+  'levitico': 'lv',
+  'numeros': 'nm',
+  'deuteronomio': 'dt',
+  'josue': 'js',
+  'juizes': 'jz',
+  'rute': 'rt',
+  '1 samuel': '1sm',
+  '2 samuel': '2sm',
+  '1 reis': '1rs',
+  '2 reis': '2rs',
+  '1 cronicas': '1cr',
+  '2 cronicas': '2cr',
+  'esdras': 'ed',
+  'neemias': 'ne',
+  'ester': 'et',
+  'jo': 'job',
+  'eclesiastes': 'ec',
+  'isaias': 'is',
+  'jeremias': 'jr',
+  'lamentacoes': 'lm',
+  'ezequiel': 'ez',
+  'daniel': 'dn',
+  'oseias': 'os',
+  'joel': 'jl',
+  'amos': 'am',
+  'obadias': 'ob',
+  'jonas': 'jn',
+  'miqueias': 'mq',
+  'naum': 'na',
+  'habacuque': 'hc',
+  'sofonias': 'sf',
+  'ageu': 'ag',
+  'zacarias': 'zc',
+  'malaquias': 'ml',
+  'mateus': 'mt',
+  'marcos': 'mc',
+  'lucas': 'lc',
+  'joao': 'jo',
+  'atos': 'at',
+  'romanos': 'rm',
+  '1 corintios': '1co',
+  '2 corintios': '2co',
+  'galatas': 'gl',
+  'efesios': 'ef',
+  'filipenses': 'fl',
+  'colossenses': 'cl',
+  '1 tessalonicenses': '1ts',
+  '2 tessalonicenses': '2ts',
+  '1 timoteo': '1tm',
+  '2 timoteo': '2tm',
+  'tito': 'tt',
+  'filemom': 'fm',
+  'hebreus': 'hb',
+  'tiago': 'tg',
+  '1 pedro': '1pe',
+  '2 pedro': '2pe',
+  '1 joao': '1jo',
+  '2 joao': '2jo',
+  '3 joao': '3jo',
+  'judas': 'jd',
+  'apocalipse': 'ap'
+};
+
+function normalizeBibleStr(s) {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function parseBibleReference(refStr) {
+  if (!refStr) return null;
+
+  let clean = refStr.trim().replace(/^[(\[]+|[)\]]+$/g, '');
+  // Capturar livro (com dígito inicial 1-3 se houver) seguido de capítulo e versículos opcionais
+  const m = clean.match(/^((?:[1-3]\s+)?[a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)\s+(\d+)(?:[:,\.]\s*(\d+)(?:[–\-](\d+))?)?/i);
+  if (!m) return null;
+
+  const rawBook = m[1].trim();
+  const chapter = parseInt(m[2], 10);
+  const startVerse = m[3] ? parseInt(m[3], 10) : 1;
+  const endVerse = m[4] ? parseInt(m[4], 10) : startVerse;
+
+  const norm = normalizeBibleStr(rawBook);
+
+  // 1. Procurar em BIBLE_BOOK_ALIASES
+  let bookId = BIBLE_BOOK_ALIASES[norm];
+
+  // 2. Se não achou no alias, buscar na lista global BIBLE_BOOKS
+  if (!bookId && typeof BIBLE_BOOKS !== 'undefined') {
+    const found = BIBLE_BOOKS.find(b => {
+      const bNorm = normalizeBibleStr(b.name);
+      return bNorm === norm || bNorm.startsWith(norm) || norm.startsWith(bNorm);
+    });
+    if (found) bookId = found.id;
+  }
+
+  // 3. Fallback: procurar livro que contenha a palavra-chave
+  if (!bookId && typeof BIBLE_BOOKS !== 'undefined') {
+    const found = BIBLE_BOOKS.find(b => normalizeBibleStr(b.name).includes(norm) || norm.includes(normalizeBibleStr(b.name)));
+    if (found) bookId = found.id;
+  }
+
+  const bookObj = (typeof BIBLE_BOOKS !== 'undefined') ? BIBLE_BOOKS.find(b => b.id === bookId) : null;
+
+  return {
+    bookId: bookId || null,
+    bookName: bookObj ? bookObj.name : rawBook,
+    chapter: chapter,
+    startVerse: startVerse,
+    endVerse: endVerse
+  };
+}
+
+async function openDevotionalInBible(refStr) {
+  if (!refStr) {
+    showToast('Nenhuma passagem bíblica identificada.');
+    showTab('biblia');
+    return;
+  }
+
+  const parsed = parseBibleReference(refStr);
+  if (!parsed || !parsed.bookId) {
+    showToast(`Passagem "${refStr}" aberta no Leitor Bíblico.`);
+    showTab('biblia');
+    return;
+  }
+
+  // 1. Alternar para a aba do Leitor Bíblico
+  showTab('biblia');
+
+  // 2. Carregar o livro e capítulo da Bíblia
+  await loadBibleChapter(parsed.bookId, parsed.chapter);
+
+  // 3. Rolar a página suavemente até ao versículo inicial e aplicar destaque visual
+  setTimeout(() => {
+    const targetVerseRow = document.querySelector(`.verse-row[data-verse="${parsed.startVerse}"]`);
+    if (targetVerseRow) {
+      targetVerseRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Destacar o intervalo de versículos da passagem devocional
+    for (let v = parsed.startVerse; v <= parsed.endVerse; v++) {
+      const row = document.querySelector(`.verse-row[data-verse="${v}"]`);
+      if (row) {
+        row.classList.add('verse-devotional-highlight');
+        setTimeout(() => row.classList.remove('verse-devotional-highlight'), 6000);
+      }
+    }
+  }, 350);
+
+  const verseRangeText = parsed.startVerse === parsed.endVerse 
+    ? `versículo ${parsed.startVerse}` 
+    : `versículos ${parsed.startVerse} a ${parsed.endVerse}`;
+  showToast(`Bíblia aberta em ${parsed.bookName} ${parsed.chapter} (${verseRangeText})`);
+}
+
+function writeDevotionalInJournal(devotional) {
+  if (!devotional) return;
+  showTab('journal');
+  selectJournalDate(devotional.dateIso || ASCD.currentDevotionalDate);
+
+  const titleInput = document.getElementById('journal-title-input');
+  const verseInput = document.getElementById('journal-verse-input');
+  const contentEditor = document.getElementById('journal-content-editor');
+
+  if (titleInput && (!titleInput.value || titleInput.value.startsWith('Diário de') || titleInput.value.startsWith('Devocional:'))) {
+    titleInput.value = `Devocional: ${devotional.title}`;
+  }
+  if (verseInput && (!verseInput.value || verseInput.value.startsWith('Provérbios') || verseInput.value.startsWith('Salmo') || verseInput.value === '')) {
+    verseInput.value = `${devotional.scripture || ''} — "${devotional.keyVerseText || devotional.bibleVerse || ''}"`;
+  }
+  if (contentEditor && (!contentEditor.innerHTML || contentEditor.innerHTML === '<p><br></p>' || contentEditor.innerHTML.trim() === '')) {
+    contentEditor.innerHTML = `
+      <p><strong>📖 Leitura Bíblica:</strong> ${devotional.scripture || ''}</p>
+      <blockquote style="border-left:3px solid var(--accent-gold); padding-left:12px; margin:8px 0; color:var(--text-secondary); font-style:italic;">
+        "${devotional.keyVerseText || devotional.bibleVerse || ''}"
+      </blockquote>
+      <p><strong>💡 Para Meditar:</strong> ${devotional.reflect ? devotional.reflect.replace(/<[^>]+>/g, '') : ''}</p>
+      <p><strong>Minhas Reflexões & Aplicação Pessoal:</strong></p>
+      <p></p>
+    `;
+  }
+  saveCurrentJournalEntry(false);
+  showToast('Devocional carregado no Diário! Pode escrever com teclado ou Apple Pencil.');
+}
+
+function createStudyFromDevotional(devotional) {
+  if (!devotional) return;
+  const newNote = {
+    id: 'note_' + Date.now(),
+    title: `Estudo: ${devotional.title}`,
+    category: 'Estudo Bíblico',
+    date: formatDateShort(getTodayDateStr()),
+    tags: ['Devocional', 'Pão Diário', (devotional.scripture ? devotional.scripture.split(' ')[0] : 'Bíblia')],
+    content: `
+      <h2>${devotional.title}</h2>
+      <p><strong>Passagem Bíblica:</strong> ${devotional.scripture || ''}</p>
+      <blockquote style="border-left:3px solid var(--accent-gold); padding-left:12px; color:var(--text-secondary); font-style:italic;">
+        "${devotional.keyVerseText || devotional.bibleVerse || ''}"
+      </blockquote>
+      <hr style="margin:16px 0; border:none; border-top:1px solid var(--border-subtle);">
+      <h3>Reflexão & Mensagem:</h3>
+      ${devotional.body || ''}
+      <hr style="margin:16px 0; border:none; border-top:1px solid var(--border-subtle);">
+      <h3>Anotações Pessoais & Aplicação Teológica:</h3>
+      <p></p>
+    `,
+    pencilDataUrl: null,
+    updatedAt: new Date().toISOString()
+  };
+  ASCD.notes.unshift(newNote);
+  saveNotes();
+  showTab('notas');
+  openNoteEditor(newNote.id);
+  showToast('Estudo criado com sucesso no Caderno de Estudos!');
+}
+
+function toggleDevotionalFavorite(dateIso) {
+  if (!ASCD.devotionalFavorites) ASCD.devotionalFavorites = [];
+  const idx = ASCD.devotionalFavorites.indexOf(dateIso);
+  if (idx !== -1) {
+    ASCD.devotionalFavorites.splice(idx, 1);
+    showToast('Devocional removido dos favoritos.');
+  } else {
+    ASCD.devotionalFavorites.push(dateIso);
+    showToast('Devocional guardado nos seus favoritos! ⭐');
+  }
+  localStorage.setItem('ascd_devotional_favs', JSON.stringify(ASCD.devotionalFavorites));
+  updateDevotionalFavButton();
+  renderDevotionalDrawer();
+}
+
+function updateDevotionalFavButton() {
+  const btnLabel = document.getElementById('devo-fav-btn-label');
+  const favCount = document.getElementById('devo-fav-count');
+  const isFav = (ASCD.devotionalFavorites || []).includes(ASCD.currentDevotionalDate);
+
+  if (btnLabel) {
+    btnLabel.textContent = isFav ? '⭐ Em Favoritos (Remover)' : '⭐ Guardar nos Favoritos';
+  }
+  if (favCount) {
+    favCount.textContent = (ASCD.devotionalFavorites || []).length;
+  }
+}
+
+function copyDevotionalText(devotional) {
+  if (!devotional) return;
+  const text = `🍞 Nosso Pão Diário — ${devotional.date || ''}\n` +
+    `📖 ${devotional.title}\n\n` +
+    `📜 Leitura Bíblica: ${devotional.scripture || ''}\n` +
+    (devotional.keyVerseText ? `"${devotional.keyVerseText}"\n\n` : '\n') +
+    (devotional.body ? devotional.body.replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').trim() : '') + '\n\n' +
+    (devotional.reflect ? `💡 Para Meditar: ${devotional.reflect.replace(/<[^>]+>/g, '').trim()}\n\n` : '') +
+    (devotional.prayer ? `🙏 Oração: ${devotional.prayer.replace(/<[^>]+>/g, '').trim()}\n\n` : '') +
+    (devotional.bibleInAYear ? `🗓️ Plano Anual: ${devotional.bibleInAYear}\n\n` : '') +
+    `ASCD • Bíblia & Notas`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Devocional completo copiado para a área de transferência!');
+    }).catch(() => {
+      showToast('Texto preparado para cópia.');
+    });
+  } else {
+    showToast('Área de transferência não disponível.');
+  }
+}
+
+function renderDevotionalDrawer() {
+  const container = document.getElementById('devo-drawer-items');
+  if (!container) return;
+
+  const mode = ASCD.devotionalDrawerTab || 'recent';
+  let datesToRender = [];
+
+  if (mode === 'favs') {
+    datesToRender = [...(ASCD.devotionalFavorites || [])].reverse();
+    if (datesToRender.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1; padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">Nenhum devocional guardado nos favoritos ainda. Toque em "⭐ Guardar nos Favoritos" para salvar aqui.</div>`;
+      return;
+    }
+  } else {
+    const allDates = typeof getAvailableDevotionalDates === 'function' ? getAvailableDevotionalDates() : [];
+    datesToRender = allDates.slice().reverse().slice(0, 12);
+  }
+
+  container.innerHTML = datesToRender.map(dateStr => {
+    const devo = typeof getDevotionalForDate === 'function' ? getDevotionalForDate(dateStr) : null;
+    const isCur = dateStr === ASCD.currentDevotionalDate;
+    return `
+      <div class="devo-drawer-card ${isCur ? 'active-devo' : ''}" onclick="selectDevotionalFromDrawer('${dateStr}')">
+        <span class="devo-drawer-date">${formatDateShort(dateStr)}</span>
+        <strong class="devo-drawer-title">${devo ? devo.title : 'Devocional'}</strong>
+        <span class="devo-drawer-ref">📖 ${devo ? (devo.scripture || '') : ''}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectDevotionalFromDrawer(dateStr) {
+  loadDevotionalForDate(dateStr);
+  const card = document.getElementById('devotional-main-card');
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
