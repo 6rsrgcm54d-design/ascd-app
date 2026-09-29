@@ -4673,7 +4673,10 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-force-update-app" title="Limpar cache do navegador e descarregar a versão mais recente">
+          🔄 Forçar Atualização / Limpar Cache
+        </button>
         <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
       </div>
     </div>
@@ -8721,6 +8724,27 @@ function setupNavigation() {
     btnIpadGuide.addEventListener('click', () => {
       const modal = document.getElementById('ipad-guide-modal');
       if (modal) modal.classList.add('open');
+    });
+  }
+
+  // Botão de Forçar Atualização / Limpar Cache
+  const btnForceUpdate = document.getElementById('btn-force-update-app');
+  if (btnForceUpdate) {
+    btnForceUpdate.addEventListener('click', async () => {
+      showToast('🔄 A limpar cache e a atualizar para a versão mais recente...');
+      try {
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map(name => caches.delete(name)));
+        }
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(r => r.unregister()));
+        }
+      } catch (err) {}
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
     });
   }
 
@@ -13366,7 +13390,32 @@ function selectDevotionalFromDrawer(dateStr) {
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          // Forçar verificação de nova versão imediatamente
+          reg.update().catch(() => {});
+          
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (typeof showToast === 'function') {
+                    showToast('🔄 Nova versão instalada! A atualizar...');
+                  }
+                  setTimeout(() => window.location.reload(), 1200);
+                }
+              });
+            }
+          });
+        }).catch(() => {});
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
     }
   </script>

@@ -1384,7 +1384,10 @@
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-force-update-app" title="Limpar cache do navegador e descarregar a versão mais recente">
+          🔄 Forçar Atualização / Limpar Cache
+        </button>
         <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
       </div>
     </div>
@@ -1404,7 +1407,32 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          // Forçar verificação de nova versão imediatamente
+          reg.update().catch(() => {});
+          
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (typeof showToast === 'function') {
+                    showToast('🔄 Nova versão instalada! A atualizar...');
+                  }
+                  setTimeout(() => window.location.reload(), 1200);
+                }
+              });
+            }
+          });
+        }).catch(() => {});
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
     }
   </script>

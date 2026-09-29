@@ -277,6 +277,27 @@ function setupNavigation() {
     });
   }
 
+  // Botão de Forçar Atualização / Limpar Cache
+  const btnForceUpdate = document.getElementById('btn-force-update-app');
+  if (btnForceUpdate) {
+    btnForceUpdate.addEventListener('click', async () => {
+      showToast('🔄 A limpar cache e a atualizar para a versão mais recente...');
+      try {
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map(name => caches.delete(name)));
+        }
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(r => r.unregister()));
+        }
+      } catch (err) {}
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+    });
+  }
+
   // Botão Flutuante Global de Sair do Ecrã Inteiro
   const btnGlobalExitFs = document.getElementById('global-exit-fullscreen-btn');
   if (btnGlobalExitFs) {
