@@ -8982,6 +8982,74 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
   // Atualizar botões ativos ao digitar ou mover o cursor
   editor.addEventListener('keyup', () => updateToolbarActiveState(prefix));
   editor.addEventListener('mouseup', () => updateToolbarActiveState(prefix));
+
+  // Limpar formatação de texto colado de fontes externas (Word, browser, email, etc.)
+  // Mantém negrito, itálico, sublinhado e cores de destaque, mas remove font-family e font-size externos
+  editor.addEventListener('paste', (e) => {
+    e.preventDefault();
+    let html = '';
+    if (e.clipboardData && e.clipboardData.getData('text/html')) {
+      html = e.clipboardData.getData('text/html');
+    } else if (e.clipboardData && e.clipboardData.getData('text/plain')) {
+      html = escapeHtml(e.clipboardData.getData('text/plain')).replace(/\n/g, '<br>');
+    }
+    // Limpar estilos de fonte externos, preservar negrito/itálico/sublinhado/marcações de cor
+    html = cleanPastedHtml(html);
+    document.execCommand('insertHTML', false, html);
+    updateToolbarActiveState(prefix);
+  });
+}
+
+/**
+ * Limpa HTML colado de fontes externas (Word, browser, email).
+ * Remove font-family, font-size, color, margin, padding externos.
+ * Preserva: negrito, itálico, sublinhado, cores de fundo (marcações da app).
+ */
+function cleanPastedHtml(html) {
+  // Remover tags de Word/Office e comentários
+  html = html.replace(/<!--[\s\S]*?-->/g, '');
+  html = html.replace(/<o:p[\s\S]*?<\/o:p>/gi, '');
+  html = html.replace(/<\/?o:[^>]*>/gi, '');
+  html = html.replace(/<\/?w:[^>]*>/gi, '');
+  html = html.replace(/<\/?m:[^>]*>/gi, '');
+
+  // Criar elemento temporário para processar o DOM
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+
+  // Percorrer todos os elementos e limpar estilos externos
+  temp.querySelectorAll('*').forEach(el => {
+    // Preservar apenas estilos relevantes da app
+    const bg = el.style.backgroundColor;
+    const fw = el.style.fontWeight;
+    const fs = el.style.fontStyle;
+    const td = el.style.textDecoration;
+    const ff = el.style.fontFamily;   // vem da app se definido pelo utilizador
+    const fz = el.style.fontSize;     // vem da app se definido pelo utilizador
+
+    // Limpar todos os atributos de estilo problemáticos externos
+    el.removeAttribute('style');
+    el.removeAttribute('class');
+    el.removeAttribute('lang');
+    el.removeAttribute('xml:lang');
+
+    // Restaurar apenas estilos que a app gerencia (vêm de dentro, não do clipboard externo)
+    // Preservar cor de fundo para marcações de texto da app
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== 'initial' && bg !== '') {
+      el.style.backgroundColor = bg;
+    }
+    if (fw === 'bold' || fw === '700' || fw === '600') el.style.fontWeight = 'bold';
+    if (fs === 'italic') el.style.fontStyle = 'italic';
+    if (td && td.includes('underline')) el.style.textDecoration = 'underline';
+  });
+
+  // Remover tags vazias e wrappers desnecessários do Word
+  const cleanHtml = temp.innerHTML
+    .replace(/<span[^>]*>\s*<\/span>/gi, '')
+    .replace(/<p[^>]*>\s*<\/p>/gi, '')
+    .replace(/<div[^>]*>\s*<\/div>/gi, '');
+
+  return cleanHtml;
 }
 
 function updateToolbarActiveState(prefix) {
@@ -9001,6 +9069,7 @@ function applyFontFamily(editor, fontFamily) {
   const sel = window.getSelection();
 
   if (sel.rangeCount > 0 && !sel.isCollapsed && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    // Tem texto seleccionado: aplica só à selecção
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
     span.style.fontFamily = fontFamily;
@@ -9012,7 +9081,12 @@ function applyFontFamily(editor, fontFamily) {
       document.execCommand('fontName', false, fontFamily);
     }
   } else {
+    // Nada seleccionado: aplica ao editor todo (incluindo texto colado)
     editor.style.fontFamily = fontFamily;
+    // Também aplica a todos os spans/elementos filhos que tenham font-family definido externamente
+    editor.querySelectorAll('[style*="font-family"]').forEach(el => {
+      el.style.fontFamily = fontFamily;
+    });
   }
 }
 
@@ -9021,6 +9095,7 @@ function applyFontSize(editor, size) {
   const sel = window.getSelection();
 
   if (sel.rangeCount > 0 && !sel.isCollapsed && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    // Tem texto seleccionado: aplica só à selecção
     const range = sel.getRangeAt(0);
     const span = document.createElement('span');
     span.style.fontSize = size;
@@ -9032,7 +9107,12 @@ function applyFontSize(editor, size) {
       document.execCommand('fontSize', false, '4');
     }
   } else {
+    // Nada seleccionado: aplica ao editor todo (incluindo texto colado)
     editor.style.fontSize = size;
+    // Também aplica a todos os spans/elementos filhos que tenham font-size definido externamente
+    editor.querySelectorAll('[style*="font-size"]').forEach(el => {
+      el.style.fontSize = size;
+    });
   }
 }
 
@@ -12527,24 +12607,87 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>${title} - Impressão PDF</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>${title} - Pré-visualização PDF</title>
       <style>
         @page {
           size: A4 portrait;
           margin: 16mm;
         }
+        * { box-sizing: border-box; }
         body {
           font-family: 'Georgia', 'Times New Roman', serif;
           font-size: 13px;
           line-height: 1.6;
           color: #1F2937;
-          background: #FFF;
+          background: #E5E7EB;
           margin: 0;
-          padding: 8px;
+          padding: 0;
         }
+        /* Barra de acções fixa no topo — não aparece na impressão */
+        #print-toolbar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 9999;
+          background: #1E3A5F;
+          color: #FFF;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          font-family: Arial, sans-serif;
+        }
+        #print-toolbar .pt-title {
+          flex: 1;
+          font-size: 15px;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        #print-toolbar button {
+          padding: 8px 18px;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        #btn-do-print {
+          background: #D97706;
+          color: #FFF;
+        }
+        #btn-do-print:hover { background: #B45309; }
+        #btn-close-print {
+          background: rgba(255,255,255,0.15);
+          color: #FFF;
+          border: 1px solid rgba(255,255,255,0.3) !important;
+        }
+        #btn-close-print:hover { background: rgba(255,255,255,0.25); }
+        /* Área do documento */
+        #print-body {
+          margin-top: 64px;
+          padding: 30px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        /* Folha A4 em pré-visualização */
         .document-page {
+          background: #FFF;
+          width: 210mm;
+          min-height: 297mm;
+          padding: 16mm;
+          margin-bottom: 24px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+          border-radius: 4px;
           page-break-after: always;
-          margin-bottom: 30px;
         }
         .document-page:last-child {
           page-break-after: auto;
@@ -12568,28 +12711,48 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
           font-size: 14px;
           line-height: 1.7;
         }
+        /* Na impressão: ocultar toolbar, remover estilos de preview */
         @media print {
-          body {
-            padding: 0;
+          #print-toolbar { display: none !important; }
+          #print-body {
+            margin-top: 0 !important;
+            padding: 0 !important;
+            background: none !important;
+          }
+          body { background: #FFF !important; }
+          .document-page {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            margin-bottom: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
           }
         }
       </style>
     </head>
     <body>
-      ${itemsHtml}
+      <div id="print-toolbar">
+        <span class="pt-title">🖨️ ${title}</span>
+        <button id="btn-do-print">🖨️ Imprimir / Guardar PDF</button>
+        <button id="btn-close-print">✕ Fechar</button>
+      </div>
+      <div id="print-body">
+        ${itemsHtml}
+      </div>
       <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 300);
-        };
+        document.getElementById('btn-do-print').addEventListener('click', function() {
+          window.print();
+        });
+        document.getElementById('btn-close-print').addEventListener('click', function() {
+          window.close();
+        });
       <\/script>
     </body>
     </html>
   `);
 
   printWindow.document.close();
-  showToast(`🖨️ Janela de impressão em PDF aberta!`);
+  showToast(`🖨️ Pré-visualização PDF aberta! Clique em "Imprimir / Guardar PDF" para guardar.`);
 }
 
 function triggerDownload(blob, filename) {
