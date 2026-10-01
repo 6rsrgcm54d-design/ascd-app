@@ -3742,21 +3742,26 @@ function openSheetsSyncModal() {
  */
 function setupSheetsSyncModal() {
   const tabDirect = document.getElementById('tab-btn-sync-direct');
+  const tabBackup = document.getElementById('tab-btn-sync-backup');
   const tabGuide = document.getElementById('tab-btn-sync-guide');
   const tabCsv = document.getElementById('tab-btn-sync-csv');
 
   const panelDirect = document.getElementById('sync-panel-direct');
+  const panelBackup = document.getElementById('sync-panel-backup');
   const panelGuide = document.getElementById('sync-panel-guide');
   const panelCsv = document.getElementById('sync-panel-csv');
 
+  const allTabs = [tabDirect, tabBackup, tabGuide, tabCsv];
+  const allPanels = [panelDirect, panelBackup, panelGuide, panelCsv];
+
   function switchModalTab(activeBtn, activePanel) {
-    [tabDirect, tabGuide, tabCsv].forEach(btn => {
+    allTabs.forEach(btn => {
       if (btn) {
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-secondary');
       }
     });
-    [panelDirect, panelGuide, panelCsv].forEach(panel => {
+    allPanels.forEach(panel => {
       if (panel) {
         panel.style.display = 'none';
         panel.classList.remove('active');
@@ -3775,6 +3780,9 @@ function setupSheetsSyncModal() {
 
   if (tabDirect && panelDirect) {
     tabDirect.addEventListener('click', () => switchModalTab(tabDirect, panelDirect));
+  }
+  if (tabBackup && panelBackup) {
+    tabBackup.addEventListener('click', () => switchModalTab(tabBackup, panelBackup));
   }
   if (tabGuide && panelGuide) {
     tabGuide.addEventListener('click', () => {
@@ -3864,6 +3872,142 @@ function setupSheetsSyncModal() {
       }
     });
   }
+
+  // ─── BACKUP ENTRE DISPOSITIVOS ───────────────────────────────────────
+  const btnExportBackup = document.getElementById('btn-export-backup');
+  if (btnExportBackup) {
+    btnExportBackup.addEventListener('click', exportFullBackup);
+  }
+
+  const inputImportBackup = document.getElementById('input-import-backup');
+  if (inputImportBackup) {
+    inputImportBackup.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) importFullBackup(file);
+      e.target.value = '';
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BACKUP COMPLETO — EXPORTAR / IMPORTAR ENTRE DISPOSITIVOS
+// ═══════════════════════════════════════════════════════════════
+
+function exportFullBackup() {
+  const backup = {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    device: navigator.userAgent.includes('iPad') || navigator.userAgent.includes('Macintosh') ? 'iPad/Mac' : 'Computador',
+    data: {
+      notes: ASCD.notes || [],
+      sermons: ASCD.sermons || [],
+      journalEntries: ASCD.journalEntries || {},
+      biblePageNotes: ASCD.biblePageNotes || {},
+      devotionalFavorites: ASCD.devotionalFavorites || [],
+      settings: {
+        bibleVersion: ASCD.currentBibleVersion || 'arc',
+        theme: localStorage.getItem('ascd_theme') || 'light',
+        devotionalFontSize: ASCD.devotionalFontSize || 100
+      }
+    }
+  };
+
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ASCD_Backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  // Mostrar info do backup
+  const info = document.getElementById('export-backup-info');
+  if (info) {
+    const total = (ASCD.notes?.length || 0) + (ASCD.sermons?.length || 0) +
+                  Object.keys(ASCD.journalEntries || {}).length +
+                  Object.keys(ASCD.biblePageNotes || {}).length;
+    info.textContent = `✅ ${total} registos exportados — ${(json.length / 1024).toFixed(1)} KB`;
+  }
+  showToast('📦 Backup exportado com sucesso! Transfira o ficheiro para o outro dispositivo.');
+}
+
+function importFullBackup(file) {
+  const status = document.getElementById('import-backup-status');
+  if (status) status.textContent = '⏳ A importar...';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      // Validar estrutura mínima
+      if (!backup.data) {
+        throw new Error('Ficheiro de backup inválido ou corrompido.');
+      }
+
+      const d = backup.data;
+
+      // Confirmar antes de substituir
+      const total = (d.notes?.length || 0) + (d.sermons?.length || 0) +
+                    Object.keys(d.journalEntries || {}).length +
+                    Object.keys(d.biblePageNotes || {}).length;
+      const exportDate = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('pt-PT') : 'data desconhecida';
+
+      if (!confirm(`Importar backup de ${exportDate}?\n\n${total} registos serão restaurados.\n\nOs dados actuais deste dispositivo serão substituídos. Continuar?`)) {
+        if (status) status.textContent = '⚠️ Importação cancelada.';
+        return;
+      }
+
+      // Restaurar dados
+      if (d.notes)             ASCD.notes = d.notes;
+      if (d.sermons)           ASCD.sermons = d.sermons;
+      if (d.journalEntries)    ASCD.journalEntries = d.journalEntries;
+      if (d.biblePageNotes)    ASCD.biblePageNotes = d.biblePageNotes;
+      if (d.devotionalFavorites) ASCD.devotionalFavorites = d.devotionalFavorites;
+
+      // Guardar tudo no localStorage
+      try { localStorage.setItem('ascd_notes', JSON.stringify(ASCD.notes)); } catch (_) {}
+      try { localStorage.setItem('ascd_sermons', JSON.stringify(ASCD.sermons)); } catch (_) {}
+      try { localStorage.setItem('ascd_journal', JSON.stringify(ASCD.journalEntries)); } catch (_) {}
+      try { localStorage.setItem('ascd_bible_page_notes', JSON.stringify(ASCD.biblePageNotes)); } catch (_) {}
+      try { localStorage.setItem('ascd_devotional_favs', JSON.stringify(ASCD.devotionalFavorites)); } catch (_) {}
+
+      // Restaurar definições se existirem
+      if (d.settings) {
+        if (d.settings.theme) {
+          localStorage.setItem('ascd_theme', d.settings.theme);
+        }
+        if (d.settings.bibleVersion) {
+          ASCD.currentBibleVersion = d.settings.bibleVersion;
+          localStorage.setItem('ascd_bible_version', d.settings.bibleVersion);
+        }
+      }
+
+      // Atualizar interface
+      renderNotesList();
+      renderSermonsList();
+      renderCalendar();
+      renderJournalHistoryList();
+
+      if (status) status.textContent = `✅ ${total} registos importados com sucesso!`;
+      showToast(`✅ Backup importado! ${total} registos restaurados. Dados prontos a usar.`);
+
+      // Fechar modal após 2 segundos
+      setTimeout(() => {
+        document.getElementById('sheets-sync-modal')?.classList.remove('open');
+      }, 2000);
+
+    } catch (err) {
+      if (status) status.textContent = `❌ Erro: ${err.message}`;
+      showToast('❌ Erro ao importar o backup: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 /**

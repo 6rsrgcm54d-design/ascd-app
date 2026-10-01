@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR" data-theme="pergaminho">
 <head>
   <meta charset="UTF-8">
@@ -1240,6 +1240,7 @@
         <!-- Seletor de Abas do Modal -->
         <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:12px; flex-wrap:wrap;">
           <button type="button" class="btn btn-sm btn-primary" id="tab-btn-sync-direct">⚡ Sincronização Direta</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-backup">&#128242; Backup entre Dispositivos</button>
           <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-guide">📋 Código do Apps Script & Guia</button>
           <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-csv">📥 Descarregar CSV (Manual)</button>
         </div>
@@ -1283,6 +1284,50 @@
           </div>
         </div>
 
+        <!-- ABA BACKUP: EXPORTAR / IMPORTAR DADOS ENTRE DISPOSITIVOS -->
+        <div id="sync-panel-backup" class="sync-panel" style="display:none;">
+          <div style="background:#EFF6FF; border-left:4px solid #2563EB; padding:12px 16px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+            <strong style="color:#1D4ED8;">&#128161; Como funciona a sincronização entre dispositivos</strong>
+            <p style="margin:6px 0 0 0; color:#374151; line-height:1.6;">
+              Como cada dispositivo guarda os dados localmente (computador, iPad, telemóvel), use esta funcionalidade para transferir todos os seus dados:
+              <br>1. No dispositivo com os dados → clique em <strong>Exportar Backup</strong> → guarda um ficheiro <code>.json</code>.
+              <br>2. No outro dispositivo → clique em <strong>Importar Backup</strong> → seleciona o mesmo ficheiro → os dados são restaurados.
+            </p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+            <!-- EXPORTAR -->
+            <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:8px; padding:18px; text-align:center;">
+              <div style="font-size:32px; margin-bottom:8px;">&#128229;</div>
+              <h4 style="margin:0 0 6px 0; color:var(--text-primary); font-size:15px;">Exportar Backup</h4>
+              <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">
+                Gera um ficheiro com <strong>todos os seus dados</strong>: diário, notas, sermões e anotações bíblicas.
+              </p>
+              <button type="button" class="btn btn-primary" id="btn-export-backup" style="width:100%;">
+                &#128229; Exportar todos os dados (.json)
+              </button>
+              <div id="export-backup-info" style="font-size:11px; color:var(--text-muted); margin-top:8px;"></div>
+            </div>
+
+            <!-- IMPORTAR -->
+            <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:8px; padding:18px; text-align:center;">
+              <div style="font-size:32px; margin-bottom:8px;">&#128228;</div>
+              <h4 style="margin:0 0 6px 0; color:var(--text-primary); font-size:15px;">Importar Backup</h4>
+              <p style="font-size:12px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">
+                Restaura os dados a partir de um ficheiro de backup. <strong style="color:#DC2626;">Substitui os dados actuais deste dispositivo.</strong>
+              </p>
+              <label class="btn btn-secondary" style="width:100%; cursor:pointer; display:block; box-sizing:border-box;">
+                &#128228; Importar backup (.json)
+                <input type="file" id="input-import-backup" accept=".json" style="display:none;">
+              </label>
+              <div id="import-backup-status" style="font-size:11px; color:var(--text-muted); margin-top:8px;"></div>
+            </div>
+          </div>
+
+          <div style="background:#FEF9C3; border:1px solid #FDE047; border-radius:6px; padding:10px 14px; font-size:12px; color:#713F12; line-height:1.6;">
+            &#9888;&#65039; <strong>Atenção ao importar:</strong> Os dados existentes neste dispositivo serão substituídos pelos do ficheiro. Faça um backup antes de importar se tiver dados nos dois dispositivos que quer preservar.
+          </div>
+        </div>
         <!-- ABA 2: CÓDIGO DO APPS SCRIPT E GUIA PASSO A PASSO -->
         <div id="sync-panel-guide" class="sync-panel" style="display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
