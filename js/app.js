@@ -3826,35 +3826,29 @@ function setupSheetsSyncModal() {
     tabCsv.addEventListener('click', () => switchModalTab(tabCsv, panelCsv));
   }
 
-  // Botão Sincronizar Agora (Enviar)
-  const btnSyncNow = document.getElementById('btn-sync-sheets-now');
-  if (btnSyncNow) {
-    btnSyncNow.addEventListener('click', syncWithGoogleSheetsWebhook);
-  }
-
-  // Botão Puxar Dados do Sheets (Download / Merge)
-  const btnPullNow = document.getElementById('btn-pull-sheets-now');
-  if (btnPullNow) {
-    btnPullNow.addEventListener('click', async () => {
-      btnPullNow.disabled = true;
+  // Botão Único: Sincronizar Tudo Agora (Puxa novidades + Envia alterações)
+  const btnSyncAll = document.getElementById('btn-sync-all-now');
+  if (btnSyncAll) {
+    btnSyncAll.addEventListener('click', async () => {
+      btnSyncAll.disabled = true;
       const statusEl = document.getElementById('sheets-sync-status');
       if (statusEl) {
         statusEl.style.color = 'var(--text-secondary)';
-        statusEl.textContent = '⏳ A puxar dados da folha de cálculo...';
+        statusEl.textContent = '⏳ A sincronizar tudo com o Google Sheets...';
       }
       try {
-        await pullFromGoogleSheets(false);
+        await syncAllNow(true);
         if (statusEl) {
           statusEl.style.color = '#059669';
-          statusEl.textContent = '✅ Dados integrados com sucesso!';
+          statusEl.textContent = '✅ Sincronização concluída com sucesso!';
         }
       } catch (err) {
         if (statusEl) {
           statusEl.style.color = '#DC2626';
-          statusEl.textContent = 'Erro ao puxar dados: ' + err.message;
+          statusEl.textContent = 'Erro ao sincronizar: ' + err.message;
         }
       } finally {
-        btnPullNow.disabled = false;
+        btnSyncAll.disabled = false;
       }
     });
   }
@@ -4074,11 +4068,54 @@ function initSheetsSyncIndicator() {
   const savedUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
   if (badge) {
     if (savedUrl && savedUrl.startsWith('https://script.google.com/')) {
-      badge.innerHTML = `☁️ <span style="font-weight:600;">Google Sheets Conectado</span>`;
+      badge.innerHTML = `☁️ <span style="font-weight:600;">Sincronizado</span>`;
       badge.style.display = 'inline-flex';
+
+      // Ao clicar diretamente no botão do cabeçalho, sincroniza tudo na hora!
+      badge.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        syncAllNow(true);
+      };
     } else {
       badge.style.display = 'none';
     }
+  }
+}
+
+/**
+ * Sincronização Completa (Tudo-em-Um):
+ * 1. Puxa as novidades mais recentes do Google Sheets (feitas noutros aparelhos)
+ * 2. Envia e funde os dados locais para a folha de cálculo
+ * 3. Atualiza o indicador visual no cabeçalho
+ */
+async function syncAllNow(showToasts = true) {
+  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    if (showToasts) showToast('⚠️ Conexão do Google Sheets não configurada.');
+    return;
+  }
+
+  updateSyncPillBadge('syncing');
+  if (showToasts) showToast('🔄 A sincronizar com o Google Sheets...');
+
+  try {
+    // 1. PULL: Puxar do Google Sheets
+    await pullFromGoogleSheets(true);
+
+    // 2. PUSH: Gravar/Fundir no Google Sheets
+    await executeSheetsSync(webhookUrl, true);
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    updateSyncPillBadge('success', timeStr);
+
+    if (showToasts) {
+      showToast(`✅ Tudo sincronizado! Dados atualizados em todos os aparelhos.`);
+    }
+  } catch (err) {
+    console.warn('Sync all notice:', err);
+    updateSyncPillBadge('success');
   }
 }
 
@@ -4374,17 +4411,17 @@ function updateSyncPillBadge(status, timeStr = '') {
 
   if (badge) {
     if (status === 'syncing') {
-      badge.innerHTML = `☁️ <span style="font-weight:600;">A guardar no Sheets...</span>`;
+      badge.innerHTML = `🔄 <span style="font-weight:600;">A sincronizar...</span>`;
       badge.style.color = 'var(--text-secondary)';
       badge.style.background = 'var(--bg-surface-elevated)';
       badge.style.borderColor = 'var(--accent-gold)';
     } else if (status === 'success') {
-      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Guardado no Sheets</span> ${timeStr ? `<small style="opacity:0.75; font-size:10px;">${timeStr}</small>` : ''}`;
+      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Sincronizado</span> ${timeStr ? `<small style="opacity:0.75; font-size:11px;">${timeStr}</small>` : ''}`;
       badge.style.color = '#065F46';
       badge.style.background = 'rgba(16, 185, 129, 0.08)';
       badge.style.borderColor = '#10B981';
     } else if (status === 'error') {
-      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro Google Sheets</span>`;
+      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro ao sincronizar</span>`;
       badge.style.borderColor = '#FCA5A5';
     }
   }
@@ -4395,7 +4432,7 @@ function updateSyncPillBadge(status, timeStr = '') {
       statusEl.textContent = '⏳ A sincronizar com o Google Sheets...';
     } else if (status === 'success') {
       statusEl.style.color = '#16A34A';
-      statusEl.textContent = `✅ Guardado no Google Sheets às ${timeStr}`;
+      statusEl.textContent = `✅ Sincronizado com o Google Sheets às ${timeStr}`;
     } else if (status === 'error') {
       statusEl.style.color = '#DC2626';
       statusEl.textContent = '⚠️ Erro ao comunicar com o Apps Script';

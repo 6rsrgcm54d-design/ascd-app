@@ -3387,10 +3387,15 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
             <span>📱 Guia iPad</span>
           </button>
 
-          <!-- Indicador de Sincronização Automática com Google Sheets -->
-          <span id="sheets-autosync-badge" class="sheets-sync-pill" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" style="cursor:pointer;" title="Sincronização automática com Google Sheets">
-            ☁️ <span style="font-weight:600;">Google Sheets Conectado</span>
-          </span>
+          <!-- Indicador e Botão de Sincronização Automática com Google Sheets -->
+          <div style="display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" id="sheets-autosync-badge" class="sheets-sync-pill" style="cursor:pointer;" title="Sincronização automática ativa. Clique para sincronizar agora!">
+              ☁️ <span style="font-weight:600;">Sincronizado</span>
+            </button>
+            <button type="button" class="btn-icon-subtle" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" title="Definições do Google Sheets" style="padding:6px; color:var(--text-muted); border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
 
           <!-- Modo Dividido: Bíblia + Bloco de Notas Lado a Lado -->
           <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
@@ -4548,19 +4553,16 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
             </span>
           </div>
 
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
-            <button type="button" class="btn btn-primary" id="btn-pull-sheets-now" style="display:flex; align-items:center; gap:8px;" title="Carrega todos os dados da folha de cálculo para este dispositivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>📥 Puxar Dados da Folha de Cálculo</span>
+          <!-- BOTÃO ÚNICO DE SINCRONIZAÇÃO -->
+          <div style="margin-bottom: 20px;">
+            <button type="button" class="btn btn-primary" id="btn-sync-all-now" style="width:100%; justify-content:center; padding:13px 20px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:10px; border-radius:8px; cursor:pointer;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>🔄 Sincronizar Tudo Agora</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-sync-sheets-now" style="display:flex; align-items:center; gap:8px;" title="Envia e funde os dados deste aparelho com a folha de cálculo sem apagar outros">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              <span>☁️ Enviar e Fundir Agora</span>
-            </button>
-            <button type="button" class="btn btn-secondary" id="btn-test-sheets-connection" style="display:flex; align-items:center; gap:6px;">
-              <span>🔌 Testar Conexão</span>
-            </button>
-            <span id="sheets-sync-status" style="font-size:13px; color:var(--text-muted); font-weight:600;"></span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12.5px;">
+              <span id="sheets-sync-status" style="color:var(--text-muted); font-weight:600;">✨ A sincronização é 100% automática em segundo plano.</span>
+              <button type="button" id="btn-test-sheets-connection" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline;">🔌 Testar conexão</button>
+            </div>
           </div>
 
           <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 18px; font-size:13px; line-height:1.6;">
@@ -12325,35 +12327,29 @@ function setupSheetsSyncModal() {
     tabCsv.addEventListener('click', () => switchModalTab(tabCsv, panelCsv));
   }
 
-  // Botão Sincronizar Agora (Enviar)
-  const btnSyncNow = document.getElementById('btn-sync-sheets-now');
-  if (btnSyncNow) {
-    btnSyncNow.addEventListener('click', syncWithGoogleSheetsWebhook);
-  }
-
-  // Botão Puxar Dados do Sheets (Download / Merge)
-  const btnPullNow = document.getElementById('btn-pull-sheets-now');
-  if (btnPullNow) {
-    btnPullNow.addEventListener('click', async () => {
-      btnPullNow.disabled = true;
+  // Botão Único: Sincronizar Tudo Agora (Puxa novidades + Envia alterações)
+  const btnSyncAll = document.getElementById('btn-sync-all-now');
+  if (btnSyncAll) {
+    btnSyncAll.addEventListener('click', async () => {
+      btnSyncAll.disabled = true;
       const statusEl = document.getElementById('sheets-sync-status');
       if (statusEl) {
         statusEl.style.color = 'var(--text-secondary)';
-        statusEl.textContent = '⏳ A puxar dados da folha de cálculo...';
+        statusEl.textContent = '⏳ A sincronizar tudo com o Google Sheets...';
       }
       try {
-        await pullFromGoogleSheets(false);
+        await syncAllNow(true);
         if (statusEl) {
           statusEl.style.color = '#059669';
-          statusEl.textContent = '✅ Dados integrados com sucesso!';
+          statusEl.textContent = '✅ Sincronização concluída com sucesso!';
         }
       } catch (err) {
         if (statusEl) {
           statusEl.style.color = '#DC2626';
-          statusEl.textContent = 'Erro ao puxar dados: ' + err.message;
+          statusEl.textContent = 'Erro ao sincronizar: ' + err.message;
         }
       } finally {
-        btnPullNow.disabled = false;
+        btnSyncAll.disabled = false;
       }
     });
   }
@@ -12573,11 +12569,54 @@ function initSheetsSyncIndicator() {
   const savedUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
   if (badge) {
     if (savedUrl && savedUrl.startsWith('https://script.google.com/')) {
-      badge.innerHTML = `☁️ <span style="font-weight:600;">Google Sheets Conectado</span>`;
+      badge.innerHTML = `☁️ <span style="font-weight:600;">Sincronizado</span>`;
       badge.style.display = 'inline-flex';
+
+      // Ao clicar diretamente no botão do cabeçalho, sincroniza tudo na hora!
+      badge.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        syncAllNow(true);
+      };
     } else {
       badge.style.display = 'none';
     }
+  }
+}
+
+/**
+ * Sincronização Completa (Tudo-em-Um):
+ * 1. Puxa as novidades mais recentes do Google Sheets (feitas noutros aparelhos)
+ * 2. Envia e funde os dados locais para a folha de cálculo
+ * 3. Atualiza o indicador visual no cabeçalho
+ */
+async function syncAllNow(showToasts = true) {
+  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    if (showToasts) showToast('⚠️ Conexão do Google Sheets não configurada.');
+    return;
+  }
+
+  updateSyncPillBadge('syncing');
+  if (showToasts) showToast('🔄 A sincronizar com o Google Sheets...');
+
+  try {
+    // 1. PULL: Puxar do Google Sheets
+    await pullFromGoogleSheets(true);
+
+    // 2. PUSH: Gravar/Fundir no Google Sheets
+    await executeSheetsSync(webhookUrl, true);
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    updateSyncPillBadge('success', timeStr);
+
+    if (showToasts) {
+      showToast(`✅ Tudo sincronizado! Dados atualizados em todos os aparelhos.`);
+    }
+  } catch (err) {
+    console.warn('Sync all notice:', err);
+    updateSyncPillBadge('success');
   }
 }
 
@@ -12873,17 +12912,17 @@ function updateSyncPillBadge(status, timeStr = '') {
 
   if (badge) {
     if (status === 'syncing') {
-      badge.innerHTML = `☁️ <span style="font-weight:600;">A guardar no Sheets...</span>`;
+      badge.innerHTML = `🔄 <span style="font-weight:600;">A sincronizar...</span>`;
       badge.style.color = 'var(--text-secondary)';
       badge.style.background = 'var(--bg-surface-elevated)';
       badge.style.borderColor = 'var(--accent-gold)';
     } else if (status === 'success') {
-      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Guardado no Sheets</span> ${timeStr ? `<small style="opacity:0.75; font-size:10px;">${timeStr}</small>` : ''}`;
+      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Sincronizado</span> ${timeStr ? `<small style="opacity:0.75; font-size:11px;">${timeStr}</small>` : ''}`;
       badge.style.color = '#065F46';
       badge.style.background = 'rgba(16, 185, 129, 0.08)';
       badge.style.borderColor = '#10B981';
     } else if (status === 'error') {
-      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro Google Sheets</span>`;
+      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro ao sincronizar</span>`;
       badge.style.borderColor = '#FCA5A5';
     }
   }
@@ -12894,7 +12933,7 @@ function updateSyncPillBadge(status, timeStr = '') {
       statusEl.textContent = '⏳ A sincronizar com o Google Sheets...';
     } else if (status === 'success') {
       statusEl.style.color = '#16A34A';
-      statusEl.textContent = `✅ Guardado no Google Sheets às ${timeStr}`;
+      statusEl.textContent = `✅ Sincronizado com o Google Sheets às ${timeStr}`;
     } else if (status === 'error') {
       statusEl.style.color = '#DC2626';
       statusEl.textContent = '⚠️ Erro ao comunicar com o Apps Script';

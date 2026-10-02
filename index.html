@@ -98,10 +98,15 @@
             <span>📱 Guia iPad</span>
           </button>
 
-          <!-- Indicador de Sincronização Automática com Google Sheets -->
-          <span id="sheets-autosync-badge" class="sheets-sync-pill" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" style="cursor:pointer;" title="Sincronização automática com Google Sheets">
-            ☁️ <span style="font-weight:600;">Google Sheets Conectado</span>
-          </span>
+          <!-- Indicador e Botão de Sincronização Automática com Google Sheets -->
+          <div style="display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" id="sheets-autosync-badge" class="sheets-sync-pill" style="cursor:pointer;" title="Sincronização automática ativa. Clique para sincronizar agora!">
+              ☁️ <span style="font-weight:600;">Sincronizado</span>
+            </button>
+            <button type="button" class="btn-icon-subtle" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" title="Definições do Google Sheets" style="padding:6px; color:var(--text-muted); border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
 
           <!-- Modo Dividido: Bíblia + Bloco de Notas Lado a Lado -->
           <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
@@ -1259,19 +1264,16 @@
             </span>
           </div>
 
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
-            <button type="button" class="btn btn-primary" id="btn-pull-sheets-now" style="display:flex; align-items:center; gap:8px;" title="Carrega todos os dados da folha de cálculo para este dispositivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>📥 Puxar Dados da Folha de Cálculo</span>
+          <!-- BOTÃO ÚNICO DE SINCRONIZAÇÃO -->
+          <div style="margin-bottom: 20px;">
+            <button type="button" class="btn btn-primary" id="btn-sync-all-now" style="width:100%; justify-content:center; padding:13px 20px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:10px; border-radius:8px; cursor:pointer;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>🔄 Sincronizar Tudo Agora</span>
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-sync-sheets-now" style="display:flex; align-items:center; gap:8px;" title="Envia e funde os dados deste aparelho com a folha de cálculo sem apagar outros">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              <span>☁️ Enviar e Fundir Agora</span>
-            </button>
-            <button type="button" class="btn btn-secondary" id="btn-test-sheets-connection" style="display:flex; align-items:center; gap:6px;">
-              <span>🔌 Testar Conexão</span>
-            </button>
-            <span id="sheets-sync-status" style="font-size:13px; color:var(--text-muted); font-weight:600;"></span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12.5px;">
+              <span id="sheets-sync-status" style="color:var(--text-muted); font-weight:600;">✨ A sincronização é 100% automática em segundo plano.</span>
+              <button type="button" id="btn-test-sheets-connection" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline;">🔌 Testar conexão</button>
+            </div>
           </div>
 
           <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 18px; font-size:13px; line-height:1.6;">
