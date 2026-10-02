@@ -1,18 +1,14 @@
 /**
  * =============================================================================
- * ASCD • BÍBLIA & NOTAS — SINCRONIZADOR GOOGLE SHEETS (APPS SCRIPT)
+ * ASCD • BÍBLIA & NOTAS — SINCRONIZADOR GOOGLE SHEETS COM MERGE (DUPLA VIA)
  * =============================================================================
- * Este código conecta a sua aplicação ASCD diretamente à sua planilha Google Sheets.
- * 
- * Atualiza automaticamente as 4 abas correspondentes às 4 secções do menu:
- * 1. "Leitor Bíblico"          (Estudos e anotações vinculadas aos capítulos bíblicos)
- * 2. "Journaling (Calendário)"  (Orações diárias, lista de afazeres e diário espiritual)
- * 3. "Caderno de Estudos"       (Estudos temáticos, exegéticos e teologia)
- * 4. "Anotações de Sermões"     (Pregações de cultos, pregador, passagem bíblica)
+ * Permite sincronização bidirecional entre múltiplos dispositivos (PC, iPads, telemóvel):
+ * 1. PULL (GET): Carrega os dados da folha de cálculo para qualquer dispositivo ao abrir o App.
+ * 2. PUSH (POST): Funde os novos dados com os existentes (NUNCA apaga dados de outros dispositivos!).
+ * 3. Menu na folha de cálculo para organizar e embelezar as 4 abas automaticamente.
  * =============================================================================
  */
 
-// Cria o menu personalizado "📖 ASCD • Bíblia & Notas" no Google Sheets
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('📖 ASCD • Bíblia & Notas')
@@ -24,8 +20,42 @@ function onOpen() {
 }
 
 /**
+ * Ponto de entrada GET (Web App)
+ * Chamado pela app ao abrir para PUXAR (PULL) os dados existentes da base de dados.
+ */
+function doGet(e) {
+  try {
+    const action = e && e.parameter && e.parameter.action;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    if (action === 'ping') {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'online',
+        appName: 'ASCD • Bíblia & Notas',
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // PULL: carrega todos os dados consolidados das abas e do backup
+    const dadosConsolidados = lerDadosParaApp(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      appName: 'ASCD • Bíblia & Notas',
+      data: dadosConsolidados,
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Erro no doGet: ' + err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
  * Ponto de entrada POST (Web App)
- * Chamado automaticamente pelo App ASCD sempre que você escreve ou salva algo
+ * Chamado pelo App para GUARDAR / FUNDIR dados (MERGE sem apagar dados de outros dispositivos).
  */
 function doPost(e) {
   try {
@@ -40,25 +70,26 @@ function doPost(e) {
       payload = {};
     }
 
-    const records = payload.records || [];
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const records = payload.records || [];
+    const rawItems = payload.rawItems || null;
+    const deletedIds = payload.deletedIds || [];
 
-    // 1. Atualiza a aba: Leitor Bíblico
-    atualizarAbaLeitorBiblico(ss, records);
+    // 1. Guarda ou funde os itens detalhados na aba de backup
+    if (rawItems) {
+      salvarOuFundirBackup(ss, rawItems, deletedIds);
+    }
 
-    // 2. Atualiza a aba: Journaling (Calendário)
-    atualizarAbaJournaling(ss, records);
-
-    // 3. Atualiza a aba: Caderno de Estudos
-    atualizarAbaCadernoEstudos(ss, records);
-
-    // 4. Atualiza a aba: Anotações de Sermões
-    atualizarAbaSermoes(ss, records);
+    // 2. Atualiza as 4 abas visuais FUNDINDO com os dados existentes (NÃO apaga de outros dispositivos!)
+    atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds);
+    atualizarAbaJournalingComMerge(ss, records, deletedIds);
+    atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds);
+    atualizarAbaSermoesComMerge(ss, records, deletedIds);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       count: records.length,
-      message: 'As 4 abas do Google Sheets foram sincronizadas com sucesso!',
+      message: 'Dados fundidos e sincronizados com sucesso!',
       timestamp: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
 
@@ -71,152 +102,416 @@ function doPost(e) {
 }
 
 /**
- * Ponto de entrada GET (Web App)
- * Permite verificar no navegador se o Apps Script está online
+ * Guarda e Funde os itens em formato JSON estruturado na aba oculta _ASCD_BACKUP_
  */
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: 'online',
-    appName: 'ASCD • Bíblia & Notas',
-    message: 'O sincronizador do Google Apps Script está ativo e pronto para receber dados das 4 abas!',
-    timestamp: new Date().toISOString()
-  })).setMimeType(ContentService.MimeType.JSON);
+function salvarOuFundirBackup(ss, rawItems, deletedIds) {
+  const sheet = localizarOuCriarAba(ss, ['_ASCD_BACKUP_'], '_ASCD_BACKUP_');
+  try { sheet.hideSheet(); } catch (_) {}
+
+  const lastRow = sheet.getLastRow();
+  const map = new Map(); // id -> { id, type, updatedAt, json }
+
+  if (lastRow > 1) {
+    const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    values.forEach(row => {
+      const id = String(row[0] || '').trim();
+      if (id) {
+        map.set(id, {
+          id: id,
+          type: String(row[1] || '').trim(),
+          updatedAt: String(row[2] || '').trim(),
+          json: String(row[3] || '').trim()
+        });
+      }
+    });
+  }
+
+  // Deletar IDs solicitados
+  if (deletedIds && deletedIds.length > 0) {
+    deletedIds.forEach(id => map.delete(String(id).trim()));
+  }
+
+  // Fundir Notas
+  if (rawItems.notes && Array.isArray(rawItems.notes)) {
+    rawItems.notes.forEach(n => {
+      if (n && n.id) {
+        const id = String(n.id).trim();
+        map.set(id, {
+          id: id,
+          type: 'note',
+          updatedAt: n.date || new Date().toISOString(),
+          json: JSON.stringify(n)
+        });
+      }
+    });
+  }
+
+  // Fundir Sermões
+  if (rawItems.sermons && Array.isArray(rawItems.sermons)) {
+    rawItems.sermons.forEach(s => {
+      if (s && s.id) {
+        const id = String(s.id).trim();
+        map.set(id, {
+          id: id,
+          type: 'sermon',
+          updatedAt: s.date || new Date().toISOString(),
+          json: JSON.stringify(s)
+        });
+      }
+    });
+  }
+
+  // Fundir Diário (Journal)
+  if (rawItems.journalEntries && typeof rawItems.journalEntries === 'object') {
+    Object.keys(rawItems.journalEntries).forEach(dateStr => {
+      const j = rawItems.journalEntries[dateStr];
+      if (j) {
+        const id = 'JOURNAL-' + dateStr;
+        map.set(id, {
+          id: id,
+          type: 'journal',
+          updatedAt: j.updatedAt || dateStr,
+          json: JSON.stringify(j)
+        });
+      }
+    });
+  }
+
+  // Fundir Notas Bíblicas
+  if (rawItems.biblePageNotes && typeof rawItems.biblePageNotes === 'object') {
+    Object.keys(rawItems.biblePageNotes).forEach(key => {
+      const b = rawItems.biblePageNotes[key];
+      if (b) {
+        const id = 'BIBLIA-' + key;
+        map.set(id, {
+          id: id,
+          type: 'bible',
+          updatedAt: b.updatedAt || new Date().toISOString(),
+          json: JSON.stringify(b)
+        });
+      }
+    });
+  }
+
+  // Gravar tudo no _ASCD_BACKUP_
+  sheet.clearContents();
+  const rows = [['ID', 'TIPO', 'UPDATED_AT', 'JSON']];
+  map.forEach(item => {
+    rows.push([item.id, item.type, item.updatedAt, item.json]);
+  });
+  sheet.getRange(1, 1, rows.length, 4).setValues(rows);
 }
 
 /**
- * 1. Aba: "Leitor Bíblico"
+ * Lê os dados consolidados para enviar à aplicação quando ela abre
  */
-function atualizarAbaLeitorBiblico(ss, records) {
-  const itens = records.filter(r => r.tipo === 'Anotação Página Bíblica');
+function lerDadosParaApp(ss) {
+  const result = {
+    notes: [],
+    sermons: [],
+    journalEntries: {},
+    biblePageNotes: {}
+  };
+
+  const backupSheet = ss.getSheetByName('_ASCD_BACKUP_');
+  if (backupSheet && backupSheet.getLastRow() > 1) {
+    const values = backupSheet.getRange(2, 1, backupSheet.getLastRow() - 1, 4).getValues();
+    values.forEach(row => {
+      const type = String(row[1] || '').trim();
+      const jsonStr = String(row[3] || '').trim();
+      if (!jsonStr) return;
+      try {
+        const obj = JSON.parse(jsonStr);
+        if (type === 'note') {
+          result.notes.push(obj);
+        } else if (type === 'sermon') {
+          result.sermons.push(obj);
+        } else if (type === 'journal') {
+          if (obj.date) result.journalEntries[obj.date] = obj;
+        } else if (type === 'bible') {
+          const key = String(row[0]).replace('BIBLIA-', '');
+          result.biblePageNotes[key] = obj;
+        }
+      } catch (_) {}
+    });
+    return result;
+  }
+
+  // Fallback: se _ASCD_BACKUP_ ainda não existe, lê das 4 abas visuais
+  reconstruirAPartirDasAbasVisuais(ss, result);
+  return result;
+}
+
+/**
+ * Reconstrói objetos a partir das 4 abas visuais se _ASCD_BACKUP_ ainda estiver vazio
+ */
+function reconstruirAPartirDasAbasVisuais(ss, result) {
+  // 1. Caderno de Estudos
+  const sheetNotas = ss.getSheetByName('Caderno de Estudos');
+  if (sheetNotas && sheetNotas.getLastRow() > 1) {
+    const vals = sheetNotas.getRange(2, 1, sheetNotas.getLastRow() - 1, 7).getValues();
+    vals.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) {
+        result.notes.push({
+          id: id,
+          date: String(r[1] || ''),
+          title: String(r[2] || ''),
+          category: String(r[3] || 'Estudo Bíblico'),
+          content: String(r[4] || ''),
+          mode: 'hybrid'
+        });
+      }
+    });
+  }
+
+  // 2. Sermões
+  const sheetSermoes = ss.getSheetByName('Anotações de Sermões');
+  if (sheetSermoes && sheetSermoes.getLastRow() > 1) {
+    const vals = sheetSermoes.getRange(2, 1, sheetSermoes.getLastRow() - 1, 8).getValues();
+    vals.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) {
+        result.sermons.push({
+          id: id,
+          date: String(r[1] || ''),
+          title: String(r[2] || ''),
+          passage: String(r[3] || ''),
+          preacher: String(r[4] || ''),
+          content: String(r[5] || ''),
+          mode: 'hybrid'
+        });
+      }
+    });
+  }
+
+  // 3. Diário
+  const sheetDiario = ss.getSheetByName('Journaling (Calendário)') || ss.getSheetByName('Diário');
+  if (sheetDiario && sheetDiario.getLastRow() > 1) {
+    const vals = sheetDiario.getRange(2, 1, sheetDiario.getLastRow() - 1, 8).getValues();
+    vals.forEach(r => {
+      const dateStr = String(r[0] || '').trim();
+      if (dateStr) {
+        result.journalEntries[dateStr] = {
+          date: dateStr,
+          title: String(r[1] || ''),
+          verse: String(r[2] || ''),
+          prayer: String(r[3] || ''),
+          tasks: [],
+          content: String(r[5] || ''),
+          mode: 'hybrid'
+        };
+      }
+    });
+  }
+
+  // 4. Leitor Bíblico
+  const sheetBiblia = ss.getSheetByName('Leitor Bíblico');
+  if (sheetBiblia && sheetBiblia.getLastRow() > 1) {
+    const vals = sheetBiblia.getRange(2, 1, sheetBiblia.getLastRow() - 1, 7).getValues();
+    vals.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) {
+        const key = id.replace('BIBLIA-', '');
+        result.biblePageNotes[key] = {
+          title: String(r[3] || ''),
+          content: String(r[4] || '')
+        };
+      }
+    });
+  }
+}
+
+/**
+ * 1. Aba: "Leitor Bíblico" com MERGE
+ */
+function atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Leitor Bíblico', 'Leitor Biblico', 'Bíblia', 'Biblia'], 'Leitor Bíblico');
-  sheet.clearContents();
+  const headers = ['ID', 'Data', 'Passagem Bíblica', 'Título do Estudo', 'Conteúdo das Anotações', 'Apple Pencil', 'Última Atualização'];
+  const map = new Map();
 
-  const headers = [
-    'ID', 'Data', 'Passagem Bíblica', 'Título do Estudo',
-    'Conteúdo das Anotações', 'Apple Pencil', 'Última Atualização'
-  ];
-  const rows = [headers];
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    existing.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) map.set(id, r);
+    });
+  }
 
+  if (deletedIds && deletedIds.length > 0) {
+    deletedIds.forEach(id => map.delete(String(id).trim()));
+  }
+
+  const itens = records.filter(r => r.tipo === 'Anotação Página Bíblica');
   itens.forEach(item => {
-    rows.push([
-      item.id || '',
-      item.data || '',
-      item.passagem || '',
-      item.titulo || '',
-      item.conteudo || '',
-      item.hasPencil || 'Não',
-      item.dataRegistro || ''
-    ]);
+    const id = String(item.id || '').trim();
+    if (id) {
+      map.set(id, [
+        id,
+        item.data || '',
+        item.passagem || '',
+        item.titulo || '',
+        item.conteudo || '',
+        item.hasPencil || 'Não',
+        item.dataRegistro || ''
+      ]);
+    }
   });
 
+  sheet.clearContents();
+  const rows = [headers];
+  map.forEach(r => rows.push(r));
   sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
-  aplicarEstiloAba(sheet, headers.length, '#3E2723'); // Marrom Nobre / Couro Bíblico
+  aplicarEstiloAba(sheet, headers.length, '#3E2723');
 }
 
 /**
- * 2. Aba: "Journaling (Calendário)"
+ * 2. Aba: "Journaling (Calendário)" com MERGE
  */
-function atualizarAbaJournaling(ss, records) {
+function atualizarAbaJournalingComMerge(ss, records, deletedIds) {
+  const sheet = localizarOuCriarAba(ss, ['Journaling (Calendário)', 'Journaling (Calendario)', 'Journaling', 'Diário', 'Diario'], 'Journaling (Calendário)');
+  const headers = ['Data', 'Título / Tema do Dia', 'Passagem Bíblica', 'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual', 'Apple Pencil', 'Última Atualização'];
+  const map = new Map();
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    existing.forEach(r => {
+      const date = String(r[0] || '').trim();
+      if (date) map.set(date, r);
+    });
+  }
+
+  if (deletedIds && deletedIds.length > 0) {
+    deletedIds.forEach(id => {
+      const cleanId = String(id).replace('JOURNAL-', '').trim();
+      map.delete(cleanId);
+    });
+  }
+
   const itens = records.filter(r => r.tipo === 'Journal Diário');
-  const sheet = localizarOuCriarAba(ss, ['Journaling (Calendário)', 'Journaling (Calendario)', 'Journaling', 'Journal Diário', 'Journal Diario', 'Journal'], 'Journaling (Calendário)');
-  sheet.clearContents();
-
-  const headers = [
-    'Data', 'Título / Tema do Dia', 'Passagem Bíblica',
-    'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual',
-    'Apple Pencil', 'Última Atualização'
-  ];
-  const rows = [headers];
-
   itens.forEach(j => {
-    rows.push([
-      j.data || '',
-      j.titulo || '',
-      j.passagem || '',
-      j.oracao || '',
-      j.tarefas || '',
-      j.conteudo || '',
-      j.hasPencil || 'Não',
-      j.dataRegistro || ''
-    ]);
+    const date = String(j.data || '').trim();
+    if (date) {
+      map.set(date, [
+        date,
+        j.titulo || '',
+        j.passagem || '',
+        j.oracao || '',
+        j.tarefas || '',
+        j.conteudo || '',
+        j.hasPencil || 'Não',
+        j.dataRegistro || ''
+      ]);
+    }
   });
 
+  sheet.clearContents();
+  const rows = [headers];
+  map.forEach(r => rows.push(r));
   sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
-  aplicarEstiloAba(sheet, headers.length, '#78350F'); // Âmbar Couro
+  aplicarEstiloAba(sheet, headers.length, '#78350F');
 }
 
 /**
- * 3. Aba: "Caderno de Estudos"
+ * 3. Aba: "Caderno de Estudos" com MERGE
  */
-function atualizarAbaCadernoEstudos(ss, records) {
-  const itens = records.filter(r => r.tipo === 'Estudo Bíblico');
+function atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Caderno de Estudos', 'Estudos Bíblicos', 'Estudos', 'Caderno de Estudo'], 'Caderno de Estudos');
-  sheet.clearContents();
+  const headers = ['ID', 'Data', 'Título do Estudo', 'Categoria', 'Conteúdo do Estudo', 'Apple Pencil', 'Última Atualização'];
+  const map = new Map();
 
-  const headers = [
-    'ID', 'Data', 'Título do Estudo', 'Categoria',
-    'Conteúdo do Estudo', 'Apple Pencil', 'Última Atualização'
-  ];
-  const rows = [headers];
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    existing.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) map.set(id, r);
+    });
+  }
 
+  if (deletedIds && deletedIds.length > 0) {
+    deletedIds.forEach(id => map.delete(String(id).trim()));
+  }
+
+  const itens = records.filter(r => r.tipo === 'Estudo Bíblico');
   itens.forEach(e => {
-    rows.push([
-      e.id || '',
-      e.data || '',
-      e.titulo || '',
-      e.categoria || 'Estudo Bíblico',
-      e.conteudo || '',
-      e.hasPencil || 'Não',
-      e.dataRegistro || ''
-    ]);
+    const id = String(e.id || '').trim();
+    if (id) {
+      map.set(id, [
+        id,
+        e.data || '',
+        e.titulo || '',
+        e.categoria || 'Estudo Bíblico',
+        e.conteudo || '',
+        e.hasPencil || 'Não',
+        e.dataRegistro || ''
+      ]);
+    }
   });
 
-  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
-  aplicarEstiloAba(sheet, headers.length, '#14532D'); // Verde Oliva / Floresta
-}
-
-/**
- * 4. Aba: "Anotações de Sermões"
- */
-function atualizarAbaSermoes(ss, records) {
-  const itens = records.filter(r => r.tipo === 'Sermão & Pregação');
-  const sheet = localizarOuCriarAba(ss, ['Anotações de Sermões', 'Anotacoes de Sermoes', 'Sermões & Pregações', 'Sermões', 'Sermoes'], 'Anotações de Sermões');
   sheet.clearContents();
-
-  const headers = [
-    'ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica',
-    'Pregador / Orador', 'Anotações da Pregação', 'Apple Pencil', 'Última Atualização'
-  ];
   const rows = [headers];
-
-  itens.forEach(s => {
-    rows.push([
-      s.id || '',
-      s.data || '',
-      s.titulo || '',
-      s.passagem || '',
-      s.pregador || '',
-      s.conteudo || '',
-      s.hasPencil || 'Não',
-      s.dataRegistro || ''
-    ]);
-  });
-
+  map.forEach(r => rows.push(r));
   sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
-  aplicarEstiloAba(sheet, headers.length, '#1E3A8A'); // Azul Clássico
+  aplicarEstiloAba(sheet, headers.length, '#14532D');
 }
 
 /**
- * Localiza de forma flexível ou cria uma das 4 abas
+ * 4. Aba: "Anotações de Sermões" com MERGE
+ */
+function atualizarAbaSermoesComMerge(ss, records, deletedIds) {
+  const sheet = localizarOuCriarAba(ss, ['Anotações de Sermões', 'Anotacoes de Sermoes', 'Sermões & Pregações', 'Sermões', 'Sermoes'], 'Anotações de Sermões');
+  const headers = ['ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica', 'Pregador / Orador', 'Anotações da Pregação', 'Apple Pencil', 'Última Atualização'];
+  const map = new Map();
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    existing.forEach(r => {
+      const id = String(r[0] || '').trim();
+      if (id) map.set(id, r);
+    });
+  }
+
+  if (deletedIds && deletedIds.length > 0) {
+    deletedIds.forEach(id => map.delete(String(id).trim()));
+  }
+
+  const itens = records.filter(r => r.tipo === 'Sermão & Pregação');
+  itens.forEach(s => {
+    const id = String(s.id || '').trim();
+    if (id) {
+      map.set(id, [
+        id,
+        s.data || '',
+        s.titulo || '',
+        s.passagem || '',
+        s.pregador || '',
+        s.conteudo || '',
+        s.hasPencil || 'Não',
+        s.dataRegistro || ''
+      ]);
+    }
+  });
+
+  sheet.clearContents();
+  const rows = [headers];
+  map.forEach(r => rows.push(r));
+  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);
+  aplicarEstiloAba(sheet, headers.length, '#1E3A8A');
+}
+
+/**
+ * Localiza de forma flexível ou cria uma das abas
  */
 function localizarOuCriarAba(ss, candidatos, nomePadrao) {
-  // 1. Procura por correspondência exata
   for (let i = 0; i < candidatos.length; i++) {
     const s = ss.getSheetByName(candidatos[i]);
     if (s) return s;
   }
 
-  // 2. Procura flexível (sem acentuação e ignorando maiúsculas)
   const sheets = ss.getSheets();
   const normalizar = function(t) {
     return (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -232,7 +527,6 @@ function localizarOuCriarAba(ss, candidatos, nomePadrao) {
     }
   }
 
-  // 3. Se não encontrar, insere nova aba com o nome padrão
   return ss.insertSheet(nomePadrao);
 }
 
@@ -242,7 +536,6 @@ function localizarOuCriarAba(ss, candidatos, nomePadrao) {
 function aplicarEstiloAba(sheet, numCols, corCabecalho) {
   sheet.setFrozenRows(1);
 
-  // Estiliza o cabeçalho (Linha 1)
   const headerRange = sheet.getRange(1, 1, 1, numCols);
   headerRange
     .setBackground(corCabecalho)
@@ -255,7 +548,6 @@ function aplicarEstiloAba(sheet, numCols, corCabecalho) {
 
   sheet.setRowHeight(1, 32);
 
-  // Formata linhas de dados se existirem
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
     const dataRange = sheet.getRange(2, 1, lastRow - 1, numCols);
@@ -274,7 +566,6 @@ function aplicarEstiloAba(sheet, numCols, corCabecalho) {
     }
   }
 
-  // Ajuste inteligente da largura de colunas
   for (let c = 1; c <= numCols; c++) {
     sheet.autoResizeColumn(c);
     const colWidth = sheet.getColumnWidth(c);
@@ -287,7 +578,7 @@ function aplicarEstiloAba(sheet, numCols, corCabecalho) {
 }
 
 function reorganizarTodasAbasASCD() {
-  SpreadsheetApp.getActiveSpreadsheet().toast('Atualização das 4 abas pronta.', 'ASCD • Bíblia & Notas');
+  SpreadsheetApp.getActiveSpreadsheet().toast('Atualização das 4 abas concluída.', 'ASCD • Bíblia & Notas');
 }
 
 function formatarTodasAbas() {
@@ -304,9 +595,9 @@ function formatarTodasAbas() {
 
 function exibirStatusConexao() {
   const msg =
-    'Conexão com o App ASCD:\n\n' +
-    '1. A sua planilha possui as 4 abas conectadas: Leitor Bíblico, Journaling, Caderno de Estudos e Anotações de Sermões.\n' +
-    '2. O app sincroniza automaticamente em segundo plano sempre que você escreve ou salva.\n' +
-    '3. Pode também forçar a sincronização a qualquer momento através do botão "Base Google Sheets" na app.';
+    'Conexão com o App ASCD (Dupla Via & Merge):\n\n' +
+    '1. Os dados de múltiplos iPads e computadores são fundidos automaticamente por ID (sem apagar nada!).\n' +
+    '2. Ao abrir o app em qualquer aparelho, ele puxa as novidades da folha de cálculo.\n' +
+    '3. Ao escrever ou salvar, os dados são enviados e fundidos em tempo real.';
   SpreadsheetApp.getUi().alert('ASCD • Conexão Google Sheets', msg, SpreadsheetApp.getUi().ButtonSet.OK);
 }
