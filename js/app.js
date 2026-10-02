@@ -59,10 +59,10 @@ const ASCD = {
   devotionalDrawerTab: 'recent',
 
   // Conexão Google Sheets
-  sheetsWebhookUrl: 'https://script.google.com/macros/s/AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I/exec'
+  sheetsWebhookUrl: 'https://script.google.com/macros/s/AKfycbyLb858PzQKjdk2AQDhXP4GQT58SkwxVSB-8nRYJlc4uXaPtFHq5Fe1Ezo4jW8MVqeUDA/exec'
 };
 
-const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I/exec';
+const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyLb858PzQKjdk2AQDhXP4GQT58SkwxVSB-8nRYJlc4uXaPtFHq5Fe1Ezo4jW8MVqeUDA/exec';
 let autoSyncTimeout = null;
 let isSyncingToSheets = false;
 
@@ -192,7 +192,7 @@ function loadStoredData() {
 
     // 7. Webhook do Google Sheets
     const savedWebhook = localStorage.getItem('ascd_sheets_webhook_url');
-    if (!savedWebhook) {
+    if (!savedWebhook || savedWebhook.includes('AKfycbws4pXpZuMXIrAN5vBXBwxX4MTbnxByFEpGcRgkt8WS2FYlYmpjsavhpsFELoIY7W3I')) {
       localStorage.setItem('ascd_sheets_webhook_url', DEFAULT_SHEETS_WEBHOOK_URL);
     }
 
