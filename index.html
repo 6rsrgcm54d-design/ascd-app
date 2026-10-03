@@ -5,7 +5,7 @@
   <title>ASCD - Bíblia & Notas</title>
   
   <!-- Otimizações Nativas para iPadOS, Safari e Apple Pencil -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ASCD Bíblia">
@@ -112,6 +112,12 @@
           <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
             <span>Modo Dividido (Teclado & Apple Pencil)</span>
+          </button>
+
+          <!-- Teclado Externo / Físico (Sem teclado virtual do iPad) -->
+          <button class="btn-topbar-action" id="btn-toggle-hardware-kb" title="Alternar Modo Teclado Externo / Físico (Desativa o teclado virtual do iPad e elimina manchas no ecrã)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+            <span id="btn-toggle-hardware-kb-label">Teclado Físico</span>
           </button>
         </div>
       </header>
@@ -1515,7 +1521,40 @@
         <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
       </div>
     </div>
+  <!-- MODAL: PRÉ-VISUALIZAÇÃO & IMPRESSÃO PDF NATIVA (Compatível com iPadOS e Safari) -->
+  <div class="modal-overlay" id="ascd-print-preview-modal">
+    <div class="modal-dialog modal-dialog-large" style="max-width: 900px; height: 92vh; display:flex; flex-direction:column;">
+      <div class="modal-header" style="flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🖨️</span>
+          <div>
+            <h3 style="margin:0;" id="print-modal-title">Pré-visualização do Documento PDF</h3>
+            <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir no iPad</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-do-print" title="Abrir impressão nativa do iPad / Guardar em Ficheiros como PDF">
+            🖨️ Imprimir / Guardar PDF
+          </button>
+          <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" id="print-modal-body" style="flex:1; overflow-y:auto; padding:20px; background:#E5E7EB;">
+        <!-- Conteúdo A4 renderizado aqui -->
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; flex-shrink:0;">
+        <span style="font-size:12px; color:var(--text-muted);">💡 No iPad: Toque em <strong>"Imprimir / Guardar PDF"</strong> e depois faça o gesto de pinça no ecrã para abrir e salvar em PDF direto nos Ficheiros.</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
+      </div>
+    </div>
   </div>
+
+  <!-- Container de Impressão Nativa Direta no iPad -->
+  <div id="ascd-print-container" style="display:none;"></div>
 
   <!-- Botão Flutuante Global de Sair do Ecrã Inteiro (Sempre visível em qualquer modo de tela cheia) -->
   <button type="button" class="btn-exit-fullscreen-floating" id="global-exit-fullscreen-btn" title="Sair do Ecrã Inteiro (Pressione ESC)">

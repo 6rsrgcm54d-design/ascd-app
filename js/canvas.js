@@ -76,11 +76,7 @@ class AscdPencilEngine {
     if (tempCanvas) {
       const prevW = tempCanvas.width / (this.dpr || 1);
       const prevH = tempCanvas.height / (this.dpr || 1);
-      const scale = Math.min(width / (prevW || 1), height / (prevH || 1));
-      const drawW = prevW * scale;
-      const drawH = prevH * scale;
-      const drawX = Math.max(0, (width - drawW) / 2);
-      this.ctx.drawImage(tempCanvas, drawX, 0, drawW, drawH);
+      this.ctx.drawImage(tempCanvas, 0, 0, prevW, prevH);
     }
     this.renderPaper();
   }
@@ -93,9 +89,13 @@ class AscdPencilEngine {
     this.canvas.addEventListener('pointercancel', (e) => this.handlePointerUp(e), { passive: false });
     this.canvas.addEventListener('pointerout', (e) => this.handlePointerUp(e), { passive: false });
 
-    // Prevenir comportamentos padrão no iOS (seleção de texto, rolagem no canvas)
+    // Prevenir comportamentos indesejados no iOS (seleção de texto acidental)
     const preventTouch = (e) => {
-      if (this.onlyPenMode || this.tool !== 'scroll') {
+      // Se a Rejeição de Palma estiver ativa e for toque de dedo, permite rolagem suave do caderno
+      if (this.onlyPenMode && e.touches && e.touches.length > 0) {
+        return;
+      }
+      if (this.tool !== 'scroll') {
         e.preventDefault();
       }
     };
@@ -138,17 +138,11 @@ class AscdPencilEngine {
       return;
     }
 
-    // Se estiver saindo do ecrã inteiro e houver desenho prévio, adaptar a altura para manter a proporção nobre da folha
+    // Se estiver saindo do ecrã inteiro e houver desenho, preservar a altura da folha para não cortar as linhas escritas
     const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
-    if (!isFullscreen && this.hasDrawn && currentLogicalW > 0 && currentLogicalH > 0) {
-      const aspect = currentLogicalW / currentLogicalH;
-      if (aspect > 0) {
-        const targetH = Math.round(newWidth / aspect);
-        if (targetH >= 340 && Math.abs(targetH - newHeight) > 10) {
-          this.canvas.style.height = `${targetH}px`;
-          newHeight = targetH;
-        }
-      }
+    if (!isFullscreen && this.hasDrawn && currentLogicalH > newHeight) {
+      this.canvas.style.height = `${currentLogicalH}px`;
+      newHeight = currentLogicalH;
     } else if (isFullscreen) {
       this.canvas.style.height = '';
     }
@@ -167,14 +161,8 @@ class AscdPencilEngine {
     if (this.hasDrawn) {
       const img = new Image();
       img.onload = () => {
-        const imgW = currentLogicalW || 1;
-        const imgH = currentLogicalH || 1;
-        const scale = Math.min(newWidth / imgW, newHeight / imgH);
-        const drawW = imgW * scale;
-        const drawH = imgH * scale;
-        const drawX = Math.max(0, (newWidth - drawW) / 2);
-        const drawY = 0;
-        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        // Escala 1:1 absoluta ancorada em (0, 0) para que o texto NUNCA saia das linhas do papel pautado
+        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
         this.renderPaper();
       };
       img.src = prevData;
@@ -546,24 +534,18 @@ class AscdPencilEngine {
 
   restoreState(dataUrl) {
     if (!dataUrl) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width || (this.canvas.width / this.dpr);
-    const height = rect.height || (this.canvas.height / this.dpr);
+    const width = this.canvas.width / (this.dpr || 1);
+    const height = this.canvas.height / (this.dpr || 1);
 
     const img = new Image();
     img.onload = () => {
       this.ctx.clearRect(0, 0, width, height);
       const imgW = img.naturalWidth || img.width;
       const imgH = img.naturalHeight || img.height;
-      if (imgW > 0 && imgH > 0) {
-        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
-        const drawW = (imgW / this.dpr) * scale;
-        const drawH = (imgH / this.dpr) * scale;
-        const drawX = Math.max(0, (width - drawW) / 2);
-        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
-      } else {
-        this.ctx.drawImage(img, 0, 0, width, height);
-      }
+      const logicalImgW = Math.round(imgW / (this.dpr || 1));
+      const logicalImgH = Math.round(imgH / (this.dpr || 1));
+      // Desenha sempre 1:1 ancorado em (0, 0)
+      this.ctx.drawImage(img, 0, 0, logicalImgW, logicalImgH);
       this.updateUndoRedoUI();
       this.notifyChange();
     };
@@ -616,37 +598,27 @@ class AscdPencilEngine {
     img.onload = () => {
       const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
       const rect = this.canvas.getBoundingClientRect();
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+      const logicalImgW = Math.round(imgW / (this.dpr || 1));
+      const logicalImgH = Math.round(imgH / (this.dpr || 1));
+
       let width = rect.width > 50 ? rect.width : (this.canvas.width / (this.dpr || 1));
       let height = rect.height > 50 ? rect.height : (this.canvas.height / (this.dpr || 1));
 
-      const imgW = img.naturalWidth || img.width;
-      const imgH = img.naturalHeight || img.height;
-
-      // Se não estiver em tela cheia, adaptar a altura para a proporção fiel da caligrafia guardada
-      if (!isFullscreen && imgW > 0 && imgH > 0) {
-        const aspect = imgW / imgH;
-        const targetH = Math.round(width / aspect);
-        if (targetH >= 340 && Math.abs(targetH - height) > 10) {
-          this.canvas.style.height = `${targetH}px`;
-          height = targetH;
-          this.canvas.height = height * this.dpr;
-          this.ctx.scale(this.dpr, this.dpr);
-          this.ctx.lineCap = 'round';
-          this.ctx.lineJoin = 'round';
-        }
+      // Se a nota salva tiver altura maior, expandir a altura para exibir todas as linhas escritas
+      if (!isFullscreen && logicalImgH > height) {
+        this.canvas.style.height = `${logicalImgH}px`;
+        height = logicalImgH;
+        this.canvas.height = height * this.dpr;
+        this.ctx.scale(this.dpr, this.dpr);
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
       }
 
       this.ctx.clearRect(0, 0, width, height);
-
-      if (imgW > 0 && imgH > 0) {
-        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
-        const drawW = (imgW / this.dpr) * scale;
-        const drawH = (imgH / this.dpr) * scale;
-        const drawX = Math.max(0, (width - drawW) / 2);
-        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
-      } else {
-        this.ctx.drawImage(img, 0, 0, width, height);
-      }
+      // Desenha sempre 1:1 a partir de (0,0) para manter o texto 100% sobre as linhas do papel
+      this.ctx.drawImage(img, 0, 0, logicalImgW, logicalImgH);
 
       this.hasDrawn = true;
       this.renderPaper();

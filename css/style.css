@@ -3328,5 +3328,148 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   }
 }
 
+/* ==========================================================================
+   OTIMIZAÇÕES IPAD: PREVENÇÃO DE MANCHA DE TECLADO & ROLAGEM DE CADERNO
+   ========================================================================== */
+html, body {
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+
+.app-layout {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Permitir rolagem suave horizontal/vertical da folha no modo normal */
+.note-canvas-container,
+.journal-canvas-container,
+.split-canvas-container {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Suporte para Teclado Físico / Externo */
+.btn-topbar-action.active {
+  background: var(--accent-gold);
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold);
+}
+
+/* ==========================================================================
+   PRÉ-VISUALIZAÇÃO E IMPRESSÃO NATIVA PDF (Compatível com iPadOS & Safari)
+   ========================================================================== */
+#print-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+#print-modal-body .document-page {
+  background: #FFFFFF;
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: #1F2937;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  line-height: 1.65;
+}
+
+#print-modal-body .document-page h2.title {
+  font-size: 22px;
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #111827;
+  border-bottom: 2px solid #D97706;
+  padding-bottom: 6px;
+}
+
+#print-modal-body .document-page .content {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#print-modal-body .document-page img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar toda a interface de utilizador, barras, botões e modais */
+  .app-layout,
+  .modal-overlay:not(#ascd-print-preview-modal),
+  #ascd-print-preview-modal .modal-header,
+  #ascd-print-preview-modal .modal-footer,
+  .btn-exit-fullscreen-floating,
+  .toast-container {
+    display: none !important;
+  }
+
+  /* Exibir apenas a folha do documento sem decorações de ecrã */
+  #ascd-print-preview-modal {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: 99999999 !important;
+  }
+
+  #ascd-print-preview-modal .modal-dialog {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    background: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #print-modal-body {
+    background: #FFFFFF !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  #print-modal-body .document-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-after: always;
+  }
+
+  #print-modal-body .document-page:last-child {
+    page-break-after: auto;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+}
+
 
 

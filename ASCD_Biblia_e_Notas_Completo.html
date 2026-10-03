@@ -5,7 +5,7 @@
   <title>ASCD - Bíblia & Notas</title>
   
   <!-- Otimizações Nativas para iPadOS, Safari e Apple Pencil -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ASCD Bíblia">
@@ -3353,6 +3353,149 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   }
 }
 
+/* ==========================================================================
+   OTIMIZAÇÕES IPAD: PREVENÇÃO DE MANCHA DE TECLADO & ROLAGEM DE CADERNO
+   ========================================================================== */
+html, body {
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+
+.app-layout {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Permitir rolagem suave horizontal/vertical da folha no modo normal */
+.note-canvas-container,
+.journal-canvas-container,
+.split-canvas-container {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Suporte para Teclado Físico / Externo */
+.btn-topbar-action.active {
+  background: var(--accent-gold);
+  color: #FFFFFF !important;
+  border-color: var(--accent-gold);
+}
+
+/* ==========================================================================
+   PRÉ-VISUALIZAÇÃO E IMPRESSÃO NATIVA PDF (Compatível com iPadOS & Safari)
+   ========================================================================== */
+#print-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+#print-modal-body .document-page {
+  background: #FFFFFF;
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: #1F2937;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  line-height: 1.65;
+}
+
+#print-modal-body .document-page h2.title {
+  font-size: 22px;
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #111827;
+  border-bottom: 2px solid #D97706;
+  padding-bottom: 6px;
+}
+
+#print-modal-body .document-page .content {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#print-modal-body .document-page img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar toda a interface de utilizador, barras, botões e modais */
+  .app-layout,
+  .modal-overlay:not(#ascd-print-preview-modal),
+  #ascd-print-preview-modal .modal-header,
+  #ascd-print-preview-modal .modal-footer,
+  .btn-exit-fullscreen-floating,
+  .toast-container {
+    display: none !important;
+  }
+
+  /* Exibir apenas a folha do documento sem decorações de ecrã */
+  #ascd-print-preview-modal {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    z-index: 99999999 !important;
+  }
+
+  #ascd-print-preview-modal .modal-dialog {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    background: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #print-modal-body {
+    background: #FFFFFF !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  #print-modal-body .document-page {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-after: always;
+  }
+
+  #print-modal-body .document-page:last-child {
+    page-break-after: auto;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+}
+
 
 
 
@@ -3446,6 +3589,12 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
           <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
             <span>Modo Dividido (Teclado & Apple Pencil)</span>
+          </button>
+
+          <!-- Teclado Externo / Físico (Sem teclado virtual do iPad) -->
+          <button class="btn-topbar-action" id="btn-toggle-hardware-kb" title="Alternar Modo Teclado Externo / Físico (Desativa o teclado virtual do iPad e elimina manchas no ecrã)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+            <span id="btn-toggle-hardware-kb-label">Teclado Físico</span>
           </button>
         </div>
       </header>
@@ -4849,7 +4998,40 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
         <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
       </div>
     </div>
+  <!-- MODAL: PRÉ-VISUALIZAÇÃO & IMPRESSÃO PDF NATIVA (Compatível com iPadOS e Safari) -->
+  <div class="modal-overlay" id="ascd-print-preview-modal">
+    <div class="modal-dialog modal-dialog-large" style="max-width: 900px; height: 92vh; display:flex; flex-direction:column;">
+      <div class="modal-header" style="flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:24px;">🖨️</span>
+          <div>
+            <h3 style="margin:0;" id="print-modal-title">Pré-visualização do Documento PDF</h3>
+            <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir no iPad</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-do-print" title="Abrir impressão nativa do iPad / Guardar em Ficheiros como PDF">
+            🖨️ Imprimir / Guardar PDF
+          </button>
+          <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" id="print-modal-body" style="flex:1; overflow-y:auto; padding:20px; background:#E5E7EB;">
+        <!-- Conteúdo A4 renderizado aqui -->
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; flex-shrink:0;">
+        <span style="font-size:12px; color:var(--text-muted);">💡 No iPad: Toque em <strong>"Imprimir / Guardar PDF"</strong> e depois faça o gesto de pinça no ecrã para abrir e salvar em PDF direto nos Ficheiros.</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
+      </div>
+    </div>
   </div>
+
+  <!-- Container de Impressão Nativa Direta no iPad -->
+  <div id="ascd-print-container" style="display:none;"></div>
 
   <!-- Botão Flutuante Global de Sair do Ecrã Inteiro (Sempre visível em qualquer modo de tela cheia) -->
   <button type="button" class="btn-exit-fullscreen-floating" id="global-exit-fullscreen-btn" title="Sair do Ecrã Inteiro (Pressione ESC)">
@@ -8104,11 +8286,7 @@ class AscdPencilEngine {
     if (tempCanvas) {
       const prevW = tempCanvas.width / (this.dpr || 1);
       const prevH = tempCanvas.height / (this.dpr || 1);
-      const scale = Math.min(width / (prevW || 1), height / (prevH || 1));
-      const drawW = prevW * scale;
-      const drawH = prevH * scale;
-      const drawX = Math.max(0, (width - drawW) / 2);
-      this.ctx.drawImage(tempCanvas, drawX, 0, drawW, drawH);
+      this.ctx.drawImage(tempCanvas, 0, 0, prevW, prevH);
     }
     this.renderPaper();
   }
@@ -8121,9 +8299,13 @@ class AscdPencilEngine {
     this.canvas.addEventListener('pointercancel', (e) => this.handlePointerUp(e), { passive: false });
     this.canvas.addEventListener('pointerout', (e) => this.handlePointerUp(e), { passive: false });
 
-    // Prevenir comportamentos padrão no iOS (seleção de texto, rolagem no canvas)
+    // Prevenir comportamentos indesejados no iOS (seleção de texto acidental)
     const preventTouch = (e) => {
-      if (this.onlyPenMode || this.tool !== 'scroll') {
+      // Se a Rejeição de Palma estiver ativa e for toque de dedo, permite rolagem suave do caderno
+      if (this.onlyPenMode && e.touches && e.touches.length > 0) {
+        return;
+      }
+      if (this.tool !== 'scroll') {
         e.preventDefault();
       }
     };
@@ -8166,17 +8348,11 @@ class AscdPencilEngine {
       return;
     }
 
-    // Se estiver saindo do ecrã inteiro e houver desenho prévio, adaptar a altura para manter a proporção nobre da folha
+    // Se estiver saindo do ecrã inteiro e houver desenho, preservar a altura da folha para não cortar as linhas escritas
     const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
-    if (!isFullscreen && this.hasDrawn && currentLogicalW > 0 && currentLogicalH > 0) {
-      const aspect = currentLogicalW / currentLogicalH;
-      if (aspect > 0) {
-        const targetH = Math.round(newWidth / aspect);
-        if (targetH >= 340 && Math.abs(targetH - newHeight) > 10) {
-          this.canvas.style.height = `${targetH}px`;
-          newHeight = targetH;
-        }
-      }
+    if (!isFullscreen && this.hasDrawn && currentLogicalH > newHeight) {
+      this.canvas.style.height = `${currentLogicalH}px`;
+      newHeight = currentLogicalH;
     } else if (isFullscreen) {
       this.canvas.style.height = '';
     }
@@ -8195,14 +8371,8 @@ class AscdPencilEngine {
     if (this.hasDrawn) {
       const img = new Image();
       img.onload = () => {
-        const imgW = currentLogicalW || 1;
-        const imgH = currentLogicalH || 1;
-        const scale = Math.min(newWidth / imgW, newHeight / imgH);
-        const drawW = imgW * scale;
-        const drawH = imgH * scale;
-        const drawX = Math.max(0, (newWidth - drawW) / 2);
-        const drawY = 0;
-        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        // Escala 1:1 absoluta ancorada em (0, 0) para que o texto NUNCA saia das linhas do papel pautado
+        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
         this.renderPaper();
       };
       img.src = prevData;
@@ -8574,24 +8744,18 @@ class AscdPencilEngine {
 
   restoreState(dataUrl) {
     if (!dataUrl) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width || (this.canvas.width / this.dpr);
-    const height = rect.height || (this.canvas.height / this.dpr);
+    const width = this.canvas.width / (this.dpr || 1);
+    const height = this.canvas.height / (this.dpr || 1);
 
     const img = new Image();
     img.onload = () => {
       this.ctx.clearRect(0, 0, width, height);
       const imgW = img.naturalWidth || img.width;
       const imgH = img.naturalHeight || img.height;
-      if (imgW > 0 && imgH > 0) {
-        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
-        const drawW = (imgW / this.dpr) * scale;
-        const drawH = (imgH / this.dpr) * scale;
-        const drawX = Math.max(0, (width - drawW) / 2);
-        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
-      } else {
-        this.ctx.drawImage(img, 0, 0, width, height);
-      }
+      const logicalImgW = Math.round(imgW / (this.dpr || 1));
+      const logicalImgH = Math.round(imgH / (this.dpr || 1));
+      // Desenha sempre 1:1 ancorado em (0, 0)
+      this.ctx.drawImage(img, 0, 0, logicalImgW, logicalImgH);
       this.updateUndoRedoUI();
       this.notifyChange();
     };
@@ -8644,37 +8808,27 @@ class AscdPencilEngine {
     img.onload = () => {
       const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
       const rect = this.canvas.getBoundingClientRect();
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+      const logicalImgW = Math.round(imgW / (this.dpr || 1));
+      const logicalImgH = Math.round(imgH / (this.dpr || 1));
+
       let width = rect.width > 50 ? rect.width : (this.canvas.width / (this.dpr || 1));
       let height = rect.height > 50 ? rect.height : (this.canvas.height / (this.dpr || 1));
 
-      const imgW = img.naturalWidth || img.width;
-      const imgH = img.naturalHeight || img.height;
-
-      // Se não estiver em tela cheia, adaptar a altura para a proporção fiel da caligrafia guardada
-      if (!isFullscreen && imgW > 0 && imgH > 0) {
-        const aspect = imgW / imgH;
-        const targetH = Math.round(width / aspect);
-        if (targetH >= 340 && Math.abs(targetH - height) > 10) {
-          this.canvas.style.height = `${targetH}px`;
-          height = targetH;
-          this.canvas.height = height * this.dpr;
-          this.ctx.scale(this.dpr, this.dpr);
-          this.ctx.lineCap = 'round';
-          this.ctx.lineJoin = 'round';
-        }
+      // Se a nota salva tiver altura maior, expandir a altura para exibir todas as linhas escritas
+      if (!isFullscreen && logicalImgH > height) {
+        this.canvas.style.height = `${logicalImgH}px`;
+        height = logicalImgH;
+        this.canvas.height = height * this.dpr;
+        this.ctx.scale(this.dpr, this.dpr);
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
       }
 
       this.ctx.clearRect(0, 0, width, height);
-
-      if (imgW > 0 && imgH > 0) {
-        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
-        const drawW = (imgW / this.dpr) * scale;
-        const drawH = (imgH / this.dpr) * scale;
-        const drawX = Math.max(0, (width - drawW) / 2);
-        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
-      } else {
-        this.ctx.drawImage(img, 0, 0, width, height);
-      }
+      // Desenha sempre 1:1 a partir de (0,0) para manter o texto 100% sobre as linhas do papel
+      this.ctx.drawImage(img, 0, 0, logicalImgW, logicalImgH);
 
       this.hasDrawn = true;
       this.renderPaper();
@@ -8771,6 +8925,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSplitScreen();
   setupSheetsSyncModal();
   initSheetsSyncIndicator();
+  setupHardwareKeyboardMode();
 
   // Ao abrir o app em qualquer aparelho, puxa automaticamente os dados da folha de cálculo
   setTimeout(() => {
@@ -8796,6 +8951,66 @@ function saveActiveWork() {
     }
   } catch (e) {
     console.warn('Erro ao salvar trabalho ativo:', e);
+  }
+}
+
+/**
+ * ==========================================================================
+ * SUPORTE A TECLADO EXTERNO / FÍSICO NO IPAD (Sem teclado virtual nem manchas)
+ * ==========================================================================
+ */
+function setupHardwareKeyboardMode() {
+  // Ativado por defeito ou com base na preferência guardada
+  const saved = localStorage.getItem('ascd_hardware_keyboard');
+  const isEnabled = saved === null ? true : (saved === 'true');
+  applyHardwareKeyboardMode(isEnabled);
+
+  const btnToggle = document.getElementById('btn-toggle-hardware-kb');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', () => {
+      const nextState = !ASCD.hardwareKeyboardMode;
+      applyHardwareKeyboardMode(nextState);
+      showToast(nextState
+        ? '⌨️ Teclado Físico ATIVADO: O teclado virtual do iPad não subirá e não ocupará espaço no ecrã.'
+        : '📱 Teclado Virtual ATIVADO: O teclado no ecrã do iPad voltará a aparecer.');
+    });
+  }
+
+  // Deteção automática: quando o utilizador prime uma tecla física no iPad
+  window.addEventListener('keydown', (e) => {
+    if (!ASCD.hardwareKeyboardMode && e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      applyHardwareKeyboardMode(true);
+    }
+  }, { passive: true });
+
+  // Garantir que nenhum foco ative o teclado virtual do iPad quando o modo físico estiver ativo
+  document.addEventListener('focusin', (e) => {
+    if (ASCD.hardwareKeyboardMode && (e.target.isContentEditable || e.target.classList.contains('rich-editor-box'))) {
+      e.target.setAttribute('inputmode', 'none');
+    }
+  });
+}
+
+function applyHardwareKeyboardMode(enabled) {
+  ASCD.hardwareKeyboardMode = !!enabled;
+  localStorage.setItem('ascd_hardware_keyboard', ASCD.hardwareKeyboardMode ? 'true' : 'false');
+
+  const editors = document.querySelectorAll('.rich-editor-box, [contenteditable="true"]');
+  editors.forEach(el => {
+    if (ASCD.hardwareKeyboardMode) {
+      el.setAttribute('inputmode', 'none');
+    } else {
+      el.removeAttribute('inputmode');
+    }
+  });
+
+  const btn = document.getElementById('btn-toggle-hardware-kb');
+  const label = document.getElementById('btn-toggle-hardware-kb-label');
+  if (btn) {
+    btn.classList.toggle('active', ASCD.hardwareKeyboardMode);
+  }
+  if (label) {
+    label.textContent = ASCD.hardwareKeyboardMode ? '⌨️ Físico Ativo' : '⌨️ Teclado Físico';
   }
 }
 
@@ -13358,163 +13573,33 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     `;
   }).join('');
 
-  const printWindow = window.open('', '_blank', 'width=900,height=900');
-  if (!printWindow) {
-    alert('Por favor, permita pop-ups para abrir a impressão em PDF.');
-    return;
-  }
+  // Preencher modal de visualização e acionar impressão nativa 100% compatível com iPadOS
+  const printModal = document.getElementById('ascd-print-preview-modal');
+  const printModalTitle = document.getElementById('print-modal-title');
+  const printModalBody = document.getElementById('print-modal-body');
+  const printContainer = document.getElementById('ascd-print-container');
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>${title} - Pré-visualização PDF</title>
-      <style>
-        @page {
-          size: A4 portrait;
-          margin: 16mm;
-        }
-        * { box-sizing: border-box; }
-        body {
-          font-family: 'Georgia', 'Times New Roman', serif;
-          font-size: 13px;
-          line-height: 1.6;
-          color: #1F2937;
-          background: #E5E7EB;
-          margin: 0;
-          padding: 0;
-        }
-        /* Barra de acções fixa no topo — não aparece na impressão */
-        #print-toolbar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 9999;
-          background: #1E3A5F;
-          color: #FFF;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 20px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          font-family: Arial, sans-serif;
-        }
-        #print-toolbar .pt-title {
-          flex: 1;
-          font-size: 15px;
-          font-weight: 600;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        #print-toolbar button {
-          padding: 8px 18px;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        #btn-do-print {
-          background: #D97706;
-          color: #FFF;
-        }
-        #btn-do-print:hover { background: #B45309; }
-        #btn-close-print {
-          background: rgba(255,255,255,0.15);
-          color: #FFF;
-          border: 1px solid rgba(255,255,255,0.3) !important;
-        }
-        #btn-close-print:hover { background: rgba(255,255,255,0.25); }
-        /* Área do documento */
-        #print-body {
-          margin-top: 64px;
-          padding: 30px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        /* Folha A4 em pré-visualização */
-        .document-page {
-          background: #FFF;
-          width: 210mm;
-          min-height: 297mm;
-          padding: 16mm;
-          margin-bottom: 24px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-          border-radius: 4px;
-          page-break-after: always;
-        }
-        .document-page:last-child {
-          page-break-after: auto;
-        }
-        h2.title {
-          font-size: 22px;
-          margin-top: 0;
-          margin-bottom: 8px;
-          color: #111827;
-          border-bottom: 2px solid #D97706;
-          padding-bottom: 6px;
-        }
-        blockquote {
-          background: #F9FAFB;
-          border-left: 4px solid #D97706;
-          padding: 8px 14px;
-          font-style: italic;
-          margin: 14px 0;
-        }
-        .content {
-          font-size: 14px;
-          line-height: 1.7;
-        }
-        /* Na impressão: ocultar toolbar, remover estilos de preview */
-        @media print {
-          #print-toolbar { display: none !important; }
-          #print-body {
-            margin-top: 0 !important;
-            padding: 0 !important;
-            background: none !important;
-          }
-          body { background: #FFF !important; }
-          .document-page {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            margin-bottom: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div id="print-toolbar">
-        <span class="pt-title">🖨️ ${title}</span>
-        <button id="btn-do-print">🖨️ Imprimir / Guardar PDF</button>
-        <button id="btn-close-print">✕ Fechar</button>
-      </div>
-      <div id="print-body">
-        ${itemsHtml}
-      </div>
-      <script>
-        document.getElementById('btn-do-print').addEventListener('click', function() {
+  if (printModal && printModalBody) {
+    if (printModalTitle) printModalTitle.textContent = `🖨️ ${title} - PDF`;
+    printModalBody.innerHTML = itemsHtml;
+    if (printContainer) printContainer.innerHTML = itemsHtml;
+
+    const btnDoPrint = document.getElementById('btn-modal-do-print');
+    if (btnDoPrint) {
+      btnDoPrint.onclick = () => {
+        try {
           window.print();
-        });
-        document.getElementById('btn-close-print').addEventListener('click', function() {
-          window.close();
-        });
-      <\/script>
-    </body>
-    </html>
-  `);
+        } catch (err) {
+          console.error('Erro na chamada nativa de impressão:', err);
+        }
+      };
+    }
 
-  printWindow.document.close();
-  showToast(`🖨️ Pré-visualização PDF aberta! Clique em "Imprimir / Guardar PDF" para guardar.`);
+    printModal.classList.add('open');
+    showToast('🖨️ Pré-visualização aberta! Toque em "Imprimir / Guardar PDF".');
+  } else {
+    window.print();
+  }
 }
 
 function triggerDownload(blob, filename) {

@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSplitScreen();
   setupSheetsSyncModal();
   initSheetsSyncIndicator();
+  setupHardwareKeyboardMode();
 
   // Ao abrir o app em qualquer aparelho, puxa automaticamente os dados da folha de cálculo
   setTimeout(() => {
@@ -105,6 +106,66 @@ function saveActiveWork() {
     }
   } catch (e) {
     console.warn('Erro ao salvar trabalho ativo:', e);
+  }
+}
+
+/**
+ * ==========================================================================
+ * SUPORTE A TECLADO EXTERNO / FÍSICO NO IPAD (Sem teclado virtual nem manchas)
+ * ==========================================================================
+ */
+function setupHardwareKeyboardMode() {
+  // Ativado por defeito ou com base na preferência guardada
+  const saved = localStorage.getItem('ascd_hardware_keyboard');
+  const isEnabled = saved === null ? true : (saved === 'true');
+  applyHardwareKeyboardMode(isEnabled);
+
+  const btnToggle = document.getElementById('btn-toggle-hardware-kb');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', () => {
+      const nextState = !ASCD.hardwareKeyboardMode;
+      applyHardwareKeyboardMode(nextState);
+      showToast(nextState
+        ? '⌨️ Teclado Físico ATIVADO: O teclado virtual do iPad não subirá e não ocupará espaço no ecrã.'
+        : '📱 Teclado Virtual ATIVADO: O teclado no ecrã do iPad voltará a aparecer.');
+    });
+  }
+
+  // Deteção automática: quando o utilizador prime uma tecla física no iPad
+  window.addEventListener('keydown', (e) => {
+    if (!ASCD.hardwareKeyboardMode && e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      applyHardwareKeyboardMode(true);
+    }
+  }, { passive: true });
+
+  // Garantir que nenhum foco ative o teclado virtual do iPad quando o modo físico estiver ativo
+  document.addEventListener('focusin', (e) => {
+    if (ASCD.hardwareKeyboardMode && (e.target.isContentEditable || e.target.classList.contains('rich-editor-box'))) {
+      e.target.setAttribute('inputmode', 'none');
+    }
+  });
+}
+
+function applyHardwareKeyboardMode(enabled) {
+  ASCD.hardwareKeyboardMode = !!enabled;
+  localStorage.setItem('ascd_hardware_keyboard', ASCD.hardwareKeyboardMode ? 'true' : 'false');
+
+  const editors = document.querySelectorAll('.rich-editor-box, [contenteditable="true"]');
+  editors.forEach(el => {
+    if (ASCD.hardwareKeyboardMode) {
+      el.setAttribute('inputmode', 'none');
+    } else {
+      el.removeAttribute('inputmode');
+    }
+  });
+
+  const btn = document.getElementById('btn-toggle-hardware-kb');
+  const label = document.getElementById('btn-toggle-hardware-kb-label');
+  if (btn) {
+    btn.classList.toggle('active', ASCD.hardwareKeyboardMode);
+  }
+  if (label) {
+    label.textContent = ASCD.hardwareKeyboardMode ? '⌨️ Físico Ativo' : '⌨️ Teclado Físico';
   }
 }
 
@@ -4667,163 +4728,33 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     `;
   }).join('');
 
-  const printWindow = window.open('', '_blank', 'width=900,height=900');
-  if (!printWindow) {
-    alert('Por favor, permita pop-ups para abrir a impressão em PDF.');
-    return;
-  }
+  // Preencher modal de visualização e acionar impressão nativa 100% compatível com iPadOS
+  const printModal = document.getElementById('ascd-print-preview-modal');
+  const printModalTitle = document.getElementById('print-modal-title');
+  const printModalBody = document.getElementById('print-modal-body');
+  const printContainer = document.getElementById('ascd-print-container');
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>${title} - Pré-visualização PDF</title>
-      <style>
-        @page {
-          size: A4 portrait;
-          margin: 16mm;
-        }
-        * { box-sizing: border-box; }
-        body {
-          font-family: 'Georgia', 'Times New Roman', serif;
-          font-size: 13px;
-          line-height: 1.6;
-          color: #1F2937;
-          background: #E5E7EB;
-          margin: 0;
-          padding: 0;
-        }
-        /* Barra de acções fixa no topo — não aparece na impressão */
-        #print-toolbar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 9999;
-          background: #1E3A5F;
-          color: #FFF;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 20px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          font-family: Arial, sans-serif;
-        }
-        #print-toolbar .pt-title {
-          flex: 1;
-          font-size: 15px;
-          font-weight: 600;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        #print-toolbar button {
-          padding: 8px 18px;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        #btn-do-print {
-          background: #D97706;
-          color: #FFF;
-        }
-        #btn-do-print:hover { background: #B45309; }
-        #btn-close-print {
-          background: rgba(255,255,255,0.15);
-          color: #FFF;
-          border: 1px solid rgba(255,255,255,0.3) !important;
-        }
-        #btn-close-print:hover { background: rgba(255,255,255,0.25); }
-        /* Área do documento */
-        #print-body {
-          margin-top: 64px;
-          padding: 30px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        /* Folha A4 em pré-visualização */
-        .document-page {
-          background: #FFF;
-          width: 210mm;
-          min-height: 297mm;
-          padding: 16mm;
-          margin-bottom: 24px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-          border-radius: 4px;
-          page-break-after: always;
-        }
-        .document-page:last-child {
-          page-break-after: auto;
-        }
-        h2.title {
-          font-size: 22px;
-          margin-top: 0;
-          margin-bottom: 8px;
-          color: #111827;
-          border-bottom: 2px solid #D97706;
-          padding-bottom: 6px;
-        }
-        blockquote {
-          background: #F9FAFB;
-          border-left: 4px solid #D97706;
-          padding: 8px 14px;
-          font-style: italic;
-          margin: 14px 0;
-        }
-        .content {
-          font-size: 14px;
-          line-height: 1.7;
-        }
-        /* Na impressão: ocultar toolbar, remover estilos de preview */
-        @media print {
-          #print-toolbar { display: none !important; }
-          #print-body {
-            margin-top: 0 !important;
-            padding: 0 !important;
-            background: none !important;
-          }
-          body { background: #FFF !important; }
-          .document-page {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            margin-bottom: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div id="print-toolbar">
-        <span class="pt-title">🖨️ ${title}</span>
-        <button id="btn-do-print">🖨️ Imprimir / Guardar PDF</button>
-        <button id="btn-close-print">✕ Fechar</button>
-      </div>
-      <div id="print-body">
-        ${itemsHtml}
-      </div>
-      <script>
-        document.getElementById('btn-do-print').addEventListener('click', function() {
+  if (printModal && printModalBody) {
+    if (printModalTitle) printModalTitle.textContent = `🖨️ ${title} - PDF`;
+    printModalBody.innerHTML = itemsHtml;
+    if (printContainer) printContainer.innerHTML = itemsHtml;
+
+    const btnDoPrint = document.getElementById('btn-modal-do-print');
+    if (btnDoPrint) {
+      btnDoPrint.onclick = () => {
+        try {
           window.print();
-        });
-        document.getElementById('btn-close-print').addEventListener('click', function() {
-          window.close();
-        });
-      <\/script>
-    </body>
-    </html>
-  `);
+        } catch (err) {
+          console.error('Erro na chamada nativa de impressão:', err);
+        }
+      };
+    }
 
-  printWindow.document.close();
-  showToast(`🖨️ Pré-visualização PDF aberta! Clique em "Imprimir / Guardar PDF" para guardar.`);
+    printModal.classList.add('open');
+    showToast('🖨️ Pré-visualização aberta! Toque em "Imprimir / Guardar PDF".');
+  } else {
+    window.print();
+  }
 }
 
 function triggerDownload(blob, filename) {
