@@ -4898,16 +4898,30 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     `;
   }).join('');
 
-  // Preencher modal de visualização e acionar impressão nativa 100% compatível com iPadOS
+  // Preencher modal de visualização e preparar exportação em PDF real compatível com iPadOS
   const printModal = document.getElementById('ascd-print-preview-modal');
   const printModalTitle = document.getElementById('print-modal-title');
   const printModalBody = document.getElementById('print-modal-body');
   const printContainer = document.getElementById('ascd-print-container');
 
   if (printModal && printModalBody) {
-    if (printModalTitle) printModalTitle.textContent = `🖨️ ${title} - PDF`;
+    if (printModalTitle) printModalTitle.textContent = `📄 ${title} - PDF`;
     printModalBody.innerHTML = itemsHtml;
     if (printContainer) printContainer.innerHTML = itemsHtml;
+
+    const btnDownload = document.getElementById('btn-modal-download-pdf');
+    if (btnDownload) {
+      btnDownload.onclick = () => {
+        downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnDownload);
+      };
+    }
+
+    const btnFooterDownload = document.getElementById('btn-modal-footer-download-pdf');
+    if (btnFooterDownload) {
+      btnFooterDownload.onclick = () => {
+        downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnFooterDownload);
+      };
+    }
 
     const btnDoPrint = document.getElementById('btn-modal-do-print');
     if (btnDoPrint) {
@@ -4916,14 +4930,76 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
           window.print();
         } catch (err) {
           console.error('Erro na chamada nativa de impressão:', err);
+          downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnDoPrint);
         }
       };
     }
 
     printModal.classList.add('open');
-    showToast('🖨️ Pré-visualização aberta! Toque em "Imprimir / Guardar PDF".');
+    showToast('📄 Pré-visualização aberta! Toque em "Guardar / Descarregar PDF".');
   } else {
-    window.print();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = itemsHtml;
+    downloadPdfFromElement(tempDiv, `ASCD_${cleanFilename(title)}`, title);
+  }
+}
+
+async function downloadPdfFromElement(element, filename, title, buttonEl = null) {
+  const originalHtml = buttonEl ? buttonEl.innerHTML : '';
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.innerHTML = '⏳ A gerar PDF...';
+  }
+  showToast('⏳ A processar o documento em PDF de alta qualidade...');
+
+  const cleanName = cleanFilename(filename || title || 'Documento') + '.pdf';
+
+  try {
+    if (typeof html2pdf !== 'undefined') {
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: cleanName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+
+      // No iPad e iOS: abrir Share Sheet nativo para "Guardar em Ficheiros"
+      try {
+        const pdfFile = new File([pdfBlob], cleanName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            files: [pdfFile],
+            title: title || cleanName
+          });
+          showToast('✅ PDF partilhado / guardado nos Ficheiros!');
+          return;
+        }
+      } catch (shareErr) {
+        if (shareErr.name === 'AbortError') return;
+        console.warn('Share error, downloading directly:', shareErr);
+      }
+
+      // Download direto do arquivo PDF
+      triggerDownload(pdfBlob, cleanName);
+      showToast('📥 Ficheiro PDF transferido com sucesso!');
+    } else {
+      window.print();
+    }
+  } catch (err) {
+    console.error('Erro ao gerar PDF com html2pdf:', err);
+    showToast('⚠️ A tentar impressão nativa como alternativa...');
+    try {
+      window.print();
+    } catch (_) {}
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = originalHtml;
+    }
   }
 }
 

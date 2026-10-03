@@ -1536,9 +1536,13 @@
             <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir no iPad</span>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-do-print" title="Abrir impressão nativa do iPad / Guardar em Ficheiros como PDF">
-            🖨️ Imprimir / Guardar PDF
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-download-pdf" style="background:#D97706; border-color:#B45309; display:inline-flex; align-items:center; gap:6px;" title="Gerar e descarregar ficheiro PDF / Guardar nos Ficheiros do iPad">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>📥 Guardar / Descarregar PDF</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-do-print" title="Abrir impressão nativa">
+            🖨️ Imprimir
           </button>
           <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1550,9 +1554,14 @@
         <!-- Conteúdo A4 renderizado aqui -->
       </div>
 
-      <div class="modal-footer" style="justify-content:space-between; flex-shrink:0;">
-        <span style="font-size:12px; color:var(--text-muted);">💡 No iPad: Toque em <strong>"Imprimir / Guardar PDF"</strong> e depois faça o gesto de pinça no ecrã para abrir e salvar em PDF direto nos Ficheiros.</span>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
+      <div class="modal-footer" style="justify-content:space-between; flex-shrink:0; flex-wrap:wrap; gap:10px;">
+        <span style="font-size:12px; color:var(--text-muted);">💡 No iPad: Toque em <strong>"Guardar / Descarregar PDF"</strong> para transferir ou guardar direto na pasta <strong>Ficheiros / Arquivos</strong> do seu iPad.</span>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-footer-download-pdf" style="background:#D97706; border-color:#B45309;">
+            📥 Guardar em PDF
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1570,6 +1579,7 @@
   <script src="js/bible-data.js"></script>
   <script src="js/devotional-data.js"></script>
   <script src="js/canvas.js"></script>
+  <script src="js/html2pdf.bundle.min.js"></script>
   <script src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
