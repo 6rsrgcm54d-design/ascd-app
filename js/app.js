@@ -82,10 +82,36 @@ document.addEventListener('DOMContentLoaded', () => {
   initSheetsSyncIndicator();
   setupHardwareKeyboardMode();
 
+  // Migrar URLs antigas do webhook se existirem no localStorage
+  try {
+    const storedWebhook = localStorage.getItem('ascd_sheets_webhook_url');
+    if (storedWebhook && (storedWebhook.includes('AKfycbyLb858') || storedWebhook.includes('AKfycbxiKCLR'))) {
+      localStorage.setItem('ascd_sheets_webhook_url', DEFAULT_SHEETS_WEBHOOK_URL);
+    }
+  } catch (_) {}
+
   // Ao abrir o app em qualquer aparelho, puxa automaticamente os dados da folha de cálculo
   setTimeout(() => {
     pullFromGoogleSheets(true);
   }, 600);
+
+  // Ao focar a janela ou voltar à aba no computador ou iPad, puxar imediatamente novidades do Sheets
+  window.addEventListener('focus', () => {
+    pullFromGoogleSheets(true);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      pullFromGoogleSheets(true);
+    }
+  });
+
+  // Polling em segundo plano a cada 25 segundos para manter computador e iPads perfeitamente sincronizados
+  setInterval(() => {
+    if (navigator.onLine && !isSyncingToSheets && document.visibilityState === 'visible') {
+      pullFromGoogleSheets(true);
+    }
+  }, 25000);
+
   // Salvar imediatamente se o usuário fechar a aba, recarregar ou suspender o app no iPad/telemóvel
   window.addEventListener('beforeunload', () => saveActiveWork());
   window.addEventListener('pagehide', () => saveActiveWork());
@@ -115,9 +141,9 @@ function saveActiveWork() {
  * ==========================================================================
  */
 function setupHardwareKeyboardMode() {
-  // Ativado por defeito ou com base na preferência guardada
+  // Desativado por defeito. Só é ativado se o utilizador clicar expressamente no botão do cabeçalho
   const saved = localStorage.getItem('ascd_hardware_keyboard');
-  const isEnabled = saved === null ? true : (saved === 'true');
+  const isEnabled = saved === 'true';
   applyHardwareKeyboardMode(isEnabled);
 
   const btnToggle = document.getElementById('btn-toggle-hardware-kb');
@@ -131,14 +157,11 @@ function setupHardwareKeyboardMode() {
     });
   }
 
-  // Deteção automática: quando o utilizador prime uma tecla física no iPad
-  window.addEventListener('keydown', (e) => {
-    if (!ASCD.hardwareKeyboardMode && e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      applyHardwareKeyboardMode(true);
-    }
-  }, { passive: true });
+  // ATENÇÃO: NUNCA adicionar listener de keydown para autodetectar teclado físico,
+  // pois no iPadOS tocar nas teclas do teclado de ecrã (virtual) também dispara eventos keydown,
+  // o que fechava o teclado do iPad após digitar apenas uma letra!
 
-  // Garantir que nenhum foco ative o teclado virtual do iPad quando o modo físico estiver ativo
+  // Garantir que nenhum foco ative o teclado virtual do iPad apenas QUANDO o utilizador ativou expressamente o modo físico
   document.addEventListener('focusin', (e) => {
     if (ASCD.hardwareKeyboardMode && (e.target.isContentEditable || e.target.classList.contains('rich-editor-box'))) {
       e.target.setAttribute('inputmode', 'none');
@@ -2108,10 +2131,12 @@ function setupJournal() {
   });
 
   // Auto-salvamento em tempo real no Journal enquanto digita ou desenha
-  let journalDebounceTimer = null;
+  ASCD._journalDebounceTimer = null;
   const triggerJournalAutoSave = () => {
-    clearTimeout(journalDebounceTimer);
-    journalDebounceTimer = setTimeout(() => {
+    if (ASCD._journalDebounceTimer) {
+      clearTimeout(ASCD._journalDebounceTimer);
+    }
+    ASCD._journalDebounceTimer = setTimeout(() => {
       saveCurrentJournalEntry(false);
     }, 400);
   };
@@ -2184,8 +2209,11 @@ function setupJournal() {
     deleteSelectedJournalDays();
   });
 
-  // Botão de apagar o dia atual no cabeçalho do diário
+  // Botões de apagar o dia atual (no cabeçalho do diário e no rodapé do calendário)
   document.getElementById('btn-delete-current-journal-day')?.addEventListener('click', () => {
+    deleteCurrentJournalDay();
+  });
+  document.getElementById('cal-btn-delete-day')?.addEventListener('click', () => {
     deleteCurrentJournalDay();
   });
 }
@@ -2471,8 +2499,12 @@ function saveCurrentJournalEntry(notify = true) {
   const paperType = ASCD.journalPencilEngine ? ASCD.journalPencilEngine.paperType : 'pautada';
   const existingTasks = (ASCD.journalEntries[dateStr] && ASCD.journalEntries[dateStr].tasks) ? ASCD.journalEntries[dateStr].tasks : [];
 
-  // Se nada foi preenchido e não havia nada, ignorar
-  if (!title && !verse && (!prayer || prayer === '<br>') && (!content || content === '<br>') && !pencilDataUrl && !existingTasks.length && !ASCD.journalEntries[dateStr]) {
+  const prayerClean = prayer.replace(/<[^>]*>/g, '').trim();
+  const contentClean = content.replace(/<[^>]*>/g, '').trim();
+  const hasAnyData = title || verse || prayerClean || contentClean || pencilDataUrl || existingTasks.length > 0;
+
+  // Se nada foi preenchido e não havia dados, ignorar
+  if (!hasAnyData) {
     return;
   }
 
@@ -2577,6 +2609,11 @@ function renderJournalHistoryList() {
 }
 
 function clearJournalInputs() {
+  if (ASCD._journalDebounceTimer) {
+    clearTimeout(ASCD._journalDebounceTimer);
+    ASCD._journalDebounceTimer = null;
+  }
+
   const titleInput = document.getElementById('journal-title-input');
   const verseInput = document.getElementById('journal-verse-input');
   const prayerEditor = document.getElementById('journal-prayer-editor');
@@ -2588,16 +2625,25 @@ function clearJournalInputs() {
   if (prayerEditor) prayerEditor.innerHTML = '';
   if (textEditor) textEditor.innerHTML = '';
   renderJournalTasks([]);
+
   if (ASCD.journalPencilEngine) {
     ASCD.journalPencilEngine.clearCanvas();
+    ASCD.journalPencilEngine.history = [];
+    ASCD.journalPencilEngine.historyIndex = -1;
+    ASCD.journalPencilEngine.hasDrawn = false;
   }
-  if (saveStatus) saveStatus.textContent = 'Registro deste dia foi apagado.';
+  if (saveStatus) saveStatus.textContent = 'O registro deste dia foi limpo/apagado.';
 }
 
 function deleteSingleJournalDay(dateStr, e) {
   if (e) e.stopPropagation();
   const dateFormatted = formatDateShort(dateStr);
-  if (confirm(`Deseja realmente apagar o registro do diário do dia ${dateFormatted}? Esta ação não pode ser desfeita.`)) {
+  if (confirm(`Deseja realmente apagar o registro do diário do dia ${dateFormatted}? Esta ação limpará o dia e removerá da sincronização.`)) {
+    if (ASCD._journalDebounceTimer) {
+      clearTimeout(ASCD._journalDebounceTimer);
+      ASCD._journalDebounceTimer = null;
+    }
+
     trackDeletedId('JOURNAL-' + dateStr);
     delete ASCD.journalEntries[dateStr];
     ASCD.selectedJournalDates.delete(dateStr);
@@ -2610,6 +2656,7 @@ function deleteSingleJournalDay(dateStr, e) {
     renderCalendar();
     renderJournalHistoryList();
     updateJournalBatchBar();
+    triggerAutoSyncToGoogleSheets(true);
     showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
   }
 }
@@ -2625,6 +2672,11 @@ function deleteSelectedJournalDays() {
     : `Deseja realmente apagar os registros dos ${count} dias selecionados? Esta ação não pode ser desfeita.`;
 
   if (confirm(msg)) {
+    if (ASCD._journalDebounceTimer) {
+      clearTimeout(ASCD._journalDebounceTimer);
+      ASCD._journalDebounceTimer = null;
+    }
+
     let currentCleared = false;
     ASCD.selectedJournalDates.forEach(dateStr => {
       trackDeletedId('JOURNAL-' + dateStr);
@@ -2648,26 +2700,49 @@ function deleteSelectedJournalDays() {
     updateJournalBatchBar();
     renderCalendar();
     renderJournalHistoryList();
+    triggerAutoSyncToGoogleSheets(true);
     showToast(`🗑️ ${count} dia(s) de registro apagado(s) com sucesso!`);
   }
 }
 
 function deleteCurrentJournalDay() {
   const dateStr = ASCD.currentJournalDate;
-  if (!dateStr || !ASCD.journalEntries[dateStr]) {
-    showToast('Este dia ainda não possui registro salvo para apagar.');
+  if (!dateStr) return;
+
+  const dateFormatted = formatDateShort(dateStr);
+  const entry = ASCD.journalEntries[dateStr];
+  const titleVal = document.getElementById('journal-title-input')?.value.trim() || '';
+  const verseVal = document.getElementById('journal-verse-input')?.value.trim() || '';
+  const prayerVal = (document.getElementById('journal-prayer-editor')?.innerHTML || '').replace(/<[^>]*>/g, '').trim();
+  const textVal = (document.getElementById('journal-text-editor')?.innerHTML || '').replace(/<[^>]*>/g, '').trim();
+  const pencilDrawn = ASCD.journalPencilEngine && (ASCD.journalPencilEngine.historyIndex > 0 || ASCD.journalPencilEngine.hasDrawn);
+
+  const hasContent = Boolean(entry || titleVal || verseVal || prayerVal || textVal || pencilDrawn);
+
+  if (!hasContent) {
+    showToast(`O dia ${dateFormatted} já se encontra vazio.`);
     return;
   }
-  const dateFormatted = formatDateShort(dateStr);
-  if (confirm(`Deseja realmente apagar o registro do diário do dia ${dateFormatted}? Esta ação não pode ser desfeita.`)) {
+
+  if (confirm(`Deseja realmente apagar todo o registro do diário do dia ${dateFormatted}? Esta ação limpará o dia e removerá da sincronização.`)) {
+    if (ASCD._journalDebounceTimer) {
+      clearTimeout(ASCD._journalDebounceTimer);
+      ASCD._journalDebounceTimer = null;
+    }
+
     trackDeletedId('JOURNAL-' + dateStr);
     delete ASCD.journalEntries[dateStr];
     ASCD.selectedJournalDates.delete(dateStr);
     saveJournalEntries();
+
     clearJournalInputs();
+
     renderCalendar();
     renderJournalHistoryList();
     updateJournalBatchBar();
+
+    triggerAutoSyncToGoogleSheets(true);
+
     showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
   }
 }
@@ -4407,9 +4482,19 @@ async function pullFromGoogleSheets(silent = false) {
             addedCount++;
           } else {
             const local = ASCD.notes[localIdx];
-            if (!local.content && remoteNote.content) {
-              local.content = remoteNote.content;
-              local.title = remoteNote.title || local.title;
+            const remoteTime = remoteNote.updatedAt ? new Date(remoteNote.updatedAt).getTime() : 0;
+            const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+            const remoteIsNewer = remoteTime >= localTime;
+
+            if (remoteIsNewer || (!local.content && remoteNote.content)) {
+              if (remoteNote.title) local.title = remoteNote.title;
+              if (remoteNote.content !== undefined) local.content = remoteNote.content;
+              if (remoteNote.category) local.category = remoteNote.category;
+              if (remoteNote.mode) local.mode = remoteNote.mode;
+              if (remoteNote.paperType) local.paperType = remoteNote.paperType;
+              if (remoteNote.pencilDataUrl && !local.pencilDataUrl) local.pencilDataUrl = remoteNote.pencilDataUrl;
+              if (remoteNote.updatedAt) local.updatedAt = remoteNote.updatedAt;
+              addedCount++;
             }
           }
         });
@@ -4427,9 +4512,19 @@ async function pullFromGoogleSheets(silent = false) {
             addedCount++;
           } else {
             const local = ASCD.sermons[localIdx];
-            if (!local.content && remoteSermon.content) {
-              local.content = remoteSermon.content;
-              local.title = remoteSermon.title || local.title;
+            const remoteTime = remoteSermon.updatedAt ? new Date(remoteSermon.updatedAt).getTime() : 0;
+            const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+            const remoteIsNewer = remoteTime >= localTime;
+
+            if (remoteIsNewer || (!local.content && remoteSermon.content)) {
+              if (remoteSermon.title) local.title = remoteSermon.title;
+              if (remoteSermon.passage) local.passage = remoteSermon.passage;
+              if (remoteSermon.preacher) local.preacher = remoteSermon.preacher;
+              if (remoteSermon.content !== undefined) local.content = remoteSermon.content;
+              if (remoteSermon.mode) local.mode = remoteSermon.mode;
+              if (remoteSermon.pencilDataUrl && !local.pencilDataUrl) local.pencilDataUrl = remoteSermon.pencilDataUrl;
+              if (remoteSermon.updatedAt) local.updatedAt = remoteSermon.updatedAt;
+              addedCount++;
             }
           }
         });
@@ -4447,15 +4542,41 @@ async function pullFromGoogleSheets(silent = false) {
             addedCount++;
           } else {
             const localJ = ASCD.journalEntries[dateStr];
-            if ((!localJ.content || localJ.content === '<br>') && remoteJ.content) {
-              localJ.content = remoteJ.content;
-              localJ.title = remoteJ.title || localJ.title;
-              localJ.verse = remoteJ.verse || localJ.verse;
-              localJ.prayer = remoteJ.prayer || localJ.prayer;
-              if (remoteJ.tasks && (!localJ.tasks || localJ.tasks.length === 0)) {
-                localJ.tasks = remoteJ.tasks;
+            const remoteTime = remoteJ.updatedAt ? new Date(remoteJ.updatedAt).getTime() : 0;
+            const localTime = localJ.updatedAt ? new Date(localJ.updatedAt).getTime() : 0;
+            const remoteIsNewer = remoteTime >= localTime;
+
+            let changed = false;
+            if (remoteIsNewer) {
+              if (remoteJ.title && remoteJ.title !== localJ.title) { localJ.title = remoteJ.title; changed = true; }
+              if (remoteJ.verse !== undefined && remoteJ.verse !== localJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
+              if (remoteJ.prayer !== undefined && remoteJ.prayer !== localJ.prayer) { localJ.prayer = remoteJ.prayer; changed = true; }
+              if (remoteJ.content !== undefined && remoteJ.content !== localJ.content) { localJ.content = remoteJ.content; changed = true; }
+              if (remoteJ.tasks && Array.isArray(remoteJ.tasks)) { localJ.tasks = remoteJ.tasks; changed = true; }
+              if (remoteJ.pencilDataUrl && !localJ.pencilDataUrl) { localJ.pencilDataUrl = remoteJ.pencilDataUrl; changed = true; }
+              if (remoteJ.paperType) localJ.paperType = remoteJ.paperType;
+              if (remoteJ.mode) localJ.mode = remoteJ.mode;
+              if (remoteJ.updatedAt) localJ.updatedAt = remoteJ.updatedAt;
+            } else {
+              // Preencher campos que faltam no local
+              if ((!localJ.title || localJ.title.startsWith('Diário de')) && remoteJ.title && !remoteJ.title.startsWith('Diário de')) {
+                localJ.title = remoteJ.title; changed = true;
+              }
+              if (!localJ.verse && remoteJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
+              if ((!localJ.prayer || localJ.prayer === '<br>') && remoteJ.prayer && remoteJ.prayer !== '<br>') {
+                localJ.prayer = remoteJ.prayer; changed = true;
+              }
+              if ((!localJ.content || localJ.content === '<br>') && remoteJ.content && remoteJ.content !== '<br>') {
+                localJ.content = remoteJ.content; changed = true;
+              }
+              if ((!localJ.tasks || localJ.tasks.length === 0) && remoteJ.tasks && remoteJ.tasks.length > 0) {
+                localJ.tasks = remoteJ.tasks; changed = true;
+              }
+              if (!localJ.pencilDataUrl && remoteJ.pencilDataUrl) {
+                localJ.pencilDataUrl = remoteJ.pencilDataUrl; changed = true;
               }
             }
+            if (changed) addedCount++;
           }
         });
       }
@@ -4472,9 +4593,13 @@ async function pullFromGoogleSheets(silent = false) {
             addedCount++;
           } else {
             const localB = ASCD.biblePageNotes[key];
-            if (!localB.content && remoteB.content) {
-              localB.content = remoteB.content;
-              localB.title = remoteB.title || localB.title;
+            const remoteTime = remoteB.updatedAt ? new Date(remoteB.updatedAt).getTime() : 0;
+            const localTime = localB.updatedAt ? new Date(localB.updatedAt).getTime() : 0;
+            if (remoteTime >= localTime || (!localB.content && remoteB.content)) {
+              if (remoteB.title) localB.title = remoteB.title;
+              if (remoteB.content !== undefined) localB.content = remoteB.content;
+              if (remoteB.updatedAt) localB.updatedAt = remoteB.updatedAt;
+              addedCount++;
             }
           }
         });
@@ -4493,6 +4618,51 @@ async function pullFromGoogleSheets(silent = false) {
       renderJournalHistoryList();
       if (typeof updateBiblePageSavedBadge === 'function') {
         updateBiblePageSavedBadge();
+      }
+
+      // RECARREGAR O REGISTRO ATIVO NA TELA (CRUCIAL PARA QUEM TEM O APP ABERTO NO COMPUTADOR)
+      if (ASCD.activeTab === 'journal' && ASCD.currentJournalDate) {
+        const isEditingJournal = document.activeElement && (
+          document.activeElement.id === 'journal-title-input' ||
+          document.activeElement.id === 'journal-verse-input' ||
+          document.activeElement.id === 'journal-prayer-editor' ||
+          document.activeElement.id === 'journal-text-editor'
+        );
+        if (!isEditingJournal) {
+          loadJournalEntryForDate(ASCD.currentJournalDate);
+        }
+      } else if (ASCD.activeTab === 'caderno' && ASCD.activeNoteId) {
+        const isEditingNote = document.activeElement && (
+          document.activeElement.id === 'note-title-input' ||
+          document.activeElement.id === 'note-rich-editor'
+        );
+        if (!isEditingNote) {
+          const curNote = ASCD.notes.find(n => n.id === ASCD.activeNoteId);
+          if (curNote) {
+            const titleEl = document.getElementById('note-title-input');
+            const editorEl = document.getElementById('note-rich-editor');
+            if (titleEl) titleEl.value = curNote.title || '';
+            if (editorEl) editorEl.innerHTML = curNote.content || '';
+          }
+        }
+      } else if (ASCD.activeTab === 'sermoes' && ASCD.activeSermonId) {
+        const isEditingSermon = document.activeElement && (
+          document.activeElement.id === 'sermon-title-input' ||
+          document.activeElement.id === 'sermon-rich-editor'
+        );
+        if (!isEditingSermon) {
+          const curSermon = ASCD.sermons.find(s => s.id === ASCD.activeSermonId);
+          if (curSermon) {
+            const titleEl = document.getElementById('sermon-title-input');
+            const editorEl = document.getElementById('sermon-rich-editor');
+            if (titleEl) titleEl.value = curSermon.title || '';
+            if (editorEl) editorEl.innerHTML = curSermon.content || '';
+          }
+        }
+      } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+        if (typeof loadBibleStudyForCurrentChapter === 'function') {
+          loadBibleStudyForCurrentChapter();
+        }
       }
 
       const now = new Date();
