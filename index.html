@@ -631,13 +631,32 @@
                           <span>Borracha</span>
                         </button>
                       </div>
+                      <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                        <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                        <div class="color-palette-item journal-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+                      </div>
+                      <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                        <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="2" title="Fino (2px)">
+                          <span class="size-dot" style="width:4px; height:4px;"></span>
+                        </button>
+                        <button type="button" class="btn-pencil-size journal-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                          <span class="size-dot" style="width:7px; height:7px;"></span>
+                        </button>
+                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="6" title="Grosso (6px)">
+                          <span class="size-dot" style="width:11px; height:11px;"></span>
+                        </button>
+                      </div>
                       <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
                         <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
                       </div>
-                      <button type="button" class="btn-palm" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+                      <button type="button" class="btn-palm active" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
                       <button type="button" class="btn-icon-subtle" id="journal-btn-undo" title="Desfazer">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                       </button>
@@ -844,9 +863,25 @@
                   <div class="color-palette-item split-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
                 </div>
 
-                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;">
+                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;" title="Cor da tinta da caneta">
+                  <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
                   <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+                </div>
+
+                <div class="pencil-size-group" style="margin-right: 4px;" title="Espessura do traço">
+                  <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                  <button type="button" class="btn-pencil-size split-size-btn" data-size="2" title="Fino (2px)">
+                    <span class="size-dot" style="width:4px; height:4px;"></span>
+                  </button>
+                  <button type="button" class="btn-pencil-size split-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                    <span class="size-dot" style="width:7px; height:7px;"></span>
+                  </button>
+                  <button type="button" class="btn-pencil-size split-size-btn" data-size="6" title="Grosso (6px)">
+                    <span class="size-dot" style="width:11px; height:11px;"></span>
+                  </button>
                 </div>
 
                 <div class="paper-type-control" title="Escolha o tipo de folha da página">
@@ -861,7 +896,7 @@
                 </div>
 
                 <div style="display:flex; align-items:center; gap: 4px;">
-                  <button type="button" class="btn-palm" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
+                  <button type="button" class="btn-palm active" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
                   <button type="button" class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                   </button>
@@ -1017,13 +1052,32 @@
                   <span>Borracha</span>
                 </button>
               </div>
+              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                <div class="color-palette-item sermon-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+              </div>
+              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="2" title="Fino (2px)">
+                  <span class="size-dot" style="width:4px; height:4px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size sermon-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                  <span class="size-dot" style="width:7px; height:7px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="6" title="Grosso (6px)">
+                  <span class="size-dot" style="width:11px; height:11px;"></span>
+                </button>
+              </div>
               <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
                 <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
               </div>
-              <button type="button" class="btn-palm" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-palm active" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
               <button type="button" class="btn-icon-subtle" id="sermon-btn-undo" title="Desfazer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
               </button>
@@ -1185,6 +1239,25 @@
                   <span>Borracha</span>
                 </button>
               </div>
+              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                <div class="color-palette-item note-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                <div class="color-palette-item note-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                <div class="color-palette-item note-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                <div class="color-palette-item note-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+              </div>
+              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                <button type="button" class="btn-pencil-size note-size-btn" data-size="2" title="Fino (2px)">
+                  <span class="size-dot" style="width:4px; height:4px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size note-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                  <span class="size-dot" style="width:7px; height:7px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size note-size-btn" data-size="6" title="Grosso (6px)">
+                  <span class="size-dot" style="width:11px; height:11px;"></span>
+                </button>
+              </div>
               <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px;">
                 <span style="font-size: 11px; color: var(--text-muted);">Marca-Texto:</span>
                 <div class="color-palette-item note-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
@@ -1192,7 +1265,7 @@
                 <div class="color-palette-item note-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
               </div>
 
-              <button type="button" class="btn-palm" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-palm active" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
               <button type="button" class="btn-icon-subtle" id="note-btn-undo" title="Desfazer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
               </button>

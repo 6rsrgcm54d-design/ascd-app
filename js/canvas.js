@@ -13,13 +13,13 @@ class AscdPencilEngine {
     // Configurações do estado do desenho
     this.tool = 'pen'; // 'pen', 'fountain', 'highlighter', 'eraser'
     this.color = '#1A1A1A';
-    this.size = 3;
+    this.size = 3.5;
     this.highlighterColor = '#FEF08A';
     this.paperType = options.paperType || 'pautada';
     this.hasDrawn = false;
     
     // Suporte específico para Apple Pencil
-    this.onlyPenMode = false; // Palm Rejection estrita: se ativo, só 'pen' desenha!
+    this.onlyPenMode = true; // Palm Rejection estrita por defeito: apenas Apple Pencil desenha!
     this.pressureEnabled = true;
     this.currentPointerType = 'unknown';
 
@@ -74,7 +74,13 @@ class AscdPencilEngine {
     this.ctx.clearRect(0, 0, width, height);
 
     if (tempCanvas) {
-      this.ctx.drawImage(tempCanvas, 0, 0, width, height);
+      const prevW = tempCanvas.width / (this.dpr || 1);
+      const prevH = tempCanvas.height / (this.dpr || 1);
+      const scale = Math.min(width / (prevW || 1), height / (prevH || 1));
+      const drawW = prevW * scale;
+      const drawH = prevH * scale;
+      const drawX = Math.max(0, (width - drawW) / 2);
+      this.ctx.drawImage(tempCanvas, drawX, 0, drawW, drawH);
     }
     this.renderPaper();
   }
@@ -122,14 +128,29 @@ class AscdPencilEngine {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.max(window.devicePixelRatio || 1, 2);
     
-    const newWidth = Math.round(rect.width > 50 ? rect.width : 900);
-    const newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
+    let newWidth = Math.round(rect.width > 50 ? rect.width : 900);
+    let newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
 
     const currentLogicalW = Math.round(this.canvas.width / (this.dpr || 1));
     const currentLogicalH = Math.round(this.canvas.height / (this.dpr || 1));
 
     if (newWidth === currentLogicalW && newHeight === currentLogicalH && this.dpr === dpr) {
       return;
+    }
+
+    // Se estiver saindo do ecrã inteiro e houver desenho prévio, adaptar a altura para manter a proporção nobre da folha
+    const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
+    if (!isFullscreen && this.hasDrawn && currentLogicalW > 0 && currentLogicalH > 0) {
+      const aspect = currentLogicalW / currentLogicalH;
+      if (aspect > 0) {
+        const targetH = Math.round(newWidth / aspect);
+        if (targetH >= 340 && Math.abs(targetH - newHeight) > 10) {
+          this.canvas.style.height = `${targetH}px`;
+          newHeight = targetH;
+        }
+      }
+    } else if (isFullscreen) {
+      this.canvas.style.height = '';
     }
 
     const prevData = this.canvas.toDataURL();
@@ -146,7 +167,14 @@ class AscdPencilEngine {
     if (this.hasDrawn) {
       const img = new Image();
       img.onload = () => {
-        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
+        const imgW = currentLogicalW || 1;
+        const imgH = currentLogicalH || 1;
+        const scale = Math.min(newWidth / imgW, newHeight / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+        const drawX = Math.max(0, (newWidth - drawW) / 2);
+        const drawY = 0;
+        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         this.renderPaper();
       };
       img.src = prevData;
@@ -157,9 +185,13 @@ class AscdPencilEngine {
 
   getCanvasPoint(e) {
     const rect = this.canvas.getBoundingClientRect();
+    const currentLogicalW = this.canvas.width / (this.dpr || 1);
+    const currentLogicalH = this.canvas.height / (this.dpr || 1);
+    const scaleX = rect.width > 0 ? (currentLogicalW / rect.width) : 1;
+    const scaleY = rect.height > 0 ? (currentLogicalH / rect.height) : 1;
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
       pressure: e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5,
       tiltX: e.tiltX || 0,
       tiltY: e.tiltY || 0,
@@ -513,6 +545,7 @@ class AscdPencilEngine {
   }
 
   restoreState(dataUrl) {
+    if (!dataUrl) return;
     const rect = this.canvas.getBoundingClientRect();
     const width = rect.width || (this.canvas.width / this.dpr);
     const height = rect.height || (this.canvas.height / this.dpr);
@@ -520,7 +553,17 @@ class AscdPencilEngine {
     const img = new Image();
     img.onload = () => {
       this.ctx.clearRect(0, 0, width, height);
-      this.ctx.drawImage(img, 0, 0, width, height);
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+      if (imgW > 0 && imgH > 0) {
+        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
+        const drawW = (imgW / this.dpr) * scale;
+        const drawH = (imgH / this.dpr) * scale;
+        const drawX = Math.max(0, (width - drawW) / 2);
+        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
+      } else {
+        this.ctx.drawImage(img, 0, 0, width, height);
+      }
       this.updateUndoRedoUI();
       this.notifyChange();
     };
@@ -569,15 +612,44 @@ class AscdPencilEngine {
 
   loadFromDataUrl(dataUrl) {
     if (!dataUrl) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width || (this.canvas.width / this.dpr);
-    const height = rect.height || (this.canvas.height / this.dpr);
-
     const img = new Image();
     img.onload = () => {
+      const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
+      const rect = this.canvas.getBoundingClientRect();
+      let width = rect.width > 50 ? rect.width : (this.canvas.width / (this.dpr || 1));
+      let height = rect.height > 50 ? rect.height : (this.canvas.height / (this.dpr || 1));
+
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+
+      // Se não estiver em tela cheia, adaptar a altura para a proporção fiel da caligrafia guardada
+      if (!isFullscreen && imgW > 0 && imgH > 0) {
+        const aspect = imgW / imgH;
+        const targetH = Math.round(width / aspect);
+        if (targetH >= 340 && Math.abs(targetH - height) > 10) {
+          this.canvas.style.height = `${targetH}px`;
+          height = targetH;
+          this.canvas.height = height * this.dpr;
+          this.ctx.scale(this.dpr, this.dpr);
+          this.ctx.lineCap = 'round';
+          this.ctx.lineJoin = 'round';
+        }
+      }
+
       this.ctx.clearRect(0, 0, width, height);
-      this.ctx.drawImage(img, 0, 0, width, height);
+
+      if (imgW > 0 && imgH > 0) {
+        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
+        const drawW = (imgW / this.dpr) * scale;
+        const drawH = (imgH / this.dpr) * scale;
+        const drawX = Math.max(0, (width - drawW) / 2);
+        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
+      } else {
+        this.ctx.drawImage(img, 0, 0, width, height);
+      }
+
       this.hasDrawn = true;
+      this.renderPaper();
       this.saveState();
     };
     img.src = dataUrl;

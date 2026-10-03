@@ -2659,8 +2659,46 @@ function setupPencilEngineControls(engine, prefix) {
     });
   });
 
+  // As 4 cores de tinta da caneta (Preto, Azul Escuro, Azul Real, Vermelho)
+  document.querySelectorAll(`.${prefix}-color-dot`).forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll(`.${prefix}-color-dot`).forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+      document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
+      if (btnPen) btnPen.classList.add('active');
+      if (btnEraser) btnEraser.classList.remove('active');
+      const c = dot.getAttribute('data-color');
+      if (c) {
+        engine.setTool('pen');
+        engine.color = c;
+        const colorNames = {
+          '#1A1A1A': 'Preto',
+          '#1E3A8A': 'Azul Escuro',
+          '#2563EB': 'Azul Real',
+          '#DC2626': 'Vermelho'
+        };
+        showToast(`✏️ Tinta ${colorNames[c] || c} ativada`);
+      }
+    });
+  });
+
+  // Seletor de Espessura do Traço (Fino 2px, Médio 3.5px, Grosso 6px)
+  document.querySelectorAll(`.${prefix}-size-btn`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`.${prefix}-size-btn`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const s = parseFloat(btn.getAttribute('data-size'));
+      if (!isNaN(s) && s > 0) {
+        engine.size = s;
+        const sizeNames = { 2: 'Fino (2px)', 3.5: 'Médio (3.5px)', 6: 'Grosso (6px)' };
+        showToast(`📏 Espessura do traço: ${sizeNames[s] || s + 'px'}`);
+      }
+    });
+  });
+
   const btnPalm = document.getElementById(`${prefix}-btn-palm`);
   if (btnPalm) {
+    btnPalm.classList.toggle('active', engine.onlyPenMode);
     btnPalm.addEventListener('click', () => {
       engine.onlyPenMode = !engine.onlyPenMode;
       btnPalm.classList.toggle('active', engine.onlyPenMode);
@@ -2768,6 +2806,26 @@ function setupSplitScreen() {
         if (c) {
           ASCD.splitPencilEngine.setTool('pen');
           ASCD.splitPencilEngine.color = c;
+          const colorNames = {
+            '#1A1A1A': 'Preto',
+            '#1E3A8A': 'Azul Escuro',
+            '#2563EB': 'Azul Real',
+            '#DC2626': 'Vermelho'
+          };
+          showToast(`✏️ Tinta ${colorNames[c] || c} ativada no Modo Dividido`);
+        }
+      });
+    });
+
+    document.querySelectorAll('.split-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.split-size-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const s = parseFloat(btn.getAttribute('data-size'));
+        if (!isNaN(s) && s > 0) {
+          ASCD.splitPencilEngine.size = s;
+          const sizeNames = { 2: 'Fino (2px)', 3.5: 'Médio (3.5px)', 6: 'Grosso (6px)' };
+          showToast(`📏 Espessura do traço: ${sizeNames[s] || s + 'px'}`);
         }
       });
     });

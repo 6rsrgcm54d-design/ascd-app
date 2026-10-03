@@ -961,6 +961,51 @@ html, body {
   box-shadow: 0 0 0 2px var(--accent-gold);
 }
 
+/* Seletor de Espessura do Traço da Caneta Apple Pencil */
+.pencil-size-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-surface-elevated, rgba(0, 0, 0, 0.04));
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+.btn-pencil-size {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-pencil-size:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-pencil-size.active {
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  border-color: var(--accent-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.size-dot {
+  background: currentColor;
+  border-radius: 50%;
+  display: block;
+}
+
 /* Área do Canvas */
 .pencil-canvas-viewport {
   flex: 1;

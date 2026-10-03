@@ -986,6 +986,51 @@ html, body {
   box-shadow: 0 0 0 2px var(--accent-gold);
 }
 
+/* Seletor de Espessura do Traço da Caneta Apple Pencil */
+.pencil-size-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-surface-elevated, rgba(0, 0, 0, 0.04));
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+}
+
+.btn-pencil-size {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-pencil-size:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-pencil-size.active {
+  background: var(--accent-primary);
+  color: #FFFFFF;
+  border-color: var(--accent-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.size-dot {
+  background: currentColor;
+  border-radius: 50%;
+  display: block;
+}
+
 /* Área do Canvas */
 .pencil-canvas-viewport {
   flex: 1;
@@ -3920,13 +3965,32 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                           <span>Borracha</span>
                         </button>
                       </div>
+                      <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                        <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                        <div class="color-palette-item journal-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                        <div class="color-palette-item journal-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+                      </div>
+                      <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                        <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="2" title="Fino (2px)">
+                          <span class="size-dot" style="width:4px; height:4px;"></span>
+                        </button>
+                        <button type="button" class="btn-pencil-size journal-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                          <span class="size-dot" style="width:7px; height:7px;"></span>
+                        </button>
+                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="6" title="Grosso (6px)">
+                          <span class="size-dot" style="width:11px; height:11px;"></span>
+                        </button>
+                      </div>
                       <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
                         <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
                         <div class="color-palette-item journal-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
                       </div>
-                      <button type="button" class="btn-palm" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+                      <button type="button" class="btn-palm active" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
                       <button type="button" class="btn-icon-subtle" id="journal-btn-undo" title="Desfazer">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                       </button>
@@ -4133,9 +4197,25 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                   <div class="color-palette-item split-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
                 </div>
 
-                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;">
+                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;" title="Cor da tinta da caneta">
+                  <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
                   <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                  <div class="color-palette-item split-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+                </div>
+
+                <div class="pencil-size-group" style="margin-right: 4px;" title="Espessura do traço">
+                  <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                  <button type="button" class="btn-pencil-size split-size-btn" data-size="2" title="Fino (2px)">
+                    <span class="size-dot" style="width:4px; height:4px;"></span>
+                  </button>
+                  <button type="button" class="btn-pencil-size split-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                    <span class="size-dot" style="width:7px; height:7px;"></span>
+                  </button>
+                  <button type="button" class="btn-pencil-size split-size-btn" data-size="6" title="Grosso (6px)">
+                    <span class="size-dot" style="width:11px; height:11px;"></span>
+                  </button>
                 </div>
 
                 <div class="paper-type-control" title="Escolha o tipo de folha da página">
@@ -4150,7 +4230,7 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                 </div>
 
                 <div style="display:flex; align-items:center; gap: 4px;">
-                  <button type="button" class="btn-palm" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
+                  <button type="button" class="btn-palm active" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
                   <button type="button" class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                   </button>
@@ -4306,13 +4386,32 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                   <span>Borracha</span>
                 </button>
               </div>
+              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                <div class="color-palette-item sermon-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                <div class="color-palette-item sermon-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+              </div>
+              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="2" title="Fino (2px)">
+                  <span class="size-dot" style="width:4px; height:4px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size sermon-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                  <span class="size-dot" style="width:7px; height:7px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="6" title="Grosso (6px)">
+                  <span class="size-dot" style="width:11px; height:11px;"></span>
+                </button>
+              </div>
               <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
                 <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
                 <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
               </div>
-              <button type="button" class="btn-palm" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-palm active" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
               <button type="button" class="btn-icon-subtle" id="sermon-btn-undo" title="Desfazer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
               </button>
@@ -4474,6 +4573,25 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                   <span>Borracha</span>
                 </button>
               </div>
+              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
+                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
+                <div class="color-palette-item note-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
+                <div class="color-palette-item note-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
+                <div class="color-palette-item note-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
+                <div class="color-palette-item note-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
+              </div>
+              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
+                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
+                <button type="button" class="btn-pencil-size note-size-btn" data-size="2" title="Fino (2px)">
+                  <span class="size-dot" style="width:4px; height:4px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size note-size-btn active" data-size="3.5" title="Médio (3.5px)">
+                  <span class="size-dot" style="width:7px; height:7px;"></span>
+                </button>
+                <button type="button" class="btn-pencil-size note-size-btn" data-size="6" title="Grosso (6px)">
+                  <span class="size-dot" style="width:11px; height:11px;"></span>
+                </button>
+              </div>
               <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px;">
                 <span style="font-size: 11px; color: var(--text-muted);">Marca-Texto:</span>
                 <div class="color-palette-item note-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
@@ -4481,7 +4599,7 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
                 <div class="color-palette-item note-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
               </div>
 
-              <button type="button" class="btn-palm" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
+              <button type="button" class="btn-palm active" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
               <button type="button" class="btn-icon-subtle" id="note-btn-undo" title="Desfazer">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
               </button>
@@ -7923,13 +8041,13 @@ class AscdPencilEngine {
     // Configurações do estado do desenho
     this.tool = 'pen'; // 'pen', 'fountain', 'highlighter', 'eraser'
     this.color = '#1A1A1A';
-    this.size = 3;
+    this.size = 3.5;
     this.highlighterColor = '#FEF08A';
     this.paperType = options.paperType || 'pautada';
     this.hasDrawn = false;
     
     // Suporte específico para Apple Pencil
-    this.onlyPenMode = false; // Palm Rejection estrita: se ativo, só 'pen' desenha!
+    this.onlyPenMode = true; // Palm Rejection estrita por defeito: apenas Apple Pencil desenha!
     this.pressureEnabled = true;
     this.currentPointerType = 'unknown';
 
@@ -7984,7 +8102,13 @@ class AscdPencilEngine {
     this.ctx.clearRect(0, 0, width, height);
 
     if (tempCanvas) {
-      this.ctx.drawImage(tempCanvas, 0, 0, width, height);
+      const prevW = tempCanvas.width / (this.dpr || 1);
+      const prevH = tempCanvas.height / (this.dpr || 1);
+      const scale = Math.min(width / (prevW || 1), height / (prevH || 1));
+      const drawW = prevW * scale;
+      const drawH = prevH * scale;
+      const drawX = Math.max(0, (width - drawW) / 2);
+      this.ctx.drawImage(tempCanvas, drawX, 0, drawW, drawH);
     }
     this.renderPaper();
   }
@@ -8032,14 +8156,29 @@ class AscdPencilEngine {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.max(window.devicePixelRatio || 1, 2);
     
-    const newWidth = Math.round(rect.width > 50 ? rect.width : 900);
-    const newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
+    let newWidth = Math.round(rect.width > 50 ? rect.width : 900);
+    let newHeight = Math.round(rect.height > 50 ? rect.height : (this.canvas.parentElement ? this.canvas.parentElement.clientHeight : 700));
 
     const currentLogicalW = Math.round(this.canvas.width / (this.dpr || 1));
     const currentLogicalH = Math.round(this.canvas.height / (this.dpr || 1));
 
     if (newWidth === currentLogicalW && newHeight === currentLogicalH && this.dpr === dpr) {
       return;
+    }
+
+    // Se estiver saindo do ecrã inteiro e houver desenho prévio, adaptar a altura para manter a proporção nobre da folha
+    const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
+    if (!isFullscreen && this.hasDrawn && currentLogicalW > 0 && currentLogicalH > 0) {
+      const aspect = currentLogicalW / currentLogicalH;
+      if (aspect > 0) {
+        const targetH = Math.round(newWidth / aspect);
+        if (targetH >= 340 && Math.abs(targetH - newHeight) > 10) {
+          this.canvas.style.height = `${targetH}px`;
+          newHeight = targetH;
+        }
+      }
+    } else if (isFullscreen) {
+      this.canvas.style.height = '';
     }
 
     const prevData = this.canvas.toDataURL();
@@ -8056,7 +8195,14 @@ class AscdPencilEngine {
     if (this.hasDrawn) {
       const img = new Image();
       img.onload = () => {
-        this.ctx.drawImage(img, 0, 0, currentLogicalW, currentLogicalH);
+        const imgW = currentLogicalW || 1;
+        const imgH = currentLogicalH || 1;
+        const scale = Math.min(newWidth / imgW, newHeight / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+        const drawX = Math.max(0, (newWidth - drawW) / 2);
+        const drawY = 0;
+        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         this.renderPaper();
       };
       img.src = prevData;
@@ -8067,9 +8213,13 @@ class AscdPencilEngine {
 
   getCanvasPoint(e) {
     const rect = this.canvas.getBoundingClientRect();
+    const currentLogicalW = this.canvas.width / (this.dpr || 1);
+    const currentLogicalH = this.canvas.height / (this.dpr || 1);
+    const scaleX = rect.width > 0 ? (currentLogicalW / rect.width) : 1;
+    const scaleY = rect.height > 0 ? (currentLogicalH / rect.height) : 1;
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
       pressure: e.pressure !== undefined && e.pressure > 0 ? e.pressure : 0.5,
       tiltX: e.tiltX || 0,
       tiltY: e.tiltY || 0,
@@ -8423,6 +8573,7 @@ class AscdPencilEngine {
   }
 
   restoreState(dataUrl) {
+    if (!dataUrl) return;
     const rect = this.canvas.getBoundingClientRect();
     const width = rect.width || (this.canvas.width / this.dpr);
     const height = rect.height || (this.canvas.height / this.dpr);
@@ -8430,7 +8581,17 @@ class AscdPencilEngine {
     const img = new Image();
     img.onload = () => {
       this.ctx.clearRect(0, 0, width, height);
-      this.ctx.drawImage(img, 0, 0, width, height);
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+      if (imgW > 0 && imgH > 0) {
+        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
+        const drawW = (imgW / this.dpr) * scale;
+        const drawH = (imgH / this.dpr) * scale;
+        const drawX = Math.max(0, (width - drawW) / 2);
+        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
+      } else {
+        this.ctx.drawImage(img, 0, 0, width, height);
+      }
       this.updateUndoRedoUI();
       this.notifyChange();
     };
@@ -8479,15 +8640,44 @@ class AscdPencilEngine {
 
   loadFromDataUrl(dataUrl) {
     if (!dataUrl) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = rect.width || (this.canvas.width / this.dpr);
-    const height = rect.height || (this.canvas.height / this.dpr);
-
     const img = new Image();
     img.onload = () => {
+      const isFullscreen = !!this.canvas.closest('.pencil-section-fullscreen');
+      const rect = this.canvas.getBoundingClientRect();
+      let width = rect.width > 50 ? rect.width : (this.canvas.width / (this.dpr || 1));
+      let height = rect.height > 50 ? rect.height : (this.canvas.height / (this.dpr || 1));
+
+      const imgW = img.naturalWidth || img.width;
+      const imgH = img.naturalHeight || img.height;
+
+      // Se não estiver em tela cheia, adaptar a altura para a proporção fiel da caligrafia guardada
+      if (!isFullscreen && imgW > 0 && imgH > 0) {
+        const aspect = imgW / imgH;
+        const targetH = Math.round(width / aspect);
+        if (targetH >= 340 && Math.abs(targetH - height) > 10) {
+          this.canvas.style.height = `${targetH}px`;
+          height = targetH;
+          this.canvas.height = height * this.dpr;
+          this.ctx.scale(this.dpr, this.dpr);
+          this.ctx.lineCap = 'round';
+          this.ctx.lineJoin = 'round';
+        }
+      }
+
       this.ctx.clearRect(0, 0, width, height);
-      this.ctx.drawImage(img, 0, 0, width, height);
+
+      if (imgW > 0 && imgH > 0) {
+        const scale = Math.min(width / (imgW / this.dpr), height / (imgH / this.dpr));
+        const drawW = (imgW / this.dpr) * scale;
+        const drawH = (imgH / this.dpr) * scale;
+        const drawX = Math.max(0, (width - drawW) / 2);
+        this.ctx.drawImage(img, drawX, 0, drawW, drawH);
+      } else {
+        this.ctx.drawImage(img, 0, 0, width, height);
+      }
+
       this.hasDrawn = true;
+      this.renderPaper();
       this.saveState();
     };
     img.src = dataUrl;
@@ -11160,8 +11350,46 @@ function setupPencilEngineControls(engine, prefix) {
     });
   });
 
+  // As 4 cores de tinta da caneta (Preto, Azul Escuro, Azul Real, Vermelho)
+  document.querySelectorAll(`.${prefix}-color-dot`).forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll(`.${prefix}-color-dot`).forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+      document.querySelectorAll(`.${prefix}-hl-dot`).forEach(d => d.classList.remove('selected'));
+      if (btnPen) btnPen.classList.add('active');
+      if (btnEraser) btnEraser.classList.remove('active');
+      const c = dot.getAttribute('data-color');
+      if (c) {
+        engine.setTool('pen');
+        engine.color = c;
+        const colorNames = {
+          '#1A1A1A': 'Preto',
+          '#1E3A8A': 'Azul Escuro',
+          '#2563EB': 'Azul Real',
+          '#DC2626': 'Vermelho'
+        };
+        showToast(`✏️ Tinta ${colorNames[c] || c} ativada`);
+      }
+    });
+  });
+
+  // Seletor de Espessura do Traço (Fino 2px, Médio 3.5px, Grosso 6px)
+  document.querySelectorAll(`.${prefix}-size-btn`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`.${prefix}-size-btn`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const s = parseFloat(btn.getAttribute('data-size'));
+      if (!isNaN(s) && s > 0) {
+        engine.size = s;
+        const sizeNames = { 2: 'Fino (2px)', 3.5: 'Médio (3.5px)', 6: 'Grosso (6px)' };
+        showToast(`📏 Espessura do traço: ${sizeNames[s] || s + 'px'}`);
+      }
+    });
+  });
+
   const btnPalm = document.getElementById(`${prefix}-btn-palm`);
   if (btnPalm) {
+    btnPalm.classList.toggle('active', engine.onlyPenMode);
     btnPalm.addEventListener('click', () => {
       engine.onlyPenMode = !engine.onlyPenMode;
       btnPalm.classList.toggle('active', engine.onlyPenMode);
@@ -11269,6 +11497,26 @@ function setupSplitScreen() {
         if (c) {
           ASCD.splitPencilEngine.setTool('pen');
           ASCD.splitPencilEngine.color = c;
+          const colorNames = {
+            '#1A1A1A': 'Preto',
+            '#1E3A8A': 'Azul Escuro',
+            '#2563EB': 'Azul Real',
+            '#DC2626': 'Vermelho'
+          };
+          showToast(`✏️ Tinta ${colorNames[c] || c} ativada no Modo Dividido`);
+        }
+      });
+    });
+
+    document.querySelectorAll('.split-size-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.split-size-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const s = parseFloat(btn.getAttribute('data-size'));
+        if (!isNaN(s) && s > 0) {
+          ASCD.splitPencilEngine.size = s;
+          const sizeNames = { 2: 'Fino (2px)', 3.5: 'Médio (3.5px)', 6: 'Grosso (6px)' };
+          showToast(`📏 Espessura do traço: ${sizeNames[s] || s + 'px'}`);
         }
       });
     });
