@@ -13,7 +13,7 @@ const ASCD = {
   isSplitView: false,
   currentBibleBook: 'sl',
   currentBibleChapter: 23,
-  currentBibleVersion: 'arc',
+  currentBibleVersion: 'bpt',
   theme: 'pergaminho',
 
   // Motores de desenho Apple Pencil
@@ -277,7 +277,12 @@ function loadStoredData() {
 
     // 6. Versão da Bíblia
     const savedVersion = localStorage.getItem('ascd_bible_version');
-    if (savedVersion) ASCD.currentBibleVersion = savedVersion;
+    if (savedVersion && ['bpt', 'ntlh', 'aa'].includes(savedVersion)) {
+      ASCD.currentBibleVersion = savedVersion;
+    } else {
+      ASCD.currentBibleVersion = 'bpt';
+      localStorage.setItem('ascd_bible_version', 'bpt');
+    }
 
     // 7. Webhook do Google Sheets
     const savedWebhook = localStorage.getItem('ascd_sheets_webhook_url');
@@ -808,7 +813,7 @@ function applyTextHighlight(editor, color) {
  * ==========================================================================
  */
 function setupBibleReader() {
-  // 1. Dropdown de Versões Bíblicas (ARC, AA, TB)
+  // 1. Dropdown de Versões Bíblicas (BPT, NTLH, AA)
   const versionSelect = document.getElementById('bible-version-select');
   if (versionSelect) {
     versionSelect.innerHTML = BIBLE_VERSIONS.map(v => `
@@ -1154,11 +1159,11 @@ function performBibleSearch(term) {
   if (!container) return;
 
   const results = [];
-  const currentVer = ASCD.currentBibleVersion || 'arc';
+  const currentVer = ASCD.currentBibleVersion || 'bpt';
 
   Object.keys(BIBLE_TEXTS).forEach(key => {
     const raw = BIBLE_TEXTS[key];
-    const verses = (raw.versions && raw.versions[currentVer]) || (raw.versions && raw.versions.arc) || raw.verses || [];
+    const verses = (raw.versions && raw.versions[currentVer]) || (raw.versions && raw.versions.bpt) || (raw.versions && raw.versions.ntlh) || (raw.versions && raw.versions.aa) || raw.verses || [];
     verses.forEach(v => {
       if (v.text.toLowerCase().includes(term)) {
         results.push({
@@ -3476,7 +3481,7 @@ function saveCurrentBiblePageStudy(notify = true) {
   }
 
   const paperType = ASCD.splitPencilEngine ? ASCD.splitPencilEngine.paperType : 'pergaminho';
-  const verObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion) || { shortName: 'ARC' };
+  const verObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion) || { shortName: 'BPT' };
 
   // 1. Guardar na coleção de anotações de páginas bíblicas
   ASCD.biblePageNotes[key] = {
@@ -4149,7 +4154,7 @@ function exportFullBackup() {
       biblePageNotes: ASCD.biblePageNotes || {},
       devotionalFavorites: ASCD.devotionalFavorites || [],
       settings: {
-        bibleVersion: ASCD.currentBibleVersion || 'arc',
+        bibleVersion: ASCD.currentBibleVersion || 'bpt',
         theme: localStorage.getItem('ascd_theme') || 'light',
         devotionalFontSize: ASCD.devotionalFontSize || 100
       }
@@ -4227,8 +4232,9 @@ function importFullBackup(file) {
           localStorage.setItem('ascd_theme', d.settings.theme);
         }
         if (d.settings.bibleVersion) {
-          ASCD.currentBibleVersion = d.settings.bibleVersion;
-          localStorage.setItem('ascd_bible_version', d.settings.bibleVersion);
+          const v = ['bpt', 'ntlh', 'aa'].includes(d.settings.bibleVersion) ? d.settings.bibleVersion : 'bpt';
+          ASCD.currentBibleVersion = v;
+          localStorage.setItem('ascd_bible_version', v);
         }
       }
 
