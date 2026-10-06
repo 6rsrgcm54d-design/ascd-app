@@ -3413,6 +3413,7 @@ html, body {
   .modal-overlay:not(#ascd-print-preview-modal),
   #ascd-print-preview-modal .modal-header,
   #ascd-print-preview-modal .modal-footer,
+  #ascd-pdf-ready-banner,
   .btn-exit-fullscreen-floating,
   .toast-container {
     display: none !important;

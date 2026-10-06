@@ -3438,6 +3438,7 @@ html, body {
   .modal-overlay:not(#ascd-print-preview-modal),
   #ascd-print-preview-modal .modal-header,
   #ascd-print-preview-modal .modal-footer,
+  #ascd-pdf-ready-banner,
   .btn-exit-fullscreen-floating,
   .toast-container {
     display: none !important;
@@ -22112,17 +22113,21 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     printModalBody.innerHTML = itemsHtml;
     if (printContainer) printContainer.innerHTML = itemsHtml;
 
+    // Remover qualquer banner de PDF pronto anterior
+    const oldBanner = document.getElementById('ascd-pdf-ready-banner');
+    if (oldBanner) oldBanner.remove();
+
     const btnDownload = document.getElementById('btn-modal-download-pdf');
     if (btnDownload) {
       btnDownload.onclick = () => {
-        downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnDownload);
+        downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnDownload);
       };
     }
 
     const btnFooterDownload = document.getElementById('btn-modal-footer-download-pdf');
     if (btnFooterDownload) {
       btnFooterDownload.onclick = () => {
-        downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnFooterDownload);
+        downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnFooterDownload);
       };
     }
 
@@ -22133,21 +22138,30 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
           window.print();
         } catch (err) {
           console.error('Erro na chamada nativa de impressão:', err);
-          downloadPdfFromElement(printModalBody, `ASCD_${cleanFilename(title)}`, title, btnDoPrint);
+          downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnDoPrint);
         }
       };
     }
 
     printModal.classList.add('open');
-    showToast('📄 Pré-visualização aberta! Toque em "Guardar / Descarregar PDF".');
+    showToast('📄 A preparar documento PDF...');
+
+    // Iniciar automaticamente a geração em segundo plano para que o PDF fique pronto de imediato!
+    downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnDownload);
   } else {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = itemsHtml;
-    downloadPdfFromElement(tempDiv, `ASCD_${cleanFilename(title)}`, title);
+    downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title);
   }
 }
 
-async function downloadPdfFromElement(element, filename, title, buttonEl = null) {
+let isGeneratingPdf = false;
+
+async function downloadPdfFromItems(itemsHtml, filename, title, buttonEl = null) {
+  if (isGeneratingPdf) {
+    showToast('⏳ O PDF já está a ser gerado, por favor aguarde um momento...');
+    return;
+  }
+  isGeneratingPdf = true;
+
   const originalHtml = buttonEl ? buttonEl.innerHTML : '';
   if (buttonEl) {
     buttonEl.disabled = true;
@@ -22156,65 +22170,188 @@ async function downloadPdfFromElement(element, filename, title, buttonEl = null)
   showToast('⏳ A processar o documento em PDF de alta qualidade...');
 
   const cleanName = cleanFilename(filename || title || 'Documento') + '.pdf';
+  const printModalBody = document.getElementById('print-modal-body');
+
+  // Criar elemento de renderização limpo fora do ecrã para evitar falhas de flexbox, rolagem ou overflow do modal
+  const cleanEl = document.createElement('div');
+  cleanEl.className = 'ascd-pdf-render-scratch';
+  cleanEl.style.cssText = 'position:fixed; left:-9999px; top:0; width:794px; background:#ffffff; color:#1F2937; margin:0; padding:0; z-index:-9999; font-family:"Georgia","Times New Roman",serif; box-sizing:border-box;';
+  cleanEl.innerHTML = itemsHtml;
+
+  // Ajustar estilos das páginas para renderização precisa em A4
+  const pages = cleanEl.querySelectorAll('.document-page');
+  pages.forEach((p, idx) => {
+    p.style.boxShadow = 'none';
+    p.style.border = 'none';
+    p.style.margin = '0';
+    p.style.padding = '14mm 14mm 18mm 14mm';
+    p.style.width = '100%';
+    p.style.maxWidth = '100%';
+    p.style.background = '#FFFFFF';
+    p.style.boxSizing = 'border-box';
+    if (idx < pages.length - 1) {
+      p.style.pageBreakAfter = 'always';
+    }
+  });
+
+  document.body.appendChild(cleanEl);
+
+  let pdfBlob = null;
 
   try {
     if (typeof html2pdf !== 'undefined') {
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [0, 0, 0, 0],
         filename: cleanName,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'] }
       };
 
-      const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-
-      // No iPad e iOS: abrir Share Sheet nativo para "Guardar em Ficheiros"
-      try {
-        const pdfFile = new File([pdfBlob], cleanName, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-          await navigator.share({
-            files: [pdfFile],
-            title: title || cleanName
-          });
-          showToast('✅ PDF partilhado / guardado nos Ficheiros!');
-          return;
-        }
-      } catch (shareErr) {
-        if (shareErr.name === 'AbortError') return;
-        console.warn('Share error, downloading directly:', shareErr);
-      }
-
-      // Download direto do arquivo PDF
-      triggerDownload(pdfBlob, cleanName);
-      showToast('📥 Ficheiro PDF transferido com sucesso!');
-    } else {
-      window.print();
+      // Gerar blob PDF
+      pdfBlob = await html2pdf().set(opt).from(cleanEl).output('blob');
     }
   } catch (err) {
     console.error('Erro ao gerar PDF com html2pdf:', err);
-    showToast('⚠️ A tentar impressão nativa como alternativa...');
-    try {
-      window.print();
-    } catch (_) {}
   } finally {
+    if (cleanEl && cleanEl.parentNode) {
+      cleanEl.parentNode.removeChild(cleanEl);
+    }
     if (buttonEl) {
       buttonEl.disabled = false;
       buttonEl.innerHTML = originalHtml;
     }
+    isGeneratingPdf = false;
+  }
+
+  if (pdfBlob && pdfBlob.size > 0) {
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Apresentar banner com botão de ação direta em destaque no topo da pré-visualização
+    if (printModalBody) {
+      let readyBanner = document.getElementById('ascd-pdf-ready-banner');
+      if (!readyBanner) {
+        readyBanner = document.createElement('div');
+        readyBanner.id = 'ascd-pdf-ready-banner';
+        printModalBody.insertBefore(readyBanner, printModalBody.firstChild);
+      }
+
+      readyBanner.innerHTML = `
+        <div style="background:#ECFDF5; border:2px solid #10B981; border-radius:10px; padding:16px 20px; margin-bottom:20px; text-align:center; box-shadow:0 4px 12px rgba(16,185,129,0.15);">
+          <div style="font-size:16px; font-weight:700; color:#065F46; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span>✅</span> <span>PDF Pronto para Guardar!</span>
+          </div>
+          <p style="font-size:13px; color:#047857; margin:0 0 14px 0;">
+            O seu ficheiro <strong>"${cleanName}"</strong> foi gerado com sucesso.
+          </p>
+          <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap;">
+            <a href="${pdfUrl}" target="_blank" download="${cleanName}" class="btn btn-primary" id="btn-banner-open-pdf" style="background:#059669; border-color:#047857; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-weight:600; padding:9px 18px; border-radius:6px; color:#FFFFFF;">
+              📄 Abrir / Guardar PDF no iPad
+            </a>
+            <button type="button" class="btn btn-secondary" id="btn-banner-share-pdf" style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:6px;">
+              📤 Partilhar / Enviar
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-banner-direct-download" style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:6px;">
+              📥 Transferir Ficheiro
+            </button>
+          </div>
+          <div style="font-size:11px; color:#065F46; margin-top:10px; line-height:1.4;">
+            💡 <strong>No iPad:</strong> Toque em <strong>"Abrir / Guardar PDF no iPad"</strong> para abrir no visualizador nativo da Apple (onde pode tocar no ícone de partilha e escolher <em>"Guardar em Ficheiros"</em>) ou toque em <strong>"Partilhar"</strong> para salvar na sua pasta do iPad.
+          </div>
+        </div>
+      `;
+
+      // Atualizar botões do cabeçalho e rodapé do modal para abrir ou descarregar o PDF já gerado
+      const btnDownload = document.getElementById('btn-modal-download-pdf');
+      if (btnDownload) {
+        btnDownload.onclick = () => {
+          if (isIOS) {
+            window.open(pdfUrl, '_blank');
+          } else {
+            triggerDownload(pdfBlob, cleanName);
+          }
+        };
+      }
+      const btnFooterDownload = document.getElementById('btn-modal-footer-download-pdf');
+      if (btnFooterDownload) {
+        btnFooterDownload.onclick = () => {
+          if (isIOS) {
+            window.open(pdfUrl, '_blank');
+          } else {
+            triggerDownload(pdfBlob, cleanName);
+          }
+        };
+      }
+
+      // Handler para o botão Partilhar
+      const btnShare = document.getElementById('btn-banner-share-pdf');
+      if (btnShare) {
+        btnShare.onclick = async () => {
+          try {
+            const pdfFile = new File([pdfBlob], cleanName, { type: 'application/pdf' });
+            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+              await navigator.share({
+                files: [pdfFile],
+                title: title || cleanName
+              });
+              showToast('✅ PDF partilhado / guardado nos Ficheiros!');
+              return;
+            }
+          } catch (err) {
+            if (err.name !== 'AbortError') console.warn('Erro ao partilhar:', err);
+          }
+          window.open(pdfUrl, '_blank');
+        };
+      }
+
+      // Handler para o botão Transferir
+      const btnDirectDownload = document.getElementById('btn-banner-direct-download');
+      if (btnDirectDownload) {
+        btnDirectDownload.onclick = () => {
+          triggerDownload(pdfBlob, cleanName);
+        };
+      }
+    }
+
+    if (!isIOS) {
+      // No computador e Android, descarrega automaticamente
+      triggerDownload(pdfBlob, cleanName);
+      showToast('📥 Ficheiro PDF transferido com sucesso!');
+    } else {
+      showToast('🎉 PDF pronto! Toque em "Abrir / Guardar PDF no iPad" acima.');
+    }
+
+  } else {
+    // Se o html2pdf não conseguiu criar blob, fallback para impressão nativa
+    showToast('⚠️ A abrir impressão nativa do iPad...');
+    try {
+      window.print();
+    } catch (_) {}
   }
 }
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 3000);
 }
 
 function cleanFilename(str) {
