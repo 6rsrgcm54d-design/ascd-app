@@ -3357,6 +3357,10 @@ html, body {
   border-color: var(--accent-gold);
 }
 
+.print-only {
+  display: none;
+}
+
 /* ==========================================================================
    PRÉ-VISUALIZAÇÃO E IMPRESSÃO NATIVA PDF (Compatível com iPadOS & Safari)
    ========================================================================== */
@@ -3367,8 +3371,8 @@ html, body {
   gap: 20px;
 }
 
-#print-modal-body .document-page {
-  background: #FFFFFF;
+.document-page {
+  background: #FFFFFF !important;
   width: 100%;
   max-width: 210mm;
   min-height: 297mm;
@@ -3376,99 +3380,113 @@ html, body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   box-sizing: border-box;
-  color: #1F2937;
+  color: #1F2937 !important;
   font-family: 'Georgia', 'Times New Roman', serif;
   line-height: 1.65;
 }
 
-#print-modal-body .document-page h2.title {
+.document-page h2.title {
   font-size: 22px;
   margin-top: 0;
   margin-bottom: 12px;
-  color: #111827;
+  color: #111827 !important;
   border-bottom: 2px solid #D97706;
   padding-bottom: 6px;
 }
 
-#print-modal-body .document-page .content {
+.document-page .content {
   font-size: 14px;
   line-height: 1.7;
+  color: #1F2937 !important;
 }
 
-#print-modal-body .document-page img {
+.document-page img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
 @media print {
-  body {
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
     background: #FFFFFF !important;
     color: #000000 !important;
-    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Ocultar toda a interface de utilizador, barras, botões e modais */
   .app-layout,
-  .modal-overlay:not(#ascd-print-preview-modal),
-  #ascd-print-preview-modal .modal-header,
-  #ascd-print-preview-modal .modal-footer,
-  #ascd-pdf-ready-banner,
+  .modal-overlay,
   .btn-exit-fullscreen-floating,
-  .toast-container {
+  .toast-container,
+  #ascd-pdf-ready-banner {
     display: none !important;
   }
 
-  /* Exibir apenas a folha do documento sem decorações de ecrã */
-  #ascd-print-preview-modal {
+  /* Exibir apenas o container de impressão dedicado */
+  #ascd-print-container {
     display: block !important;
     position: static !important;
-    background: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
     width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    z-index: 99999999 !important;
-  }
-
-  #ascd-print-preview-modal .modal-dialog {
-    position: static !important;
-    box-shadow: none !important;
-    border: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    background: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  #print-modal-body {
     background: #FFFFFF !important;
+    color: #1F2937 !important;
     padding: 0 !important;
     margin: 0 !important;
     overflow: visible !important;
-    display: block !important;
   }
 
-  #print-modal-body .document-page {
+  #ascd-print-container .document-page {
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 12mm 15mm 15mm 15mm !important;
     width: 100% !important;
     max-width: 100% !important;
-    page-break-after: always;
+    min-height: auto !important;
+    background: #FFFFFF !important;
+    color: #1F2937 !important;
+    font-family: 'Georgia', 'Times New Roman', serif !important;
+    line-height: 1.65 !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
   }
 
-  #print-modal-body .document-page:last-child {
-    page-break-after: auto;
+  #ascd-print-container .document-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  #ascd-print-container .document-page h2.title {
+    font-size: 22px !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    color: #111827 !important;
+    border-bottom: 2px solid #D97706 !important;
+    padding-bottom: 6px !important;
+  }
+
+  #ascd-print-container .document-page .content {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    color: #1F2937 !important;
+  }
+
+  #ascd-print-container .document-page img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 15mm;
+    margin: 10mm;
   }
 }
 

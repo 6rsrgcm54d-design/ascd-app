@@ -4936,12 +4936,17 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     const btnDoPrint = document.getElementById('btn-modal-do-print');
     if (btnDoPrint) {
       btnDoPrint.onclick = () => {
-        try {
-          window.print();
-        } catch (err) {
-          console.error('Erro na chamada nativa de impressão:', err);
-          downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnDoPrint);
+        if (printContainer) {
+          printContainer.innerHTML = itemsHtml;
         }
+        setTimeout(() => {
+          try {
+            window.print();
+          } catch (err) {
+            console.error('Erro na chamada nativa de impressão:', err);
+            downloadPdfFromItems(itemsHtml, `ASCD_${cleanFilename(title)}`, title, btnDoPrint);
+          }
+        }, 100);
       };
     }
 
@@ -4974,10 +4979,10 @@ async function downloadPdfFromItems(itemsHtml, filename, title, buttonEl = null)
   const cleanName = cleanFilename(filename || title || 'Documento') + '.pdf';
   const printModalBody = document.getElementById('print-modal-body');
 
-  // Criar elemento de renderização limpo fora do ecrã para evitar falhas de flexbox, rolagem ou overflow do modal
+  // Criar elemento de renderização limpo no topo esquerdo (atrás da interface) para captura perfeita pelo canvas
   const cleanEl = document.createElement('div');
   cleanEl.className = 'ascd-pdf-render-scratch';
-  cleanEl.style.cssText = 'position:fixed; left:-9999px; top:0; width:794px; background:#ffffff; color:#1F2937; margin:0; padding:0; z-index:-9999; font-family:"Georgia","Times New Roman",serif; box-sizing:border-box;';
+  cleanEl.style.cssText = 'position:fixed; left:0; top:0; width:794px; background:#ffffff; color:#1F2937; margin:0; padding:0; z-index:-1; opacity:1; pointer-events:none; font-family:"Georgia","Times New Roman",serif; box-sizing:border-box;';
   cleanEl.innerHTML = itemsHtml;
 
   // Ajustar estilos das páginas para renderização precisa em A4
@@ -4990,6 +4995,7 @@ async function downloadPdfFromItems(itemsHtml, filename, title, buttonEl = null)
     p.style.width = '100%';
     p.style.maxWidth = '100%';
     p.style.background = '#FFFFFF';
+    p.style.color = '#1F2937';
     p.style.boxSizing = 'border-box';
     if (idx < pages.length - 1) {
       p.style.pageBreakAfter = 'always';
@@ -4997,6 +5003,18 @@ async function downloadPdfFromItems(itemsHtml, filename, title, buttonEl = null)
   });
 
   document.body.appendChild(cleanEl);
+
+  // Aguardar carregamento de quaisquer imagens (ex: Apple Pencil manuscrito)
+  const imgs = cleanEl.querySelectorAll('img');
+  if (imgs.length > 0) {
+    await Promise.all(Array.from(imgs).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    }));
+  }
 
   let pdfBlob = null;
 
@@ -5010,8 +5028,11 @@ async function downloadPdfFromItems(itemsHtml, filename, title, buttonEl = null)
           scale: 1.5,
           useCORS: true,
           logging: false,
+          x: 0,
+          y: 0,
           scrollX: 0,
           scrollY: 0,
+          width: 794,
           windowWidth: 794
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
