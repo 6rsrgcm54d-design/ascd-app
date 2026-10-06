@@ -1532,20 +1532,17 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:24px;">🖨️</span>
           <div>
-            <h3 style="margin:0;" id="print-modal-title">Pré-visualização do Documento PDF</h3>
-            <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir no iPad</span>
+            <h3 style="margin:0;" id="print-modal-title">Pré-visualização do Documento</h3>
+            <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir</span>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-download-pdf" style="background:#D97706; border-color:#B45309; display:inline-flex; align-items:center; gap:6px;" title="Gerar e descarregar ficheiro PDF / Guardar nos Ficheiros do iPad">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>📥 Guardar / Descarregar PDF</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn btn-primary" id="btn-modal-single-print" style="background:#D97706; border-color:#B45309; font-weight:700; padding:9px 20px; font-size:14px; display:inline-flex; align-items:center; gap:8px; border-radius:8px; box-shadow:0 2px 6px rgba(217,119,6,0.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            <span>🖨️ Guardar em PDF / Imprimir</span>
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-do-print" title="Abrir impressão nativa">
-            🖨️ Imprimir
-          </button>
-          <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')" title="Fechar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>
@@ -1555,13 +1552,8 @@
       </div>
 
       <div class="modal-footer" style="justify-content:space-between; flex-shrink:0; flex-wrap:wrap; gap:10px;">
-        <span style="font-size:12px; color:var(--text-muted);">💡 No iPad: Toque em <strong>"Guardar / Descarregar PDF"</strong> para transferir ou guardar direto na pasta <strong>Ficheiros / Arquivos</strong> do seu iPad.</span>
-        <div style="display:flex; gap:8px;">
-          <button type="button" class="btn btn-primary btn-sm" id="btn-modal-footer-download-pdf" style="background:#D97706; border-color:#B45309;">
-            📥 Guardar em PDF
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
-        </div>
+        <span style="font-size:13px; color:var(--text-muted);">💡 No iPad: Toque no botão laranja <strong>"Guardar em PDF / Imprimir"</strong> acima. Na tela da Apple, pode escolher salvar na pasta <strong>Ficheiros / Arquivos</strong> ou imprimir.</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
       </div>
     </div>
   </div>

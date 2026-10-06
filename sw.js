@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v17 com Network-First e Auto-Update
-const CACHE_NAME = 'ascd-cache-v17';
+// ASCD Service Worker - Versão v18 com Network-First e Auto-Update
+const CACHE_NAME = 'ascd-cache-v18';
 const ASSETS = [
   './',
   './index.html',
