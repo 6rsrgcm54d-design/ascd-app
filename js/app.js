@@ -1579,6 +1579,7 @@ function saveNoteFromModal() {
       ASCD.notes[idx].mode = ASCD.noteCurrentMode;
       ASCD.notes[idx].paperType = paperType;
       ASCD.notes[idx].content = content;
+      ASCD.notes[idx].updatedAt = new Date().toISOString();
       if (pencilDataUrl) ASCD.notes[idx].pencilDataUrl = pencilDataUrl;
       if (pencilRawDataUrl) ASCD.notes[idx].pencilRawDataUrl = pencilRawDataUrl;
     }
@@ -1592,7 +1593,8 @@ function saveNoteFromModal() {
       paperType,
       content,
       pencilDataUrl,
-      pencilRawDataUrl
+      pencilRawDataUrl,
+      updatedAt: new Date().toISOString()
     };
     ASCD.notes.unshift(newNote);
   }
@@ -2006,6 +2008,7 @@ function saveSermonFromModal() {
       ASCD.sermons[idx].mode = ASCD.sermonCurrentMode;
       ASCD.sermons[idx].paperType = paperType;
       ASCD.sermons[idx].content = content;
+      ASCD.sermons[idx].updatedAt = new Date().toISOString();
       if (pencilDataUrl) ASCD.sermons[idx].pencilDataUrl = pencilDataUrl;
       if (pencilRawDataUrl) ASCD.sermons[idx].pencilRawDataUrl = pencilRawDataUrl;
     }
@@ -2020,7 +2023,8 @@ function saveSermonFromModal() {
       paperType,
       content,
       pencilDataUrl,
-      pencilRawDataUrl
+      pencilRawDataUrl,
+      updatedAt: new Date().toISOString()
     };
     ASCD.sermons.unshift(newSermon);
   }
@@ -2513,18 +2517,41 @@ function saveCurrentJournalEntry(notify = true) {
     return;
   }
 
+  const old = ASCD.journalEntries[dateStr];
+  const finalTitle = title || `Diário de ${formatDateShort(dateStr)}`;
+
+  let isChanged = false;
+  if (!old) {
+    isChanged = true;
+  } else {
+    if (finalTitle !== old.title) isChanged = true;
+    if (verse !== (old.verse || '')) isChanged = true;
+    if (prayerClean !== (old.prayer ? old.prayer.replace(/<[^>]*>/g, '').trim() : '')) isChanged = true;
+    if (contentClean !== (old.content ? old.content.replace(/<[^>]*>/g, '').trim() : '')) isChanged = true;
+    if (pencilDataUrl && pencilDataUrl !== old.pencilDataUrl) isChanged = true;
+    if (paperType !== (old.paperType || 'pautada')) isChanged = true;
+    if (ASCD.journalCurrentMode !== (old.mode || 'hybrid')) isChanged = true;
+  }
+
+  // Se nada foi alterado e é salvamento de fundo/mudança de aba, NÃO alterar updatedAt nem disparar auto-sync desnecessário
+  if (!isChanged && !notify) {
+    return;
+  }
+
+  const newUpdatedAt = isChanged ? new Date().toISOString() : (old && old.updatedAt ? old.updatedAt : new Date().toISOString());
+
   ASCD.journalEntries[dateStr] = {
     date: dateStr,
-    title: title || `Diário de ${formatDateShort(dateStr)}`,
+    title: finalTitle,
     verse,
     prayer,
     tasks: existingTasks,
     mode: ASCD.journalCurrentMode,
     paperType,
     content,
-    pencilDataUrl,
-    pencilRawDataUrl,
-    updatedAt: new Date().toISOString()
+    pencilDataUrl: pencilDataUrl || (old ? old.pencilDataUrl : null),
+    pencilRawDataUrl: pencilRawDataUrl || (old ? old.pencilRawDataUrl : null),
+    updatedAt: newUpdatedAt
   };
 
   saveJournalEntries();
@@ -3480,6 +3507,23 @@ function saveCurrentBiblePageStudy(notify = true) {
     return;
   }
 
+  const old = ASCD.biblePageNotes[key];
+  let isChanged = false;
+  if (!old) {
+    isChanged = true;
+  } else {
+    if (cleanText !== (old.content ? old.content.replace(/<br\s*\/?>/gi, '').trim() : '')) isChanged = true;
+    if (pencilDataUrl && pencilDataUrl !== old.pencilDataUrl) isChanged = true;
+    if (paperType !== (old.paperType || 'pergaminho')) isChanged = true;
+    if (ASCD.splitCurrentMode !== (old.mode || 'pencil')) isChanged = true;
+  }
+
+  if (!isChanged && !notify) {
+    return;
+  }
+
+  const newUpdatedAt = isChanged ? new Date().toISOString() : (old && old.updatedAt ? old.updatedAt : new Date().toISOString());
+
   const paperType = ASCD.splitPencilEngine ? ASCD.splitPencilEngine.paperType : 'pergaminho';
   const verObj = BIBLE_VERSIONS.find(v => v.id === ASCD.currentBibleVersion) || { shortName: 'BPT' };
 
@@ -3491,10 +3535,10 @@ function saveCurrentBiblePageStudy(notify = true) {
     title: `Estudo: ${bookName} ${chap} (${verObj.shortName})`,
     content: textContent,
     paperType,
-    pencilDataUrl,
-    pencilRawDataUrl,
+    pencilDataUrl: pencilDataUrl || (old ? old.pencilDataUrl : null),
+    pencilRawDataUrl: pencilRawDataUrl || (old ? old.pencilRawDataUrl : null),
     mode: ASCD.splitCurrentMode,
-    updatedAt: new Date().toISOString()
+    updatedAt: newUpdatedAt
   };
   saveBiblePageNotes();
 
@@ -3509,8 +3553,9 @@ function saveCurrentBiblePageStudy(notify = true) {
     mode: ASCD.splitCurrentMode,
     paperType,
     content: textContent,
-    pencilDataUrl,
-    pencilRawDataUrl
+    pencilDataUrl: pencilDataUrl || (old ? old.pencilDataUrl : null),
+    pencilRawDataUrl: pencilRawDataUrl || (old ? old.pencilRawDataUrl : null),
+    updatedAt: newUpdatedAt
   };
 
   if (existingIdx !== -1) {
@@ -4355,7 +4400,8 @@ async function executeSheetsSync(webhookUrl, isAuto = false) {
       date: n.date,
       content: n.content,
       mode: n.mode || 'hybrid',
-      paperType: n.paperType || 'pautada'
+      paperType: n.paperType || 'pautada',
+      updatedAt: n.updatedAt || n.date || new Date().toISOString()
     })),
     sermons: (ASCD.sermons || []).map(s => ({
       id: s.id,
@@ -4364,7 +4410,8 @@ async function executeSheetsSync(webhookUrl, isAuto = false) {
       preacher: s.preacher,
       date: s.date,
       content: s.content,
-      mode: s.mode || 'hybrid'
+      mode: s.mode || 'hybrid',
+      updatedAt: s.updatedAt || s.date || new Date().toISOString()
     })),
     journalEntries: getCleanJournalEntriesForSync(),
     biblePageNotes: getCleanBibleNotesForSync()
@@ -4379,9 +4426,8 @@ async function executeSheetsSync(webhookUrl, isAuto = false) {
   };
 
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
-      mode: 'no-cors',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8'
       },
@@ -4392,7 +4438,7 @@ async function executeSheetsSync(webhookUrl, isAuto = false) {
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     updateSyncPillBadge('success', timeStr);
     if (!isAuto) {
-      showToast(`✅ Google Sheets sincronizado e fundido com sucesso! (${records.length} registros)`);
+      showToast(`✅ Google Sheets sincronizado com sucesso! (${records.length} registros consolidados)`);
     }
   } catch (err) {
     console.warn('Sheets auto-sync notice:', err);
@@ -4418,7 +4464,8 @@ function getCleanJournalEntriesForSync() {
         tasks: j.tasks || [],
         content: j.content || '',
         mode: j.mode || 'hybrid',
-        updatedAt: j.updatedAt || dateStr
+        paperType: j.paperType || 'pautada',
+        updatedAt: j.updatedAt || dateStr || new Date().toISOString()
       };
     }
   });
@@ -4436,6 +4483,8 @@ function getCleanBibleNotesForSync() {
         chapterNum: b.chapterNum || 1,
         title: b.title || '',
         content: b.content || '',
+        mode: b.mode || 'pencil',
+        paperType: b.paperType || 'pergaminho',
         updatedAt: b.updatedAt || new Date().toISOString()
       };
     }
@@ -4522,7 +4571,7 @@ async function pullFromGoogleSheets(silent = false) {
             const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
             const remoteIsNewer = remoteTime >= localTime;
 
-            if (remoteIsNewer || (!local.content && remoteSermon.content)) {
+            if (remoteIsNewer || (!local.content && remoteNote.content)) {
               if (remoteSermon.title) local.title = remoteSermon.title;
               if (remoteSermon.passage) local.passage = remoteSermon.passage;
               if (remoteSermon.preacher) local.preacher = remoteSermon.preacher;
@@ -4553,30 +4602,43 @@ async function pullFromGoogleSheets(silent = false) {
             const remoteIsNewer = remoteTime >= localTime;
 
             let changed = false;
+
+            // Merge inteligente de tarefas por ID (nunca apaga tarefas existentes)
+            const taskMap = new Map();
+            (remoteJ.tasks || []).forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
+            (localJ.tasks || []).forEach(t => {
+              if (t && t.id) {
+                if (!taskMap.has(t.id) || !remoteIsNewer) {
+                  taskMap.set(t.id, t);
+                }
+              }
+            });
+            const mergedTasks = Array.from(taskMap.values());
+            if (JSON.stringify(mergedTasks) !== JSON.stringify(localJ.tasks || [])) {
+              localJ.tasks = mergedTasks;
+              changed = true;
+            }
+
             if (remoteIsNewer) {
               if (remoteJ.title && remoteJ.title !== localJ.title) { localJ.title = remoteJ.title; changed = true; }
               if (remoteJ.verse !== undefined && remoteJ.verse !== localJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
               if (remoteJ.prayer !== undefined && remoteJ.prayer !== localJ.prayer) { localJ.prayer = remoteJ.prayer; changed = true; }
               if (remoteJ.content !== undefined && remoteJ.content !== localJ.content) { localJ.content = remoteJ.content; changed = true; }
-              if (remoteJ.tasks && Array.isArray(remoteJ.tasks)) { localJ.tasks = remoteJ.tasks; changed = true; }
               if (remoteJ.pencilDataUrl && !localJ.pencilDataUrl) { localJ.pencilDataUrl = remoteJ.pencilDataUrl; changed = true; }
               if (remoteJ.paperType) localJ.paperType = remoteJ.paperType;
               if (remoteJ.mode) localJ.mode = remoteJ.mode;
               if (remoteJ.updatedAt) localJ.updatedAt = remoteJ.updatedAt;
             } else {
-              // Preencher campos que faltam no local
+              // Preencher campos que faltam no local mesmo que o local pareça mais recente
               if ((!localJ.title || localJ.title.startsWith('Diário de')) && remoteJ.title && !remoteJ.title.startsWith('Diário de')) {
                 localJ.title = remoteJ.title; changed = true;
               }
               if (!localJ.verse && remoteJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
-              if ((!localJ.prayer || localJ.prayer === '<br>') && remoteJ.prayer && remoteJ.prayer !== '<br>') {
+              if ((!localJ.prayer || localJ.prayer === '<br>' || localJ.prayer === '<p><br></p>') && remoteJ.prayer && remoteJ.prayer !== '<br>') {
                 localJ.prayer = remoteJ.prayer; changed = true;
               }
-              if ((!localJ.content || localJ.content === '<br>') && remoteJ.content && remoteJ.content !== '<br>') {
+              if ((!localJ.content || localJ.content === '<br>' || localJ.content === '<p><br></p>') && remoteJ.content && remoteJ.content !== '<br>') {
                 localJ.content = remoteJ.content; changed = true;
-              }
-              if ((!localJ.tasks || localJ.tasks.length === 0) && remoteJ.tasks && remoteJ.tasks.length > 0) {
-                localJ.tasks = remoteJ.tasks; changed = true;
               }
               if (!localJ.pencilDataUrl && remoteJ.pencilDataUrl) {
                 localJ.pencilDataUrl = remoteJ.pencilDataUrl; changed = true;
@@ -4754,7 +4816,7 @@ async function testGoogleSheetsConnection() {
   }
 
   try {
-    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'ping=1', { method: 'GET' });
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'action=ping', { method: 'GET' });
     const data = await res.json();
     if (data && data.status === 'online') {
       if (statusEl) {

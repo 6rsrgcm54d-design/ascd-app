@@ -139,7 +139,7 @@ function salvarOuFundirBackup(ss, rawItems, deletedIds) {
         map.set(id, {
           id: id,
           type: 'note',
-          updatedAt: n.date || new Date().toISOString(),
+          updatedAt: n.updatedAt || n.date || new Date().toISOString(),
           json: JSON.stringify(n)
         });
       }
@@ -154,7 +154,7 @@ function salvarOuFundirBackup(ss, rawItems, deletedIds) {
         map.set(id, {
           id: id,
           type: 'sermon',
-          updatedAt: s.date || new Date().toISOString(),
+          updatedAt: s.updatedAt || s.date || new Date().toISOString(),
           json: JSON.stringify(s)
         });
       }
@@ -193,17 +193,24 @@ function salvarOuFundirBackup(ss, rawItems, deletedIds) {
     });
   }
 
-  // Gravar tudo no _ASCD_BACKUP_
+  // Gravar tudo no _ASCD_BACKUP_ com proteção de tamanho de célula
   sheet.clearContents();
   const rows = [['ID', 'TIPO', 'UPDATED_AT', 'JSON']];
   map.forEach(item => {
-    rows.push([item.id, item.type, item.updatedAt, item.json]);
+    let jsonStr = String(item.json || '');
+    if (jsonStr.length > 48000) {
+      jsonStr = jsonStr.substring(0, 48000);
+    }
+    rows.push([item.id, item.type, item.updatedAt, jsonStr]);
   });
-  sheet.getRange(1, 1, rows.length, 4).setValues(rows);
+  if (rows.length > 1) {
+    sheet.getRange(1, 1, rows.length, 4).setValues(rows);
+  }
 }
 
 /**
- * Lê os dados consolidados para enviar à aplicação quando ela abre
+ * Lê os dados consolidados para enviar à aplicação quando ela abre.
+ * Combina o backup estruturado com as 4 abas visuais para garantir que NENHUM dado se perca.
  */
 function lerDadosParaApp(ss) {
   const result = {
@@ -223,9 +230,9 @@ function lerDadosParaApp(ss) {
       try {
         const obj = JSON.parse(jsonStr);
         if (type === 'note') {
-          result.notes.push(obj);
+          if (obj.id) result.notes.push(obj);
         } else if (type === 'sermon') {
-          result.sermons.push(obj);
+          if (obj.id) result.sermons.push(obj);
         } else if (type === 'journal') {
           if (obj.date) result.journalEntries[obj.date] = obj;
         } else if (type === 'bible') {
@@ -234,16 +241,15 @@ function lerDadosParaApp(ss) {
         }
       } catch (_) {}
     });
-    return result;
   }
 
-  // Fallback: se _ASCD_BACKUP_ ainda não existe, lê das 4 abas visuais
+  // Sempre consolidar com as 4 abas visuais para recuperar anotações criadas ou editadas diretamente na folha
   reconstruirAPartirDasAbasVisuais(ss, result);
   return result;
 }
 
 /**
- * Reconstrói objetos a partir das 4 abas visuais se _ASCD_BACKUP_ ainda estiver vazio
+ * Reconstrói e funde objetos a partir das 4 abas visuais
  */
 function reconstruirAPartirDasAbasVisuais(ss, result) {
   // 1. Caderno de Estudos
@@ -253,14 +259,25 @@ function reconstruirAPartirDasAbasVisuais(ss, result) {
     vals.forEach(r => {
       const id = String(r[0] || '').trim();
       if (id) {
-        result.notes.push({
+        const existingIdx = result.notes.findIndex(n => n.id === id);
+        const upDate = String(r[6] || r[1] || '').trim();
+        const noteObj = {
           id: id,
           date: String(r[1] || ''),
           title: String(r[2] || ''),
           category: String(r[3] || 'Estudo Bíblico'),
           content: String(r[4] || ''),
-          mode: 'hybrid'
-        });
+          mode: 'hybrid',
+          updatedAt: upDate || new Date().toISOString()
+        };
+        if (existingIdx === -1) {
+          result.notes.push(noteObj);
+        } else {
+          // Completar campos se faltarem
+          if (!result.notes[existingIdx].title && noteObj.title) result.notes[existingIdx].title = noteObj.title;
+          if (!result.notes[existingIdx].content && noteObj.content) result.notes[existingIdx].content = noteObj.content;
+          if (!result.notes[existingIdx].updatedAt) result.notes[existingIdx].updatedAt = noteObj.updatedAt;
+        }
       }
     });
   }
@@ -272,35 +289,73 @@ function reconstruirAPartirDasAbasVisuais(ss, result) {
     vals.forEach(r => {
       const id = String(r[0] || '').trim();
       if (id) {
-        result.sermons.push({
+        const existingIdx = result.sermons.findIndex(s => s.id === id);
+        const upDate = String(r[7] || r[1] || '').trim();
+        const sermonObj = {
           id: id,
           date: String(r[1] || ''),
           title: String(r[2] || ''),
           passage: String(r[3] || ''),
           preacher: String(r[4] || ''),
           content: String(r[5] || ''),
-          mode: 'hybrid'
-        });
+          mode: 'hybrid',
+          updatedAt: upDate || new Date().toISOString()
+        };
+        if (existingIdx === -1) {
+          result.sermons.push(sermonObj);
+        } else {
+          if (!result.sermons[existingIdx].title && sermonObj.title) result.sermons[existingIdx].title = sermonObj.title;
+          if (!result.sermons[existingIdx].content && sermonObj.content) result.sermons[existingIdx].content = sermonObj.content;
+          if (!result.sermons[existingIdx].updatedAt) result.sermons[existingIdx].updatedAt = sermonObj.updatedAt;
+        }
       }
     });
   }
 
-  // 3. Diário
+  // 3. Diário (Journal)
   const sheetDiario = ss.getSheetByName('Journaling (Calendário)') || ss.getSheetByName('Diário');
   if (sheetDiario && sheetDiario.getLastRow() > 1) {
     const vals = sheetDiario.getRange(2, 1, sheetDiario.getLastRow() - 1, 8).getValues();
     vals.forEach(r => {
       const dateStr = String(r[0] || '').trim();
       if (dateStr) {
-        result.journalEntries[dateStr] = {
-          date: dateStr,
-          title: String(r[1] || ''),
-          verse: String(r[2] || ''),
-          prayer: String(r[3] || ''),
-          tasks: [],
-          content: String(r[5] || ''),
-          mode: 'hybrid'
-        };
+        let tasks = [];
+        const rawTasks = String(r[4] || '').trim();
+        if (rawTasks) {
+          if (rawTasks.startsWith('[') && rawTasks.endsWith(']')) {
+            try { tasks = JSON.parse(rawTasks); } catch (_) {}
+          }
+          if (!tasks || tasks.length === 0) {
+            tasks = rawTasks.split('|').map((part, idx) => {
+              const clean = part.trim();
+              const isDone = clean.startsWith('[X]') || clean.startsWith('[x]');
+              const text = clean.replace(/^\[[Xx\s]\]\s*/, '').trim();
+              return { id: `task-sheet-${dateStr}-${idx}`, text, done: isDone };
+            }).filter(t => t.text.length > 0);
+          }
+        }
+
+        const upDate = String(r[7] || dateStr).trim();
+        if (!result.journalEntries[dateStr]) {
+          result.journalEntries[dateStr] = {
+            date: dateStr,
+            title: String(r[1] || ''),
+            verse: String(r[2] || ''),
+            prayer: String(r[3] || ''),
+            tasks: tasks,
+            content: String(r[5] || ''),
+            mode: 'hybrid',
+            updatedAt: upDate || new Date().toISOString()
+          };
+        } else {
+          const j = result.journalEntries[dateStr];
+          if (!j.title && r[1]) j.title = String(r[1]);
+          if (!j.verse && r[2]) j.verse = String(r[2]);
+          if (!j.prayer && r[3]) j.prayer = String(r[3]);
+          if ((!j.tasks || j.tasks.length === 0) && tasks.length > 0) j.tasks = tasks;
+          if (!j.content && r[5]) j.content = String(r[5]);
+          if (!j.updatedAt) j.updatedAt = upDate;
+        }
       }
     });
   }
@@ -313,10 +368,14 @@ function reconstruirAPartirDasAbasVisuais(ss, result) {
       const id = String(r[0] || '').trim();
       if (id) {
         const key = id.replace('BIBLIA-', '');
-        result.biblePageNotes[key] = {
-          title: String(r[3] || ''),
-          content: String(r[4] || '')
-        };
+        const upDate = String(r[6] || '').trim();
+        if (!result.biblePageNotes[key]) {
+          result.biblePageNotes[key] = {
+            title: String(r[3] || ''),
+            content: String(r[4] || ''),
+            updatedAt: upDate || new Date().toISOString()
+          };
+        }
       }
     });
   }
