@@ -2905,14 +2905,90 @@ html, body {
   display: block;
 }
 
+/* ==========================================================================
+   ESTADO ATIVO DE IMPRESSÃO (Compatibilidade Total com iPadOS, Safari & Desktop)
+   Aplicado no HTML e BODY durante o disparo para libertar restrições de layout
+   ========================================================================== */
+html.ascd-printing,
+body.ascd-printing {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+  position: static !important;
+  background: #FFFFFF !important;
+  color: #1F2937 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.ascd-printing .app-layout,
+body.ascd-printing .modal-overlay,
+body.ascd-printing .toast-container,
+body.ascd-printing .btn-exit-fullscreen-floating {
+  display: none !important;
+}
+
+body.ascd-printing #ascd-print-container {
+  display: block !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background: #FFFFFF !important;
+  color: #1F2937 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+body.ascd-printing #ascd-print-container .document-page {
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 12mm 15mm 15mm 15mm !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: auto !important;
+  background: #FFFFFF !important;
+  color: #1F2937 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  line-height: 1.65 !important;
+  box-sizing: border-box !important;
+  page-break-after: always !important;
+  break-after: page !important;
+}
+
+body.ascd-printing #ascd-print-container .document-page:last-child {
+  page-break-after: auto !important;
+  break-after: auto !important;
+}
+
+body.ascd-printing #ascd-print-container .document-page h2.title {
+  font-size: 22px !important;
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+  color: #111827 !important;
+  border-bottom: 2px solid #D97706 !important;
+  padding-bottom: 6px !important;
+}
+
+body.ascd-printing #ascd-print-container .document-page .content {
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  color: #1F2937 !important;
+}
+
 @media print {
   html, body {
+    display: block !important;
     width: 100% !important;
     height: auto !important;
     min-height: 100% !important;
     overflow: visible !important;
+    position: static !important;
     background: #FFFFFF !important;
-    color: #000000 !important;
+    color: #1F2937 !important;
     margin: 0 !important;
     padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
@@ -2933,6 +3009,7 @@ html, body {
     display: block !important;
     position: static !important;
     width: 100% !important;
+    max-width: 100% !important;
     background: #FFFFFF !important;
     color: #1F2937 !important;
     padding: 0 !important;
@@ -2950,7 +3027,7 @@ html, body {
     min-height: auto !important;
     background: #FFFFFF !important;
     color: #1F2937 !important;
-    font-family: 'Georgia', 'Times New Roman', serif !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     line-height: 1.65 !important;
     box-sizing: border-box !important;
     page-break-after: always !important;

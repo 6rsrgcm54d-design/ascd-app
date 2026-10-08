@@ -4129,7 +4129,7 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     const oldBanner = document.getElementById('ascd-pdf-ready-banner');
     if (oldBanner) oldBanner.remove();
 
-    // Botão ÚNICO: Guardar em PDF / Imprimir
+    // Botão ÚNICO principal: Guardar em PDF / Imprimir
     const btnSinglePrint = document.getElementById('btn-modal-single-print');
     if (btnSinglePrint) {
       btnSinglePrint.onclick = () => {
@@ -4137,129 +4137,91 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
       };
     }
 
+    // Botão secundário no rodapé: Descarregar .PDF Direto
+    const btnDirectPdf = document.getElementById('btn-modal-download-direct-pdf');
+    if (btnDirectPdf) {
+      btnDirectPdf.onclick = () => {
+        downloadDirectPdf(itemsHtml, title);
+      };
+    }
+
     printModal.classList.add('open');
-    showToast('📄 Documento pronto! Toque no botão "Guardar em PDF / Imprimir"');
+    showToast('📄 Pré-visualização pronta! Toque em "Guardar em PDF / Imprimir"');
   } else {
     triggerCleanPrint(itemsHtml, title);
   }
 }
 
 /**
- * Disparar impressão / geração de PDF 100% limpa e com conteúdo completo
- * Utiliza iframe isolado sem herança de overflow da app ou bloqueios do Safari/iPadOS
+ * Disparar impressão / geração de PDF 100% limpa, nítida e sem páginas em branco
+ * Compatibilidade total e comprovada com iPadOS, iOS Safari, macOS e Windows Desktop
  */
 function triggerCleanPrint(itemsHtml, title) {
   showToast('🖨️ A abrir diálogo de PDF / Impressão...');
 
-  // 1. Remover iframe anterior se existir
-  const oldFrame = document.getElementById('ascd-print-isolated-frame');
-  if (oldFrame) oldFrame.remove();
-
-  // 2. Atualizar container de impressão de emergência
+  // 1. Atualizar o container dedicado no DOM principal
   const printContainer = document.getElementById('ascd-print-container');
-  if (printContainer) printContainer.innerHTML = itemsHtml;
+  if (printContainer) {
+    printContainer.innerHTML = itemsHtml;
+  }
 
-  // 3. Criar novo iframe isolado invisível
-  const iframe = document.createElement('iframe');
-  iframe.id = 'ascd-print-isolated-frame';
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.style.visibility = 'hidden';
-  document.body.appendChild(iframe);
+  // 2. Colocar o DOM ativo em modo de impressão dedicado
+  // Remove temporariamente restrições de overflow:hidden e flexbox do iPadOS
+  document.documentElement.classList.add('ascd-printing');
+  document.body.classList.add('ascd-printing');
 
-  const doc = iframe.contentWindow || iframe.contentDocument;
-  const iframeDoc = doc.document || doc;
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    document.documentElement.classList.remove('ascd-printing');
+    document.body.classList.remove('ascd-printing');
+    window.removeEventListener('afterprint', cleanup);
+  };
 
-  iframeDoc.open();
-  iframeDoc.write(`<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8">
-  <title>${escapeHtml(title || 'Documento ASCD')}</title>
-  <style>
-    @page {
-      size: A4 portrait;
-      margin: 15mm 12mm 15mm 12mm;
-    }
-    * {
-      box-sizing: border-box;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #FFFFFF !important;
-      color: #1F2937 !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .document-page {
-      background: #FFFFFF !important;
-      color: #1F2937 !important;
-      margin: 0 0 20px 0;
-      padding: 0;
-      page-break-after: always;
-      break-after: page;
-    }
-    .document-page:last-child {
-      page-break-after: avoid;
-      break-after: avoid;
-    }
-    .document-page h2.title {
-      font-size: 22px;
-      font-weight: 700;
-      color: #1E3A8A;
-      margin: 0 0 12px 0;
-      padding-bottom: 6px;
-      border-bottom: 2px solid #3B82F6;
-    }
-    .document-page img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-    .document-page .content {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #374151;
-    }
-  </style>
-</head>
-<body>
-  ${itemsHtml}
-</body>
-</html>`);
-  iframeDoc.close();
+  window.addEventListener('afterprint', cleanup);
 
-  // 4. Garantir carregamento de imagens antes de chamar print()
-  const imgs = iframeDoc.querySelectorAll('img');
-  const imgPromises = Array.from(imgs).map(img => {
-    if (img.complete) return Promise.resolve();
-    return new Promise(res => {
-      img.onload = res;
-      img.onerror = res;
-      setTimeout(res, 2000);
+  // 3. Pequeno intervalo para o WebKit/Safari recalcular a geometria antes de abrir o diálogo
+  setTimeout(() => {
+    try {
+      window.print();
+    } catch (err) {
+      console.error('Erro na impressão nativa:', err);
+    }
+    // Fallback de restauração caso o evento afterprint não seja emitido no Safari móvel
+    setTimeout(cleanup, 1500);
+  }, 200);
+}
+
+/**
+ * Descarregar ficheiro .PDF diretamente via biblioteca html2pdf
+ */
+function downloadDirectPdf(itemsHtml, title) {
+  showToast('⏳ A gerar ficheiro PDF...');
+  const element = document.getElementById('print-modal-body');
+  if (!element) {
+    triggerCleanPrint(itemsHtml, title);
+    return;
+  }
+
+  if (typeof html2pdf !== 'undefined') {
+    const filename = cleanFilename(title || 'ASCD_Documento') + '.pdf';
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => {
+      showToast('✅ Ficheiro PDF transferido com sucesso!');
+    }).catch(err => {
+      console.warn('html2pdf encontrou um erro, a recorrer à impressão nativa:', err);
+      triggerCleanPrint(itemsHtml, title);
     });
-  });
-
-  Promise.all(imgPromises).then(() => {
-    setTimeout(() => {
-      try {
-        const frameWin = iframe.contentWindow;
-        frameWin.focus();
-        frameWin.print();
-      } catch (err) {
-        console.error('Erro na impressão por iframe:', err);
-        window.print();
-      }
-    }, 300);
-  });
+  } else {
+    triggerCleanPrint(itemsHtml, title);
+  }
 }
 
 function triggerDownload(blob, filename) {
