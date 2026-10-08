@@ -1,6 +1,6 @@
 /* ==========================================================================
    ASCD - Devocional & Estudo Bíblico
-   Design System & Estilos - Otimizado para iPadOS, Apple Pencil & Desktop
+   Design System & Estilos - Otimizado para iPadOS & Desktop
    ========================================================================== */
 
 :root {
@@ -337,13 +337,6 @@ html, body {
   display: block;
 }
 
-/* Específico para o Caderno Pencil (sem rolagem padrão, canvas livre) */
-#sec-pencil-caderno.active {
-  padding: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
 
 /* MODO DIVIDIDO (SPLIT VIEW) */
 .split-workspace-panel {
@@ -792,309 +785,6 @@ html, body {
   color: var(--accent-gold);
   margin-right: 12px;
 }
-
-/* CADERNO APPLE PENCIL FULLSCREEN & STUDIO */
-.pencil-studio-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: var(--bg-app);
-}
-
-/* Barra de Ferramentas Flutuante Apple Pencil */
-.pencil-floating-toolbar {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: var(--shadow-lg);
-  z-index: 40;
-  max-width: 95%;
-  overflow-x: auto;
-}
-
-[data-theme="escuro"] .pencil-floating-toolbar {
-  background: rgba(22, 27, 34, 0.9);
-}
-
-.toolbar-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--border-color);
-}
-
-.pencil-tool-btn {
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
-
-.pencil-tool-btn:hover {
-  background: var(--bg-surface-hover);
-  color: var(--text-primary);
-}
-
-.pencil-tool-btn.active {
-  background: var(--primary);
-  color: #FFF;
-}
-
-/* Grupo de Pílula das Ferramentas da Caneta (Caneta / Borracha) */
-.pencil-tools-pill {
-  display: inline-flex;
-  align-items: center;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  padding: 2px;
-  gap: 2px;
-  box-shadow: var(--shadow-sm);
-}
-
-.pencil-tools-pill .pencil-tool-btn {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.15s ease;
-  line-height: 1.4;
-}
-
-.pencil-tools-pill .pencil-tool-btn:hover {
-  background: var(--bg-surface-hover);
-  color: var(--text-primary);
-}
-
-.pencil-tools-pill .pencil-tool-btn.active {
-  background: var(--accent-gold);
-  color: #FFFFFF;
-}
-
-[data-theme="escuro"] .pencil-tools-pill .pencil-tool-btn.active {
-  background: var(--accent-gold);
-  color: #FFFFFF;
-}
-
-/* Indicador de Palma (Palm Rejection) */
-.btn-palm {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: var(--radius-full);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-
-.btn-palm.active {
-  background: #DCFCE7;
-  color: #166534;
-  border-color: #86EFAC;
-}
-
-[data-theme="escuro"] .btn-palm.active {
-  background: rgba(22, 101, 52, 0.3);
-  color: #86EFAC;
-  border-color: #166534;
-}
-
-/* Paleta de Cores de Caligrafia */
-.color-palette-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.color-palette-item {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.15s, border-color 0.15s;
-}
-
-.color-palette-item:hover {
-  transform: scale(1.15);
-}
-
-.color-palette-item.selected {
-  transform: scale(1.2);
-  border-color: #FFF;
-  box-shadow: 0 0 0 2px var(--accent-gold);
-}
-
-/* Seletor de Espessura do Traço da Caneta Apple Pencil */
-.pencil-size-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  background: var(--bg-surface-elevated, rgba(0, 0, 0, 0.04));
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-color);
-}
-
-.btn-pencil-size {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s ease;
-}
-
-.btn-pencil-size:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-}
-
-.btn-pencil-size.active {
-  background: var(--accent-primary);
-  color: #FFFFFF;
-  border-color: var(--accent-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.size-dot {
-  background: currentColor;
-  border-radius: 50%;
-  display: block;
-}
-
-/* Área do Canvas */
-.pencil-canvas-viewport {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  padding: 80px 20px 20px 20px;
-}
-
-.drawing-canvas-element {
-  touch-action: none; /* ESSENCIAL PARA EVITAR ROLAGEM AO ESCREVER COM APPLE PENCIL */
-  background: transparent;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  display: block;
-  cursor: crosshair;
-  width: 900px;
-  max-width: 100%;
-  min-height: 1100px;
-}
-
-/* Abas de Folhas (Caderno Múltiplo) */
-.canvas-sheets-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-color);
-  overflow-x: auto;
-}
-
-.sheet-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.sheet-tab.active {
-  border-color: var(--accent-gold);
-  background: var(--accent-gold-light);
-  color: var(--primary);
-}
-
-.sheet-del-btn {
-  background: transparent;
-  border: none;
-  font-size: 16px;
-  color: var(--text-muted);
-  cursor: pointer;
-  line-height: 1;
-}
-
-/* Bloco Dividido de Apple Pencil */
-.split-toolbar {
-  padding: 10px 14px;
-  background: var(--bg-surface-elevated);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.split-canvas-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
-.split-canvas-element {
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  display: block;
-}
-
 /* Anotações de Texto / Sermões */
 .notes-container {
   max-width: 1000px;
@@ -1203,30 +893,7 @@ html, body {
   justify-content: flex-end;
 }
 
-/* Estilos do Caderno de Notas Híbrido (Teclado & Apple Pencil) */
-.note-mode-tag {
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: var(--radius-sm);
-  padding: 2px 6px;
-  background: var(--bg-app);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
 
-.note-card-pencil-thumb {
-  width: 100%;
-  height: 120px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: #FFF;
-  object-fit: cover;
-  margin-bottom: 12px;
-  display: block;
-  flex-shrink: 0;
-}
 
 .modal-dialog-large {
   max-width: 900px !important;
@@ -1238,27 +905,7 @@ html, body {
   margin-bottom: 16px;
 }
 
-.note-canvas-container {
-  width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: #FFF;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
 
-.note-canvas-element {
-  width: 100%;
-  min-height: 380px;
-  touch-action: none; /* Previne scroll no iPad durante escrita */
-  display: block;
-  cursor: crosshair;
-}
-
-/* ==========================================================================
-   TIPOS DE FOLHAS PARA ESCRITA COM APPLE PENCIL
-   Pautada (com Linhas), Quadriculada (Matemática), Pontilhada, Papiro, Lisa
-   ========================================================================== */
 
 /* 1. Folha Pautada com Linhas Clássicas e Margem Vermelha */
 .paper-pautada {
@@ -1699,39 +1346,7 @@ html, body {
   border-radius: var(--radius-sm);
 }
 
-/* Seletor de Modo Pílula (Híbrido / Teclado / Apple Pencil) */
-.input-mode-pill-selector {
-  display: inline-flex;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  padding: 3px;
-  gap: 2px;
-}
 
-.mode-pill-btn {
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-full);
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.mode-pill-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-surface-hover);
-}
-
-.mode-pill-btn.active {
-  background: var(--primary);
-  color: #FFF;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
 
 /* ==========================================================================
    LAYOUT DE JOURNALING & CALENDÁRIO
@@ -2211,7 +1826,7 @@ html, body {
   color: var(--text-muted);
 }
 
-/* Modo Dividido (Split View) com Teclado + Apple Pencil */
+/* Modo Dividido (Split View) */
 .split-header-bar {
   padding: 12px 16px;
   background: var(--bg-surface-elevated);
@@ -2252,21 +1867,8 @@ html, body {
 }
 
 /* ==========================================================================
-   OTIMIZAÇÕES NATIVAS PARA IPADOS, SAFARI & APPLE PENCIL
+   OTIMIZAÇÕES NATIVAS PARA IPADOS & SAFARI
    ========================================================================== */
-
-/* Previne zoom acidental, seleção e menus popup durante a escrita com Apple Pencil */
-.drawing-canvas-element,
-.split-canvas-element,
-.note-canvas-element,
-.journal-canvas-element,
-canvas {
-  touch-action: none !important;
-  -webkit-touch-callout: none !important;
-  -webkit-user-select: none !important;
-  user-select: none !important;
-  overscroll-behavior: none !important;
-}
 
 /* Rolagem fluida com física inercial do iOS */
 .app-main-wrapper,
@@ -2281,8 +1883,6 @@ canvas {
 /* Alvos de toque responsivos (HIG da Apple) */
 .btn-icon-subtle,
 .fmt-btn,
-.pencil-tool-btn,
-.mode-pill-btn,
 .color-palette-item {
   touch-action: manipulation;
 }
@@ -2393,7 +1993,7 @@ canvas {
 }
 
 /* ==========================================================================
-   MODO ECRÃ INTEIRO (FULLSCREEN) PARA ANOTAÇÕES À MÃO (APPLE PENCIL) & TEXTO
+   MODO ECRÃ INTEIRO (FULLSCREEN) PARA EDITORES & TEXTO
    ========================================================================== */
 
 body.ascd-in-fullscreen {
@@ -2439,7 +2039,6 @@ body.ascd-in-fullscreen {
 }
 
 body.ascd-in-fullscreen .btn-exit-fullscreen-floating,
-body:has(.pencil-section-fullscreen) .btn-exit-fullscreen-floating,
 body:has(.text-section-fullscreen) .btn-exit-fullscreen-floating,
 body:has(.bible-fullscreen-active) .btn-exit-fullscreen-floating,
 body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
@@ -2450,7 +2049,7 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   pointer-events: auto !important;
 }
 
-/* Botão de Alternar Ecrã Inteiro na Barra Apple Pencil */
+/* Botão de Alternar Ecrã Inteiro */
 .btn-fullscreen-toggle {
   display: inline-flex !important;
   align-items: center !important;
@@ -2523,73 +2122,7 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   stroke: #FFFFFF !important;
 }
 
-/* Container de Anotações à Mão em Ecrã Inteiro */
-.pencil-section-fullscreen {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: 100vw !important;
-  max-height: 100vh !important;
-  z-index: 9999999 !important; /* ACIMA de topbar (z-index 30) e sidebar (z-index 50) */
-  background: var(--bg-primary) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  margin: 0 !important;
-  padding: 12px 16px 16px 16px !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
 
-/* Barra de ferramentas no topo com sombra elegante e acesso total às ferramentas */
-.pencil-section-fullscreen > div:first-child,
-.pencil-section-fullscreen .note-section-toolbar,
-.pencil-section-fullscreen .split-toolbar,
-.split-workspace-panel.has-fullscreen-child .split-toolbar {
-  flex-shrink: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 8px 16px !important;
-  box-shadow: var(--shadow-sm) !important;
-  margin-bottom: 8px !important;
-  flex-wrap: wrap !important;
-  overflow-x: auto !important;
-  z-index: 1000 !important;
-}
-
-/* Folha do Canvas em Ecrã Inteiro */
-.pencil-section-fullscreen .journal-canvas-container,
-.pencil-section-fullscreen .note-canvas-container,
-.pencil-section-fullscreen .split-canvas-container {
-  flex: 1 1 0 !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
-  width: 100% !important;
-  margin: 0 !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: var(--shadow-md) !important;
-  overflow: hidden !important;
-  position: relative !important;
-}
-
-.pencil-section-fullscreen canvas {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  display: block !important;
-}
 
 /* Container de Editor de Texto em Ecrã Inteiro */
 .text-section-fullscreen {
@@ -2669,7 +2202,6 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   overflow: hidden !important;
 }
 
-.modal-dialog:has(.pencil-section-fullscreen),
 .modal-dialog:has(.text-section-fullscreen) {
   position: fixed !important;
   inset: 0 !important;
@@ -2685,14 +2217,11 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   z-index: 9999999 !important;
 }
 
-.modal-dialog:has(.pencil-section-fullscreen) > .modal-header,
-.modal-dialog:has(.pencil-section-fullscreen) > .modal-footer,
 .modal-dialog:has(.text-section-fullscreen) > .modal-header,
 .modal-dialog:has(.text-section-fullscreen) > .modal-footer {
   display: none !important;
 }
 
-.modal-body:has(.pencil-section-fullscreen),
 .modal-body:has(.text-section-fullscreen) {
   padding: 0 !important;
   height: 100% !important;
@@ -2736,36 +2265,6 @@ body:has(.devo-fullscreen-active) .btn-exit-fullscreen-floating,
   flex-direction: column !important;
 }
 
-.split-workspace-panel.has-fullscreen-child #split-pencil-wrapper {
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-  z-index: 1000 !important;
-}
-
-.split-workspace-panel.has-fullscreen-child #split-canvas-container {
-  flex: 1 1 0 !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  width: 100% !important;
-  border-radius: var(--radius-md) !important;
-  overflow: hidden !important;
-  position: relative !important;
-}
-
-.split-workspace-panel.has-fullscreen-child canvas {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  display: block !important;
-}
 
 /* ECRÃ INTEIRO DO LEITOR BÍBLICO (Com suporte integrado a Modo Dividido / Anotações) */
 .app-main-wrapper.bible-fullscreen-active {

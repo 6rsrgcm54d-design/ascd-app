@@ -386,7 +386,7 @@ function reconstruirAPartirDasAbasVisuais(ss, result) {
  */
 function atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Leitor Bíblico', 'Leitor Biblico', 'Bíblia', 'Biblia'], 'Leitor Bíblico');
-  const headers = ['ID', 'Data', 'Passagem Bíblica', 'Título do Estudo', 'Conteúdo das Anotações', 'Apple Pencil', 'Última Atualização'];
+  const headers = ['ID', 'Data', 'Passagem Bíblica', 'Título do Estudo', 'Conteúdo das Anotações', 'Última Atualização'];
   const map = new Map();
 
   const lastRow = sheet.getLastRow();
@@ -412,7 +412,6 @@ function atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds) {
         item.passagem || '',
         item.titulo || '',
         item.conteudo || '',
-        item.hasPencil || 'Não',
         item.dataRegistro || ''
       ]);
     }
@@ -430,7 +429,7 @@ function atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds) {
  */
 function atualizarAbaJournalingComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Journaling (Calendário)', 'Journaling (Calendario)', 'Journaling', 'Diário', 'Diario'], 'Journaling (Calendário)');
-  const headers = ['Data', 'Título / Tema do Dia', 'Passagem Bíblica', 'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual', 'Apple Pencil', 'Última Atualização'];
+  const headers = ['Data', 'Título / Tema do Dia', 'Passagem Bíblica', 'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual', 'Última Atualização'];
   const map = new Map();
 
   const lastRow = sheet.getLastRow();
@@ -460,7 +459,6 @@ function atualizarAbaJournalingComMerge(ss, records, deletedIds) {
         j.oracao || '',
         j.tarefas || '',
         j.conteudo || '',
-        j.hasPencil || 'Não',
         j.dataRegistro || ''
       ]);
     }
@@ -478,7 +476,7 @@ function atualizarAbaJournalingComMerge(ss, records, deletedIds) {
  */
 function atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Caderno de Estudos', 'Estudos Bíblicos', 'Estudos', 'Caderno de Estudo'], 'Caderno de Estudos');
-  const headers = ['ID', 'Data', 'Título do Estudo', 'Categoria', 'Conteúdo do Estudo', 'Apple Pencil', 'Última Atualização'];
+  const headers = ['ID', 'Data', 'Título do Estudo', 'Categoria', 'Conteúdo do Estudo', 'Última Atualização'];
   const map = new Map();
 
   const lastRow = sheet.getLastRow();
@@ -504,7 +502,6 @@ function atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds) {
         e.titulo || '',
         e.categoria || 'Estudo Bíblico',
         e.conteudo || '',
-        e.hasPencil || 'Não',
         e.dataRegistro || ''
       ]);
     }
@@ -522,7 +519,7 @@ function atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds) {
  */
 function atualizarAbaSermoesComMerge(ss, records, deletedIds) {
   const sheet = localizarOuCriarAba(ss, ['Anotações de Sermões', 'Anotacoes de Sermoes', 'Sermões & Pregações', 'Sermões', 'Sermoes'], 'Anotações de Sermões');
-  const headers = ['ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica', 'Pregador / Orador', 'Anotações da Pregação', 'Apple Pencil', 'Última Atualização'];
+  const headers = ['ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica', 'Pregador / Orador', 'Anotações da Pregação', 'Última Atualização'];
   const map = new Map();
 
   const lastRow = sheet.getLastRow();
@@ -549,7 +546,6 @@ function atualizarAbaSermoesComMerge(ss, records, deletedIds) {
         s.passagem || '',
         s.pregador || '',
         s.conteudo || '',
-        s.hasPencil || 'Não',
         s.dataRegistro || ''
       ]);
     }

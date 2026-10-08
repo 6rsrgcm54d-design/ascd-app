@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>ASCD - Bíblia & Notas</title>
   
-  <!-- Otimizações Nativas para iPadOS, Safari e Apple Pencil -->
+  <!-- Otimizações Nativas para iPadOS e Safari -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -93,8 +93,8 @@
         </div>
 
         <div class="topbar-actions">
-          <!-- Guia iPad & Apple Pencil -->
-          <button type="button" class="btn-topbar-action" id="btn-ipad-guide" title="Dicas de instalação e uso no iPad com Apple Pencil">
+          <!-- Guia iPad -->
+          <button type="button" class="btn-topbar-action" id="btn-ipad-guide" title="Dicas de instalação e uso no iPad">
             <span>📱 Guia iPad</span>
           </button>
 
@@ -109,9 +109,9 @@
           </div>
 
           <!-- Modo Dividido: Bíblia + Bloco de Notas Lado a Lado -->
-          <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar com Teclado ou Apple Pencil">
+          <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar simultaneamente">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-            <span>Modo Dividido (Teclado & Apple Pencil)</span>
+            <span>Modo Dividido</span>
           </button>
 
           <!-- Teclado Externo / Físico (Sem teclado virtual do iPad) -->
@@ -144,7 +144,7 @@
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
                 </div>
-                <button type="button" class="btn-icon-subtle" id="bible-btn-toggle-notes" title="Abrir/Fechar Anotações & Apple Pencil (Modo Dividido)">
+                <button type="button" class="btn-icon-subtle" id="bible-btn-toggle-notes" title="Abrir/Fechar Anotações (Modo Dividido)">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
                   <span class="split-notes-label" style="font-size:12px; font-weight:600; margin-left:3px;">Anotações</span>
                 </button>
@@ -317,8 +317,8 @@
 
               <!-- Ações no Rodapé do Devocional -->
               <div class="devotional-footer-actions">
-                <button type="button" class="btn btn-primary" id="btn-devo-to-journal" title="Carregar este devocional no Diário para escrever ou desenhar">
-                  <span>✍️ Anotar no Diário (Apple Pencil & Teclado)</span>
+                <button type="button" class="btn btn-primary" id="btn-devo-to-journal" title="Carregar este devocional no Diário para reflexão">
+                  <span>✍️ Anotar no Diário</span>
                 </button>
 
                 <button type="button" class="btn btn-secondary" id="btn-devo-to-study" title="Criar um estudo bíblico aprofundado no Caderno">
@@ -359,7 +359,7 @@
             <div class="section-top-header">
               <div>
                 <h2>Anotações de Sermões & Pregações</h2>
-                <p style="color: var(--text-secondary); font-size: 14px;">Registre pregações de cultos e conferências com dados do pregador, passagem, digitação e Apple Pencil.</p>
+                <p style="color: var(--text-secondary); font-size: 14px;">Registre pregações de cultos e conferências com dados do pregador, passagem bíblica e anotações detalhadas.</p>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn btn-secondary" id="btn-toggle-select-sermons" title="Selecionar vários sermões para exportar ao mesmo tempo">
@@ -491,13 +491,6 @@
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                       <span>Apagar Dia</span>
                     </button>
-
-                    <!-- Seletor de Modo de Entrada -->
-                    <div class="input-mode-pill-selector">
-                      <button type="button" class="mode-pill-btn active" data-journalmode="hybrid" id="btn-jmode-hybrid">✨ Híbrido</button>
-                      <button type="button" class="mode-pill-btn" data-journalmode="text" id="btn-jmode-text">⌨️ Teclado</button>
-                      <button type="button" class="mode-pill-btn" data-journalmode="pencil" id="btn-jmode-pencil">✍️ Apple Pencil</button>
-                    </div>
                   </div>
                 </div>
 
@@ -612,79 +605,6 @@
                   <div id="journal-text-editor" class="rich-editor-box journal-editor" contenteditable="true" placeholder="Escreva aqui o seu diário espiritual do dia, agradecimentos, aprendizados e pensamentos..."></div>
                 </div>
 
-                <!-- SEÇÃO APPLE PENCIL DO JOURNAL -->
-                <div id="journal-pencil-wrapper" class="journal-section-block">
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                      <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
-                        ✍️ Apple Pencil
-                      </label>
-                      <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
-                        <span class="paper-control-label">Folha:</span>
-                        <select class="paper-select" id="journal-paper-select">
-                          <option value="pautada">📄 Pautada (Linhas)</option>
-                          <option value="quadriculada">📐 Quadriculada (Matemática)</option>
-                          <option value="pontilhada">⠇ Pontilhada</option>
-                          <option value="pergaminho">📜 Papiro Nobre</option>
-                          <option value="branca">⚪ Folha Lisa</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="toolbar-group">
-                      <div class="pencil-tools-pill" style="margin-right: 8px;">
-                        <button type="button" class="pencil-tool-btn journal-tool-btn active" data-tool="pen" id="journal-tool-pen" title="Caneta (Escrever com Apple Pencil)">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                          <span>Caneta</span>
-                        </button>
-                        <button type="button" class="pencil-tool-btn journal-tool-btn" data-tool="eraser" id="journal-tool-eraser" title="Borracha (Apagar traços)">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
-                          <span>Borracha</span>
-                        </button>
-                      </div>
-                      <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
-                        <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
-                        <div class="color-palette-item journal-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                        <div class="color-palette-item journal-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
-                        <div class="color-palette-item journal-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
-                        <div class="color-palette-item journal-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
-                      </div>
-                      <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
-                        <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
-                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="2" title="Fino (2px)">
-                          <span class="size-dot" style="width:4px; height:4px;"></span>
-                        </button>
-                        <button type="button" class="btn-pencil-size journal-size-btn active" data-size="3.5" title="Médio (3.5px)">
-                          <span class="size-dot" style="width:7px; height:7px;"></span>
-                        </button>
-                        <button type="button" class="btn-pencil-size journal-size-btn" data-size="6" title="Grosso (6px)">
-                          <span class="size-dot" style="width:11px; height:11px;"></span>
-                        </button>
-                      </div>
-                      <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
-                        <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
-                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
-                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
-                        <div class="color-palette-item journal-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
-                      </div>
-                      <button type="button" class="btn-palm active" id="journal-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
-                      <button type="button" class="btn-icon-subtle" id="journal-btn-undo" title="Desfazer">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-                      </button>
-                      <button type="button" class="btn-icon-subtle" id="journal-btn-clear" title="Limpar Caligrafia">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                      </button>
-                      <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="journal-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
-                        <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                        <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                        <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="journal-canvas-container paper-pautada" id="journal-canvas-container">
-                    <canvas id="journal-drawing-canvas" class="journal-canvas-element"></canvas>
-                  </div>
-                </div>
-
                 <!-- Rodapé do Journal com Salvamento e EXPORTAÇÕES (DOC, EXCEL, PDF) -->
                 <div class="journal-card-footer">
                   <div class="journal-save-status" id="journal-save-status">
@@ -720,7 +640,7 @@
             <div class="section-top-header">
               <div>
                 <h2>Caderno de Estudos Bíblicos</h2>
-                <p style="color: var(--text-secondary); font-size: 14px;">Anote teologia, comentários e estudos temáticos com formatação avançada ou Apple Pencil.</p>
+                <p style="color: var(--text-secondary); font-size: 14px;">Anote teologia, comentários e estudos temáticos com formatação avançada.</p>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-secondary" id="btn-toggle-select-notes" title="Selecionar várias anotações para exportar ao mesmo tempo">
@@ -763,19 +683,13 @@
           </div>
         </section>
 
-        <!-- PAINEL LATERAL PARA O MODO DIVIDIDO (SPLIT VIEW) COM TECLADO & APPLE PENCIL -->
+        <!-- PAINEL LATERAL PARA O MODO DIVIDIDO (SPLIT VIEW) -->
         <aside class="split-workspace-panel" id="split-workspace">
           <!-- Topo do Modo Dividido -->
           <div class="split-header-bar">
             <div style="display:flex; flex-direction:column; gap:2px;">
               <span id="split-study-title" style="font-family:var(--font-serif); font-size:15px; font-weight:700; color:var(--text-primary);">Estudo: Salmos 23</span>
               <span style="font-size:11px; color:var(--text-muted);">Anotação vinculada a esta página da Bíblia</span>
-            </div>
-
-            <div class="input-mode-pill-selector">
-              <button type="button" class="mode-pill-btn active" id="split-mode-hybrid" data-splitmode="hybrid">✨ Híbrido</button>
-              <button type="button" class="mode-pill-btn" id="split-mode-text" data-splitmode="text">⌨️ Teclado</button>
-              <button type="button" class="mode-pill-btn" id="split-mode-pencil" data-splitmode="pencil">✍️ Apple Pencil</button>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px;">
@@ -793,7 +707,7 @@
 
           <!-- Área com rolagem de conteúdo do modo dividido -->
           <div class="split-content-area" id="split-content-area">
-            <!-- 1. Editor de Texto / Teclado da Página Bíblica -->
+            <!-- Editor de Texto da Página Bíblica -->
             <div id="split-text-wrapper" class="note-section-block">
               <div class="note-rich-formatting-toolbar" id="split-formatting-toolbar">
                 <div class="fmt-group">
@@ -849,84 +763,7 @@
                 </button>
               </div>
 
-              <div id="split-text-editor" class="rich-editor-box" contenteditable="true" style="min-height:160px;" placeholder="Escreva aqui observações, notas de rodapé, comentários e reflexões para este capítulo da Bíblia..."></div>
-            </div>
-
-            <!-- 2. Caligrafia Apple Pencil da Página Bíblica -->
-            <div id="split-pencil-wrapper" class="note-section-block">
-              <div class="split-toolbar" style="border-radius: var(--radius-sm); margin-bottom: 6px;">
-                <div class="pencil-tools-pill" style="margin-right: 6px;">
-                  <button type="button" class="pencil-tool-btn split-tool-btn active" data-tool="pen" id="split-tool-pen" title="Caneta (Escrever com Apple Pencil)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                    <span>Caneta</span>
-                  </button>
-                  <button type="button" class="pencil-tool-btn split-tool-btn" data-tool="eraser" id="split-tool-eraser" title="Borracha (Apagar traços)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
-                    <span>Borracha</span>
-                  </button>
-                </div>
-
-                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;">
-                  <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
-                  <div class="color-palette-item split-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
-                  <div class="color-palette-item split-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
-                  <div class="color-palette-item split-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
-                </div>
-
-                <div style="display:flex; align-items:center; gap: 4px; margin-right: 4px;" title="Cor da tinta da caneta">
-                  <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
-                  <div class="color-palette-item split-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
-                  <div class="color-palette-item split-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
-                </div>
-
-                <div class="pencil-size-group" style="margin-right: 4px;" title="Espessura do traço">
-                  <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
-                  <button type="button" class="btn-pencil-size split-size-btn" data-size="2" title="Fino (2px)">
-                    <span class="size-dot" style="width:4px; height:4px;"></span>
-                  </button>
-                  <button type="button" class="btn-pencil-size split-size-btn active" data-size="3.5" title="Médio (3.5px)">
-                    <span class="size-dot" style="width:7px; height:7px;"></span>
-                  </button>
-                  <button type="button" class="btn-pencil-size split-size-btn" data-size="6" title="Grosso (6px)">
-                    <span class="size-dot" style="width:11px; height:11px;"></span>
-                  </button>
-                </div>
-
-                <div class="paper-type-control" title="Escolha o tipo de folha da página">
-                  <span class="paper-control-label">Folha:</span>
-                  <select class="paper-select" id="split-paper-select">
-                    <option value="pergaminho">📜 Papiro Nobre</option>
-                    <option value="pautada">📄 Pautada (Linhas)</option>
-                    <option value="quadriculada">📐 Quadriculada (Matemática)</option>
-                    <option value="pontilhada">⠇ Pontilhada</option>
-                    <option value="branca">⚪ Folha Lisa</option>
-                  </select>
-                </div>
-
-                <div style="display:flex; align-items:center; gap: 4px;">
-                  <button type="button" class="btn-palm active" id="split-btn-palm" title="Rejeição de Palma (Apenas Caneta)">✍️ Palma</button>
-                  <button type="button" class="btn-icon-subtle" id="split-btn-undo" title="Desfazer">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-                  </button>
-                  <button type="button" class="btn-icon-subtle" id="split-btn-clear" title="Limpar">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                  </button>
-                  <button type="button" class="btn-icon-subtle" id="split-btn-export" title="Exportar PNG">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </button>
-                  <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="split-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
-                    <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                    <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                    <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="note-canvas-container paper-pergaminho" id="split-canvas-container">
-                <canvas id="split-drawing-canvas" class="note-canvas-element" style="min-height:300px;"></canvas>
-              </div>
+              <div id="split-text-editor" class="rich-editor-box" contenteditable="true" style="min-height:220px;" placeholder="Escreva aqui observações, notas de rodapé, comentários e reflexões para este capítulo da Bíblia..."></div>
             </div>
           </div>
         </aside>
@@ -935,16 +772,11 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITOR DE SERMÃO (PREGADOR, PASSAGEM, ITÁLICO, APPLE PENCIL & EXPORTAÇÕES) -->
+  <!-- MODAL: EDITOR DE SERMÃO -->
   <div class="modal-overlay" id="sermon-editor-modal">
     <div class="modal-dialog modal-dialog-large">
       <div class="modal-header">
         <h3>Anotação de Sermão / Pregação</h3>
-        <div class="input-mode-pill-selector" style="margin-left: auto; margin-right: 14px;">
-          <button type="button" class="mode-pill-btn active" id="sermon-mode-hybrid" data-sermonmode="hybrid">✨ Híbrido</button>
-          <button type="button" class="mode-pill-btn" id="sermon-mode-text" data-sermonmode="text">⌨️ Teclado</button>
-          <button type="button" class="mode-pill-btn" id="sermon-mode-pencil" data-sermonmode="pencil">✍️ Apple Pencil</button>
-        </div>
         <button class="modal-close-btn" id="btn-close-sermon-modal">&times;</button>
       </div>
 
@@ -1030,82 +862,8 @@
             </button>
           </div>
 
-          <div id="edit-sermon-content" class="rich-editor-box" contenteditable="true" placeholder="Tópicos da pregação, ilustrações, citações bíblicas e aplicação prática..."></div>
+          <div id="edit-sermon-content" class="rich-editor-box" contenteditable="true" style="min-height: 320px;" placeholder="Tópicos da pregação, ilustrações, citações bíblicas e aplicação prática..."></div>
         </div>
-
-        <!-- Seção Apple Pencil do Sermão -->
-        <div id="sermon-pencil-wrapper" class="note-section-block">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:gap:8px;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
-                ✍️ Apple Pencil
-              </label>
-              <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
-                <span class="paper-control-label">Folha:</span>
-                <select class="paper-select" id="sermon-paper-select">
-                  <option value="pautada">📄 Pautada (Linhas)</option>
-                  <option value="quadriculada">📐 Quadriculada (Matemática)</option>
-                  <option value="pontilhada">⠇ Pontilhada</option>
-                  <option value="pergaminho">📜 Papiro Nobre</option>
-                  <option value="branca">⚪ Folha Lisa</option>
-                </select>
-              </div>
-            </div>
-            <div class="toolbar-group">
-              <div class="pencil-tools-pill" style="margin-right: 8px;">
-                <button type="button" class="pencil-tool-btn sermon-tool-btn active" data-tool="pen" id="sermon-tool-pen" title="Caneta (Escrever com Apple Pencil)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                  <span>Caneta</span>
-                </button>
-                <button type="button" class="pencil-tool-btn sermon-tool-btn" data-tool="eraser" id="sermon-tool-eraser" title="Borracha (Apagar traços)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
-                  <span>Borracha</span>
-                </button>
-              </div>
-              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
-                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
-                <div class="color-palette-item sermon-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                <div class="color-palette-item sermon-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
-                <div class="color-palette-item sermon-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
-                <div class="color-palette-item sermon-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
-              </div>
-              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
-                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
-                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="2" title="Fino (2px)">
-                  <span class="size-dot" style="width:4px; height:4px;"></span>
-                </button>
-                <button type="button" class="btn-pencil-size sermon-size-btn active" data-size="3.5" title="Médio (3.5px)">
-                  <span class="size-dot" style="width:7px; height:7px;"></span>
-                </button>
-                <button type="button" class="btn-pencil-size sermon-size-btn" data-size="6" title="Grosso (6px)">
-                  <span class="size-dot" style="width:11px; height:11px;"></span>
-                </button>
-              </div>
-              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;">
-                <span style="font-size:11px; color:var(--text-muted);">Marca-Texto:</span>
-                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
-                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
-                <div class="color-palette-item sermon-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
-              </div>
-              <button type="button" class="btn-palm active" id="sermon-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
-              <button type="button" class="btn-icon-subtle" id="sermon-btn-undo" title="Desfazer">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-              </button>
-              <button type="button" class="btn-icon-subtle" id="sermon-btn-clear" title="Limpar">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-              </button>
-              <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="sermon-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
-                <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
-              </button>
-            </div>
-          </div>
-          <div class="note-canvas-container paper-pautada" id="sermon-canvas-container">
-            <canvas id="sermon-drawing-canvas" class="note-canvas-element"></canvas>
-          </div>
-        </div>
-
       </div>
 
       <div class="modal-footer" style="justify-content:space-between;">
@@ -1125,16 +883,11 @@
     </div>
   </div>
 
-  <!-- MODAL: EDITOR DE NOTA DE ESTUDO BÍBLICO (COM ITÁLICO, APPLE PENCIL & EXPORTAÇÕES) -->
+  <!-- MODAL: EDITOR DE NOTA DE ESTUDO BÍBLICO -->
   <div class="modal-overlay" id="note-editor-modal">
     <div class="modal-dialog modal-dialog-large">
       <div class="modal-header">
         <h3>Anotação & Estudo Bíblico</h3>
-        <div class="input-mode-pill-selector" style="margin-left: auto; margin-right: 14px;">
-          <button type="button" class="mode-pill-btn active" id="note-mode-hybrid" data-notemode="hybrid">✨ Híbrido</button>
-          <button type="button" class="mode-pill-btn" id="note-mode-text" data-notemode="text">⌨️ Teclado</button>
-          <button type="button" class="mode-pill-btn" id="note-mode-pencil" data-notemode="pencil">✍️ Apple Pencil</button>
-        </div>
         <button class="modal-close-btn" id="btn-close-note-modal">&times;</button>
       </div>
       
@@ -1217,83 +970,8 @@
             </button>
           </div>
 
-          <div id="edit-note-content" class="rich-editor-box" contenteditable="true" placeholder="Escreva observações de estudo bíblico, referências, exegese..."></div>
+          <div id="edit-note-content" class="rich-editor-box" contenteditable="true" style="min-height: 320px;" placeholder="Escreva observações de estudo bíblico, referências, exegese..."></div>
         </div>
-
-        <!-- Seção Apple Pencil da Nota -->
-        <div id="note-pencil-wrapper" class="note-section-block">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <label style="font-size:13px; font-weight:700; color:var(--text-secondary);">
-                ✍️ Apple Pencil
-              </label>
-              <div class="paper-type-control" title="Escolha o tipo de folha (Pautada, Quadriculada Matemática, Pontilhada...)">
-                <span class="paper-control-label">Folha:</span>
-                <select class="paper-select" id="note-paper-select">
-                  <option value="pautada">📄 Pautada (Linhas)</option>
-                  <option value="quadriculada">📐 Quadriculada (Matemática)</option>
-                  <option value="pontilhada">⠇ Pontilhada</option>
-                  <option value="pergaminho">📜 Papiro Nobre</option>
-                  <option value="branca">⚪ Folha Lisa</option>
-                </select>
-              </div>
-            </div>
-            <div class="toolbar-group">
-              <div class="pencil-tools-pill" style="margin-right: 8px;">
-                <button type="button" class="pencil-tool-btn note-tool-btn active" data-tool="pen" id="note-tool-pen" title="Caneta (Escrever com Apple Pencil)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                  <span>Caneta</span>
-                </button>
-                <button type="button" class="pencil-tool-btn note-tool-btn" data-tool="eraser" id="note-tool-eraser" title="Borracha (Apagar traços)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4L11 20"/></svg>
-                  <span>Borracha</span>
-                </button>
-              </div>
-              <div style="display:flex; gap:4px; align-items:center; margin-right:8px;" title="Cor da tinta da caneta">
-                <span style="font-size:11px; color:var(--text-muted);">Tinta:</span>
-                <div class="color-palette-item note-color-dot selected" data-color="#1A1A1A" style="background:#1A1A1A; width:18px; height:18px;" title="Tinta Preto"></div>
-                <div class="color-palette-item note-color-dot" data-color="#1E3A8A" style="background:#1E3A8A; width:18px; height:18px;" title="Tinta Azul Escuro"></div>
-                <div class="color-palette-item note-color-dot" data-color="#2563EB" style="background:#2563EB; width:18px; height:18px;" title="Tinta Azul"></div>
-                <div class="color-palette-item note-color-dot" data-color="#DC2626" style="background:#DC2626; width:18px; height:18px;" title="Tinta Vermelho"></div>
-              </div>
-              <div class="pencil-size-group" style="margin-right:8px;" title="Espessura do traço">
-                <span style="font-size:11px; color:var(--text-muted);">Traço:</span>
-                <button type="button" class="btn-pencil-size note-size-btn" data-size="2" title="Fino (2px)">
-                  <span class="size-dot" style="width:4px; height:4px;"></span>
-                </button>
-                <button type="button" class="btn-pencil-size note-size-btn active" data-size="3.5" title="Médio (3.5px)">
-                  <span class="size-dot" style="width:7px; height:7px;"></span>
-                </button>
-                <button type="button" class="btn-pencil-size note-size-btn" data-size="6" title="Grosso (6px)">
-                  <span class="size-dot" style="width:11px; height:11px;"></span>
-                </button>
-              </div>
-              <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px;">
-                <span style="font-size: 11px; color: var(--text-muted);">Marca-Texto:</span>
-                <div class="color-palette-item note-hl-dot" data-pencil-color="#FEF08A" style="background:#FEF08A; width:18px; height:18px; border:1px solid #EAB308;" title="Marca-Texto Amarelo"></div>
-                <div class="color-palette-item note-hl-dot" data-pencil-color="#BBF7D0" style="background:#BBF7D0; width:18px; height:18px; border:1px solid #22C55E;" title="Marca-Texto Verde"></div>
-                <div class="color-palette-item note-hl-dot" data-pencil-color="#FECDD3" style="background:#FECDD3; width:18px; height:18px; border:1px solid #F43F5E;" title="Marca-Texto Vermelho Claro"></div>
-              </div>
-
-              <button type="button" class="btn-palm active" id="note-btn-palm" title="Rejeição de Palma (Apenas Apple Pencil desenha)">✍️ Palma</button>
-              <button type="button" class="btn-icon-subtle" id="note-btn-undo" title="Desfazer">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-              </button>
-              <button type="button" class="btn-icon-subtle" id="note-btn-clear" title="Limpar Folha">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-              </button>
-              <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="note-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Apple Pencil)">
-                <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-                <span class="fs-label" style="font-size:12px; font-weight:600; margin-left:3px;">Ecrã Inteiro</span>
-              </button>
-            </div>
-          </div>
-          <div class="note-canvas-container paper-pautada" id="note-canvas-container">
-            <canvas id="note-drawing-canvas" class="note-canvas-element"></canvas>
-          </div>
-        </div>
-
       </div>
 
       <div class="modal-footer" style="justify-content:space-between;">
@@ -1478,7 +1156,7 @@
           <span style="font-size:24px;">📱</span>
           <div>
             <h3 style="margin:0;">Otimização & Uso no iPad</h3>
-            <span style="font-size:12px; color:var(--text-muted);">Como usar a aplicação como uma App nativa e aproveitar o Apple Pencil</span>
+            <span style="font-size:12px; color:var(--text-muted);">Como usar a aplicação como uma App nativa e produtiva no iPadOS</span>
           </div>
         </div>
         <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">
@@ -1494,24 +1172,16 @@
           </p>
         </div>
 
-        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">✍️ Recursos do Apple Pencil</h4>
-        <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; margin-bottom:18px;">
-          <li><strong>Rejeição de Palma Automática:</strong> Pouse a mão no ecrã com naturalidade; a tela ignora o toque da sua palma enquanto escreve com o Apple Pencil.</li>
-          <li><strong>Precisão a 240Hz:</strong> Traços ultra-suaves e sem atrasos (latência reduzida), aproveitando a taxa de atualização ProMotion do iPad.</li>
-          <li><strong>Sensibilidade à Pressão:</strong> Controle a espessura da tinta conforme a força com a Caneta Clássica e a Caneta-Tinteiro.</li>
-          <li><strong>Tipos de Folhas:</strong> Pautada (linhas), Quadriculada (matemática), Pontilhada, Papiro Bíblico e Lisa.</li>
-        </ul>
-
         <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">📖 Leitura e Escrita em Tela Dividida (Split Screen)</h4>
         <ul style="font-size:13px; color:var(--text-secondary); padding-left:20px; margin-bottom:18px;">
-          <li><strong>Lado a Lado:</strong> No Leitor Bíblico, toque em <strong>"Anotações"</strong> ou <strong>"Modo Dividido"</strong> para ler os versículos à esquerda e desenhar/escrever à direita.</li>
-          <li><strong>Mais Espaço:</strong> Toque no botão <strong>⊞</strong> no topo esquerdo para recolher a barra lateral e ganhar área máxima de leitura e caligrafia.</li>
-          <li><strong>Ecrã Inteiro:</strong> Toque em <strong>"Ecrã Inteiro"</strong> para foco absoluto. Para sair, prima o botão vermelho <strong>[✕ Sair]</strong> no canto superior.</li>
+          <li><strong>Lado a Lado:</strong> No Leitor Bíblico, toque em <strong>"Anotações"</strong> ou <strong>"Modo Dividido"</strong> para ler os versículos à esquerda e redigir anotações à direita.</li>
+          <li><strong>Mais Espaço:</strong> Toque no botão <strong>⊞</strong> no topo esquerdo para recolher a barra lateral e ganhar área máxima de leitura e estudo.</li>
+          <li><strong>Ecrã Inteiro:</strong> Toque em <strong>"Ecrã Inteiro"</strong> para foco absoluto. Para sair, prima o botão <strong>[✕ Sair do Ecrã Inteiro]</strong> ou a tecla <code>ESC</code>.</li>
         </ul>
 
-        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">⌨️ Atalhos com Teclado do iPad (Magic Keyboard)</h4>
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary); font-size:15px;">⌨️ Atalhos com Teclado do iPad (Magic Keyboard / Externo)</h4>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--text-secondary);">
-          <div><code>⌘ + Z</code> : Desfazer traço/texto</div>
+          <div><code>⌘ + Z</code> : Desfazer escrita</div>
           <div><code>⌘ + S</code> : Guardar estudo atual</div>
           <div><code>ESC</code> : Sair do Ecrã Inteiro</div>
           <div><code>⌘ + B / I / U</code> : Negrito / Itálico / Sublinhado</div>
@@ -1522,9 +1192,10 @@
         <button type="button" class="btn btn-secondary btn-sm" id="btn-force-update-app" title="Limpar cache do navegador e descarregar a versão mais recente">
           🔄 Forçar Atualização / Limpar Cache
         </button>
-        <button type="button" class="btn btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
+        <button type="button" class="btn primary btn-primary" onclick="document.getElementById('ipad-guide-modal').classList.remove('open')">Entendi, começar!</button>
       </div>
     </div>
+  </div>
   <!-- MODAL: PRÉ-VISUALIZAÇÃO & IMPRESSÃO PDF NATIVA (Compatível com iPadOS e Safari) -->
   <div class="modal-overlay" id="ascd-print-preview-modal">
     <div class="modal-dialog modal-dialog-large" style="max-width: 900px; height: 92vh; display:flex; flex-direction:column;">
@@ -1570,7 +1241,6 @@
   <!-- Scripts -->
   <script src="js/bible-data.js"></script>
   <script src="js/devotional-data.js"></script>
-  <script src="js/canvas.js"></script>
   <script src="js/html2pdf.bundle.min.js"></script>
   <script src="js/app.js"></script>
   <script>

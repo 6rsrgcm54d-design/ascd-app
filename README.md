@@ -1,6 +1,6 @@
 # ASCD — Bíblia & Notas
 
-Aplicação web moderna (HTML5, CSS3, JavaScript e PWA) desenvolvida para estudo bíblico, anotações de sermões e diário espiritual, com suporte híbrido para **digitação no teclado com formatação rica** e **caligrafia com Apple Pencil**, além de **exportação para DOC (.doc), Excel (.csv), PDF (.pdf)** e **integração com Google Sheets / Google Drive**.
+Aplicação web moderna (HTML5, CSS3, JavaScript e PWA) desenvolvida para estudo bíblico, anotações de sermões e diário espiritual, com **digitação com formatação rica**, **exportação para DOC (.doc), Excel (.csv), PDF (.pdf)** e **integração com Google Sheets / Google Drive**.
 
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/6rsrgcm54d-design/ascd-biblia-e-notas)
 
@@ -36,7 +36,7 @@ A aplicação possui um sistema de base de dados unificada de tudo o que você e
   - Todos os registros de Journaling com as suas Orações e Tarefas diárias
   - Todas as anotações do Caderno de Estudos Bíblicos
   - Todas as anotações vinculadas aos capítulos do Leitor Bíblico
-- **Arquivo Pré-configurado na pasta:** O arquivo `ASCD_Base_de_Dados_Google_Sheets.csv` já está pronto na raiz do projeto com colunas padronizadas (`ID`, `Tipo_Registro`, `Data`, `Titulo_Tema`, `Passagem_Biblica`, `Pregador_Autor`, `Categoria`, `Oracao_Intercessao`, `Tarefas_Do_Dia`, `Conteudo_Texto`, `Possui_Apple_Pencil`, `Data_Registro`).
+- **Arquivo Pré-configurado na pasta:** O arquivo `ASCD_Base_de_Dados_Google_Sheets.csv` já está pronto na raiz do projeto com colunas padronizadas (`ID`, `Tipo_Registro`, `Data`, `Titulo_Tema`, `Passagem_Biblica`, `Pregador_Autor`, `Categoria`, `Oracao_Intercessao`, `Tarefas_Do_Dia`, `Conteudo_Texto`, `Data_Registro`).
 - **Como Usar no Google Drive / Google Sheets:**
   1. Abra o [Google Drive](https://drive.google.com).
   2. Arraste o arquivo `ASCD_Base_de_Dados_Google_Sheets.csv` para a sua pasta no Google Drive.
@@ -69,7 +69,7 @@ Todas as áreas de redação contam com barra visual de formatação:
 ### 4. 📦 Multi-Seleção e Exportação em Lote (Sermões e Estudos)
 - **Seleção Múltipla**: botão *"☑️ Selecionar Vários"* permite escolher diversas anotações ou sermões simultaneamente com caixas de seleção nos cartões.
 - **Exportação em Lote**:
-  - 📄 **Exportar DOC**: combina todos os itens selecionados em um único documento Word (.doc), separados por quebra de página, com seus metadados, textos e desenhos do Apple Pencil incorporados.
+  - 📄 **Exportar DOC**: combina todos os itens selecionados em um único documento Word (.doc), separados por quebra de página, com seus metadados e textos incorporados.
   - 📊 **Exportar Excel**: exporta todas as anotações selecionadas para planilha .csv (com separador `;` e codificação UTF-8 com BOM).
   - 🖨️ **Exportar PDF**: gera visualização de impressão contendo todos os registros selecionados com paginação independente pronta para PDF.
   - 🗑️ **Excluir em Lote**: exclui itens selecionados com um clique após confirmação.
@@ -77,12 +77,8 @@ Todas as áreas de redação contam com barra visual de formatação:
 
 ---
 
-### 5. 🔀 Modo Dividido no Leitor Bíblico (Teclado + Apple Pencil + Guardar Estudo da Página)
-- **Leitura e Anotação Lado a Lado**: leia o texto sagrado à esquerda enquanto redige suas anotações à direita.
-- **Entrada com Teclado e Apple Pencil**:
-  - ✨ **Híbrido**: editor de texto com barra de formatação completa em cima e folha de Apple Pencil em baixo.
-  - ⌨️ **Teclado**: área focada em digitação com barra rica de formatação.
-  - ✍️ **Apple Pencil**: tela cheia para escrita à mão e esboços com caneta, marca-texto e rejeição de palma.
+### 5. 🔀 Modo Dividido no Leitor Bíblico
+- **Leitura e Anotação Lado a Lado**: leia o texto sagrado à esquerda enquanto redige suas anotações à direita com barra rica de formatação.
 - **💾 Guardar Estudo Desta Página**:
   - Salva a anotação vinculada àquele capítulo bíblico específico (ex: *Salmos 23*).
   - Adiciona e atualiza automaticamente o estudo no **Caderno de Estudos Bíblicos**.
@@ -102,14 +98,13 @@ Secção dedicada ao diário espiritual com calendário interativo perpétuo:
   - Checklist interativo para adicionar metas diárias (`+ Adicionar`).
   - Marcar/desmarcar tarefas concluídas com riscado automático.
   - Contador de progresso em tempo real (*"X de Y concluída(s)"*).
-- **📖 Reflexão & Diário Espiritual**: redação livre com formatação rica e folha de Apple Pencil integrada.
+- **📖 Reflexão & Diário Espiritual**: redação livre com formatação rica.
 - **Exportação Completa**: exporta reflexão, orações e tarefas em DOC, Excel, PDF e na Base Google Sheets.
 
 ---
 
 ### 7. 🎤 Anotações de Sermões & Pregações
 - Registre cultos e conferências com campos para **Tema / Título**, **Pregador / Orador**, **Passagem Bíblica** e **Data**.
-- Modos Híbrido, Teclado ou Apple Pencil.
 - Busca instantânea e exportações individuais e coletivas.
 
 ---
@@ -126,4 +121,4 @@ Secção dedicada ao diário espiritual com calendário interativo perpétuo:
 1. Inicie o servidor local através do arquivo `iniciar_ascd.bat` ou abra `index.html`.
 2. No Safari do iPad, toque no ícone de compartilhamento (**Compartilhar** ⎋).
 3. Selecione **"Adicionar ao Ecrã Principal"** (*Add to Home Screen*).
-4. O **ASCD** funcionará em **ecrã inteiro**, com sensibilidade ao Apple Pencil, rejeição de palma e persistência 100% offline.
+4. O **ASCD** funcionará em **ecrã inteiro**, com física inercial e persistência 100% offline.
