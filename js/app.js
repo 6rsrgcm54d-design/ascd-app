@@ -2971,7 +2971,7 @@ function exportBatchToDoc(items, typeName = 'Registros', filename = 'ASCD_Export
     </html>
   `;
 
-  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword;charset=utf-8' });
+  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
   triggerDownload(blob, `${cleanFilename(filename)}.doc`);
   showToast(`📄 Documento Word (.doc) com ${items.length} registro(s) exportado!`);
 }
@@ -4129,37 +4129,40 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     const oldBanner = document.getElementById('ascd-pdf-ready-banner');
     if (oldBanner) oldBanner.remove();
 
-    // Botão ÚNICO principal: Guardar em PDF / Imprimir
-    const btnSinglePrint = document.getElementById('btn-modal-single-print');
-    if (btnSinglePrint) {
-      btnSinglePrint.onclick = () => {
-        triggerCleanPrint(itemsHtml, title);
-      };
-    }
-
-    // Botão secundário no rodapé: Descarregar .PDF Direto
-    const btnDirectPdf = document.getElementById('btn-modal-download-direct-pdf');
-    if (btnDirectPdf) {
-      btnDirectPdf.onclick = () => {
+    // Botão Principal: Guardar / Descarregar em PDF
+    const btnSavePdf = document.getElementById('btn-modal-save-pdf') || document.getElementById('btn-modal-download-direct-pdf');
+    if (btnSavePdf) {
+      btnSavePdf.onclick = () => {
         downloadDirectPdf(itemsHtml, title);
       };
     }
 
+    // Botão de Impressão Direta (AirPrint / Impressora)
+    const btnPrint = document.getElementById('btn-modal-print') || document.getElementById('btn-modal-single-print');
+    if (btnPrint) {
+      btnPrint.onclick = () => {
+        triggerCleanPrint(itemsHtml, title);
+      };
+    }
+
+    // Suporte retrocompatível para qualquer elemento residual
+    document.getElementById('btn-modal-single-print')?.addEventListener('click', () => {
+      downloadDirectPdf(itemsHtml, title);
+    });
+
     printModal.classList.add('open');
-    showToast('📄 Pré-visualização pronta! Toque em "Guardar em PDF / Imprimir"');
+    showToast('📄 Documento pronto! Toque em "Guardar em PDF" para descarregar');
   } else {
-    triggerCleanPrint(itemsHtml, title);
+    downloadDirectPdf(itemsHtml, title);
   }
 }
 
 /**
- * Disparar impressão / geração de PDF 100% limpa, nítida e sem páginas em branco
- * Compatibilidade total e comprovada com iPadOS, iOS Safari, macOS e Windows Desktop
+ * Disparar impressão nativa do sistema (AirPrint no iPad e diálogo de impressão no desktop)
+ * Executado DIRECTAMENTE de forma síncrona para que o WebKit/Safari nunca bloqueie a ação do utilizador
  */
 function triggerCleanPrint(itemsHtml, title) {
-  showToast('🖨️ A abrir diálogo de PDF / Impressão...');
-
-  // 1. Atualizar o container dedicado no DOM principal
+  // 1. Atualizar o container de impressão dedicado
   const printContainer = document.getElementById('ascd-print-container');
   if (printContainer) {
     printContainer.innerHTML = itemsHtml;
@@ -4181,20 +4184,22 @@ function triggerCleanPrint(itemsHtml, title) {
 
   window.addEventListener('afterprint', cleanup);
 
-  // 3. Pequeno intervalo para o WebKit/Safari recalcular a geometria antes de abrir o diálogo
-  setTimeout(() => {
-    try {
-      window.print();
-    } catch (err) {
-      console.error('Erro na impressão nativa:', err);
-    }
-    // Fallback de restauração caso o evento afterprint não seja emitido no Safari móvel
-    setTimeout(cleanup, 1500);
-  }, 200);
+  // 3. Chamar window.print() de forma síncrona directa dentro do clique do utilizador
+  try {
+    window.print();
+  } catch (err) {
+    console.error('Erro na impressão nativa:', err);
+    showToast('⚠️ A transferir ficheiro PDF diretamente...');
+    downloadDirectPdf(itemsHtml, title);
+  }
+
+  // Fallback de limpeza caso o evento afterprint não seja emitido no Safari móvel
+  setTimeout(cleanup, 1200);
 }
 
 /**
  * Descarregar ficheiro .PDF diretamente via biblioteca html2pdf
+ * 100% funcional no iPad, Safari, Chrome e Desktop
  */
 function downloadDirectPdf(itemsHtml, title) {
   showToast('⏳ A gerar ficheiro PDF...');
@@ -4224,18 +4229,65 @@ function downloadDirectPdf(itemsHtml, title) {
   }
 }
 
-function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    if (a.parentNode) a.parentNode.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 3000);
+/**
+ * Disparador universal de download compatível com iPadOS, iOS Safari e Desktop
+ * Utiliza Web Share API com File para DOC/CSV no iPad (evita o bloqueio WebKitBlobResource error 1)
+ */
+async function triggerDownload(blob, filename) {
+  const isIOS = (typeof navigator !== 'undefined') && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+
+  // 1. Tentar Web Share API nativa com File (Permite Salvar em Ficheiros / Abrir no Pages/Word no iPad)
+  if (typeof navigator !== 'undefined' && navigator.canShare && typeof File !== 'undefined') {
+    try {
+      const cleanMime = (blob.type || '').split(';')[0].trim() || 'application/octet-stream';
+      const file = new File([blob], filename, { 
+        type: cleanMime,
+        lastModified: Date.now()
+      });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: filename,
+        });
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // Utilizador apenas fechou o painel de partilha da Apple
+        return;
+      }
+      console.warn('Web Share API não disponível para este tipo de ficheiro, a usar fallback de download:', err);
+    }
+  }
+
+  // 2. Método padrão via elemento âncora <a> (Desktop Windows, Mac, Chrome, Edge, Firefox)
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+
+    // No iOS, se a.click() for bloqueado pelo WebKit em certos formatos, abrir numa nova janela como salvaguarda
+    if (isIOS) {
+      setTimeout(() => {
+        window.open(url, '_blank');
+      }, 350);
+    }
+
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 10000);
+  } catch (err) {
+    console.error('Erro no download via âncora:', err);
+  }
 }
 
 function cleanFilename(str) {

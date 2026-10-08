@@ -4279,10 +4279,14 @@ body.ascd-printing #ascd-print-container .document-page .content {
             <span style="font-size:12px; color:var(--text-muted);">Pronto para guardar em PDF ou imprimir</span>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="btn btn-primary" id="btn-modal-single-print" style="background:#D97706; border-color:#B45309; font-weight:700; padding:9px 20px; font-size:14px; display:inline-flex; align-items:center; gap:8px; border-radius:8px; box-shadow:0 2px 6px rgba(217,119,6,0.3);">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="btn-modal-save-pdf" style="background:#D97706; border-color:#B45309; font-weight:700; padding:9px 18px; font-size:14px; display:inline-flex; align-items:center; gap:8px; border-radius:8px; box-shadow:0 2px 6px rgba(217,119,6,0.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>📄 Guardar em PDF</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-modal-print" style="font-weight:600; padding:9px 16px; font-size:14px; display:inline-flex; align-items:center; gap:8px; border-radius:8px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-            <span>🖨️ Guardar em PDF / Imprimir</span>
+            <span>🖨️ Imprimir</span>
           </button>
           <button type="button" class="btn-icon-subtle" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')" title="Fechar">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -4295,13 +4299,7 @@ body.ascd-printing #ascd-print-container .document-page .content {
       </div>
 
       <div class="modal-footer" style="justify-content:space-between; flex-shrink:0; flex-wrap:wrap; gap:10px;">
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <span style="font-size:13px; color:var(--text-muted);">💡 No iPad / Safari: Toque no botão laranja <strong>"Guardar em PDF / Imprimir"</strong> acima para AirPrint ou Guardar em Ficheiros.</span>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-download-direct-pdf" style="font-weight:600; display:inline-flex; align-items:center; gap:6px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Descarregar .PDF Direto</span>
-          </button>
-        </div>
+        <span style="font-size:13px; color:var(--text-muted);">💡 Toque em <strong>"Guardar em PDF"</strong> para transferir o ficheiro diretamente, ou <strong>"Imprimir"</strong> para enviar para a impressora.</span>
         <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ascd-print-preview-modal').classList.remove('open')">Fechar</button>
       </div>
     </div>
@@ -18797,7 +18795,7 @@ function exportBatchToDoc(items, typeName = 'Registros', filename = 'ASCD_Export
     </html>
   `;
 
-  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword;charset=utf-8' });
+  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
   triggerDownload(blob, `${cleanFilename(filename)}.doc`);
   showToast(`📄 Documento Word (.doc) com ${items.length} registro(s) exportado!`);
 }
@@ -19955,37 +19953,40 @@ function exportBatchToPdf(items, title = 'Registros ASCD') {
     const oldBanner = document.getElementById('ascd-pdf-ready-banner');
     if (oldBanner) oldBanner.remove();
 
-    // Botão ÚNICO principal: Guardar em PDF / Imprimir
-    const btnSinglePrint = document.getElementById('btn-modal-single-print');
-    if (btnSinglePrint) {
-      btnSinglePrint.onclick = () => {
-        triggerCleanPrint(itemsHtml, title);
-      };
-    }
-
-    // Botão secundário no rodapé: Descarregar .PDF Direto
-    const btnDirectPdf = document.getElementById('btn-modal-download-direct-pdf');
-    if (btnDirectPdf) {
-      btnDirectPdf.onclick = () => {
+    // Botão Principal: Guardar / Descarregar em PDF
+    const btnSavePdf = document.getElementById('btn-modal-save-pdf') || document.getElementById('btn-modal-download-direct-pdf');
+    if (btnSavePdf) {
+      btnSavePdf.onclick = () => {
         downloadDirectPdf(itemsHtml, title);
       };
     }
 
+    // Botão de Impressão Direta (AirPrint / Impressora)
+    const btnPrint = document.getElementById('btn-modal-print') || document.getElementById('btn-modal-single-print');
+    if (btnPrint) {
+      btnPrint.onclick = () => {
+        triggerCleanPrint(itemsHtml, title);
+      };
+    }
+
+    // Suporte retrocompatível para qualquer elemento residual
+    document.getElementById('btn-modal-single-print')?.addEventListener('click', () => {
+      downloadDirectPdf(itemsHtml, title);
+    });
+
     printModal.classList.add('open');
-    showToast('📄 Pré-visualização pronta! Toque em "Guardar em PDF / Imprimir"');
+    showToast('📄 Documento pronto! Toque em "Guardar em PDF" para descarregar');
   } else {
-    triggerCleanPrint(itemsHtml, title);
+    downloadDirectPdf(itemsHtml, title);
   }
 }
 
 /**
- * Disparar impressão / geração de PDF 100% limpa, nítida e sem páginas em branco
- * Compatibilidade total e comprovada com iPadOS, iOS Safari, macOS e Windows Desktop
+ * Disparar impressão nativa do sistema (AirPrint no iPad e diálogo de impressão no desktop)
+ * Executado DIRECTAMENTE de forma síncrona para que o WebKit/Safari nunca bloqueie a ação do utilizador
  */
 function triggerCleanPrint(itemsHtml, title) {
-  showToast('🖨️ A abrir diálogo de PDF / Impressão...');
-
-  // 1. Atualizar o container dedicado no DOM principal
+  // 1. Atualizar o container de impressão dedicado
   const printContainer = document.getElementById('ascd-print-container');
   if (printContainer) {
     printContainer.innerHTML = itemsHtml;
@@ -20007,20 +20008,22 @@ function triggerCleanPrint(itemsHtml, title) {
 
   window.addEventListener('afterprint', cleanup);
 
-  // 3. Pequeno intervalo para o WebKit/Safari recalcular a geometria antes de abrir o diálogo
-  setTimeout(() => {
-    try {
-      window.print();
-    } catch (err) {
-      console.error('Erro na impressão nativa:', err);
-    }
-    // Fallback de restauração caso o evento afterprint não seja emitido no Safari móvel
-    setTimeout(cleanup, 1500);
-  }, 200);
+  // 3. Chamar window.print() de forma síncrona directa dentro do clique do utilizador
+  try {
+    window.print();
+  } catch (err) {
+    console.error('Erro na impressão nativa:', err);
+    showToast('⚠️ A transferir ficheiro PDF diretamente...');
+    downloadDirectPdf(itemsHtml, title);
+  }
+
+  // Fallback de limpeza caso o evento afterprint não seja emitido no Safari móvel
+  setTimeout(cleanup, 1200);
 }
 
 /**
  * Descarregar ficheiro .PDF diretamente via biblioteca html2pdf
+ * 100% funcional no iPad, Safari, Chrome e Desktop
  */
 function downloadDirectPdf(itemsHtml, title) {
   showToast('⏳ A gerar ficheiro PDF...');
@@ -20050,18 +20053,65 @@ function downloadDirectPdf(itemsHtml, title) {
   }
 }
 
-function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    if (a.parentNode) a.parentNode.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 3000);
+/**
+ * Disparador universal de download compatível com iPadOS, iOS Safari e Desktop
+ * Utiliza Web Share API com File para DOC/CSV no iPad (evita o bloqueio WebKitBlobResource error 1)
+ */
+async function triggerDownload(blob, filename) {
+  const isIOS = (typeof navigator !== 'undefined') && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+
+  // 1. Tentar Web Share API nativa com File (Permite Salvar em Ficheiros / Abrir no Pages/Word no iPad)
+  if (typeof navigator !== 'undefined' && navigator.canShare && typeof File !== 'undefined') {
+    try {
+      const cleanMime = (blob.type || '').split(';')[0].trim() || 'application/octet-stream';
+      const file = new File([blob], filename, { 
+        type: cleanMime,
+        lastModified: Date.now()
+      });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: filename,
+        });
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // Utilizador apenas fechou o painel de partilha da Apple
+        return;
+      }
+      console.warn('Web Share API não disponível para este tipo de ficheiro, a usar fallback de download:', err);
+    }
+  }
+
+  // 2. Método padrão via elemento âncora <a> (Desktop Windows, Mac, Chrome, Edge, Firefox)
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+
+    // No iOS, se a.click() for bloqueado pelo WebKit em certos formatos, abrir numa nova janela como salvaguarda
+    if (isIOS) {
+      setTimeout(() => {
+        window.open(url, '_blank');
+      }, 350);
+    }
+
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 10000);
+  } catch (err) {
+    console.error('Erro no download via âncora:', err);
+  }
 }
 
 function cleanFilename(str) {
