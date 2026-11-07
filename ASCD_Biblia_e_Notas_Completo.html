@@ -1928,21 +1928,11 @@ html, body {
   color: var(--primary) !important;
 }
 
-/* iPads em Paisagem e Telas Médias (<= 1080px) */
+/* Ajustes para telas móveis e tablets */
 @media (max-width: 1080px) {
+  /* Mantém a barra lateral completa com a mesma largura, texto e seletores de tema (Papiro, Claro, Escuro) que no PC */
   .app-sidebar {
-    width: 68px;
-  }
-  .brand-text, .nav-btn span, .sidebar-footer {
-    display: none;
-  }
-  .sidebar-header {
-    justify-content: center;
-    padding: 16px 0;
-  }
-  .nav-btn {
-    justify-content: center;
-    padding: 12px 0;
+    width: var(--sidebar-width);
   }
 }
 
