@@ -1937,6 +1937,19 @@ function setupJournal() {
     exportToExcel(list, 'ASCD_Todo_Historico_Journal');
   });
 
+  document.getElementById('btn-export-all-journal-pdf')?.addEventListener('click', () => {
+    const list = Object.keys(ASCD.journalEntries).sort().reverse().map(d => ({
+      ...ASCD.journalEntries[d],
+      date: d,
+      type: 'Journal Diário'
+    }));
+    if (list.length) {
+      exportBatchToPdf(list, 'Todo o Histórico do Diário');
+    } else {
+      showToast('Nenhum registro no Diário para exportar.');
+    }
+  });
+
   // Alternar modo de seleção de dias de journaling
   const btnToggleSelectJ = document.getElementById('btn-toggle-select-journal');
   if (btnToggleSelectJ) {
@@ -1958,6 +1971,26 @@ function setupJournal() {
     }
     updateJournalBatchBar();
     renderJournalHistoryList();
+  });
+
+  // Exportar dias selecionados para PDF
+  document.getElementById('btn-batch-journal-pdf')?.addEventListener('click', () => {
+    const items = getSelectedJournalItems();
+    if (items.length) {
+      exportBatchToPdf(items, 'Diário Espiritual - Dias Selecionados');
+    } else {
+      showToast('Nenhum dia selecionado para exportar em PDF.');
+    }
+  });
+
+  // Exportar dias selecionados para Excel
+  document.getElementById('btn-batch-journal-excel')?.addEventListener('click', () => {
+    const items = getSelectedJournalItems();
+    if (items.length) {
+      exportToExcel(items, 'ASCD_Journal_Selecionados');
+    } else {
+      showToast('Nenhum dia selecionado para exportar em Excel.');
+    }
   });
 
   // Excluir dias selecionados em lote
@@ -2252,6 +2285,17 @@ function toggleSelectJournalDate(dateStr) {
   }
   updateJournalBatchBar();
   renderJournalHistoryList();
+}
+
+function getSelectedJournalItems() {
+  const dates = Array.from(ASCD.selectedJournalDates).sort().reverse();
+  return dates
+    .filter(d => ASCD.journalEntries[d])
+    .map(d => ({
+      ...ASCD.journalEntries[d],
+      date: d,
+      type: 'Journal Diário'
+    }));
 }
 
 function updateJournalBatchBar() {

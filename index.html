@@ -440,8 +440,11 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
                   <h4 style="margin:0;">Dias com Registro</h4>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <button class="btn btn-secondary btn-sm" id="btn-toggle-select-journal" title="Selecionar um ou mais dias para apagar">
+                    <button class="btn btn-secondary btn-sm" id="btn-toggle-select-journal" title="Selecionar um ou mais dias para exportar ou apagar">
                       ☑️ Selecionar
+                    </button>
+                    <button class="btn-icon-subtle" id="btn-export-all-journal-pdf" title="Exportar todo o histórico do Diário para PDF">
+                      🖨️ PDF
                     </button>
                     <button class="btn-icon-subtle" id="btn-export-all-journal-excel" title="Exportar todo o histórico do Diário para Excel">
                       📊 Excel
@@ -457,9 +460,17 @@
                       <span>Todos</span>
                     </label>
                     <span class="batch-counter" id="journal-selected-counter" style="font-size:12px; margin:0;">0 selecionado(s)</span>
-                    <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-journal-del" style="color:#B91C1C; border-color:#F87171; padding:4px 8px; font-size:12px;" title="Excluir dias selecionados">
-                      🗑️ Excluir
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center; margin-left:auto; flex-wrap:wrap;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-journal-pdf" title="Exportar dias selecionados para PDF">
+                        🖨️ Exportar PDF
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-journal-excel" title="Exportar dias selecionados para Excel">
+                        📊 Exportar Excel
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-batch-journal-del" style="color:#B91C1C; border-color:#F87171; padding:4px 8px; font-size:12px;" title="Excluir dias selecionados">
+                        🗑️ Excluir
+                      </button>
+                    </div>
                   </div>
                 </div>
 
