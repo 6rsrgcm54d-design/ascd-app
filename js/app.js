@@ -60,8 +60,93 @@ const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzVk
 let autoSyncTimeout = null;
 let isSyncingToSheets = false;
 
+// Configuração de Segurança e Palavra-passe
+const DEFAULT_AUTH_PASSWORD = 'ascd2026';
+
+function initAppSecurity() {
+  const lockScreen = document.getElementById('ascd-auth-lockscreen');
+  const authInput = document.getElementById('ascd-auth-input');
+  const authError = document.getElementById('ascd-auth-error');
+  const rememberCheckbox = document.getElementById('ascd-auth-remember');
+  const togglePwdBtn = document.getElementById('btn-toggle-auth-pwd');
+  const lockAppBtn = document.getElementById('btn-lock-app');
+
+  if (!lockScreen) return;
+
+  // Verificar se o dispositivo já foi autenticado anteriormente com sucesso
+  const isRemembered = localStorage.getItem('ascd_auth_unlocked') === 'true';
+  if (isRemembered) {
+    lockScreen.classList.add('unlocked');
+  } else {
+    lockScreen.classList.remove('unlocked');
+    setTimeout(() => {
+      if (authInput) authInput.focus();
+    }, 150);
+  }
+
+  // Alternar visibilidade da senha (olho)
+  if (togglePwdBtn && authInput) {
+    togglePwdBtn.addEventListener('click', () => {
+      const isPwd = authInput.type === 'password';
+      authInput.type = isPwd ? 'text' : 'password';
+      togglePwdBtn.innerHTML = isPwd
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    });
+  }
+
+  // Botão na barra superior para bloquear a app manualmente
+  if (lockAppBtn) {
+    lockAppBtn.addEventListener('click', () => {
+      localStorage.removeItem('ascd_auth_unlocked');
+      lockScreen.classList.remove('unlocked');
+      if (authInput) {
+        authInput.value = '';
+        authInput.classList.remove('error');
+        authInput.focus();
+      }
+      if (authError) authError.textContent = '';
+      showToast('🔒 Aplicação bloqueada');
+    });
+  }
+}
+
+function handleAuthSubmit() {
+  const lockScreen = document.getElementById('ascd-auth-lockscreen');
+  const authInput = document.getElementById('ascd-auth-input');
+  const authError = document.getElementById('ascd-auth-error');
+  const rememberCheckbox = document.getElementById('ascd-auth-remember');
+
+  if (!authInput) return;
+
+  const entered = (authInput.value || '').trim();
+  const currentPassword = localStorage.getItem('ascd_custom_password') || DEFAULT_AUTH_PASSWORD;
+
+  if (entered === currentPassword) {
+    authInput.classList.remove('error');
+    if (authError) authError.textContent = '';
+
+    // Se assinalado para lembrar no iPad / dispositivo
+    if (rememberCheckbox && rememberCheckbox.checked) {
+      localStorage.setItem('ascd_auth_unlocked', 'true');
+    } else {
+      localStorage.removeItem('ascd_auth_unlocked');
+    }
+
+    if (lockScreen) {
+      lockScreen.classList.add('unlocked');
+    }
+    showToast('✓ Acesso autorizado. Bem-vindo!');
+  } else {
+    authInput.classList.add('error');
+    if (authError) authError.textContent = 'Palavra-passe incorreta. Tente novamente.';
+    authInput.select();
+  }
+}
+
 // Inicialização Geral
 document.addEventListener('DOMContentLoaded', () => {
+  initAppSecurity();
   loadStoredData();
   setupNavigation();
   setupThemes();
@@ -3229,15 +3314,17 @@ function setupSheetsSyncModal() {
   const tabDirect = document.getElementById('tab-btn-sync-direct');
   const tabBackup = document.getElementById('tab-btn-sync-backup');
   const tabGuide = document.getElementById('tab-btn-sync-guide');
+  const tabSecurity = document.getElementById('tab-btn-sync-security');
   const tabCsv = document.getElementById('tab-btn-sync-csv');
 
   const panelDirect = document.getElementById('sync-panel-direct');
   const panelBackup = document.getElementById('sync-panel-backup');
   const panelGuide = document.getElementById('sync-panel-guide');
+  const panelSecurity = document.getElementById('sync-panel-security');
   const panelCsv = document.getElementById('sync-panel-csv');
 
-  const allTabs = [tabDirect, tabBackup, tabGuide, tabCsv];
-  const allPanels = [panelDirect, panelBackup, panelGuide, panelCsv];
+  const allTabs = [tabDirect, tabBackup, tabGuide, tabSecurity, tabCsv];
+  const allPanels = [panelDirect, panelBackup, panelGuide, panelSecurity, panelCsv];
 
   function switchModalTab(activeBtn, activePanel) {
     allTabs.forEach(btn => {
@@ -3278,8 +3365,87 @@ function setupSheetsSyncModal() {
       }
     });
   }
+  if (tabSecurity && panelSecurity) {
+    tabSecurity.addEventListener('click', () => switchModalTab(tabSecurity, panelSecurity));
+  }
   if (tabCsv && panelCsv) {
     tabCsv.addEventListener('click', () => switchModalTab(tabCsv, panelCsv));
+  }
+
+  // Gestão de Alteração de Palavra-passe
+  const currentPwdInput = document.getElementById('input-current-app-pwd');
+  const newPwdInput = document.getElementById('input-new-app-pwd');
+  const confirmPwdInput = document.getElementById('input-confirm-app-pwd');
+  const btnSavePwd = document.getElementById('btn-save-new-app-pwd');
+  const btnResetPwd = document.getElementById('btn-reset-default-pwd');
+  const pwdStatusEl = document.getElementById('security-pwd-status');
+
+  if (btnSavePwd) {
+    btnSavePwd.addEventListener('click', () => {
+      const curVal = (currentPwdInput?.value || '').trim();
+      const newVal = (newPwdInput?.value || '').trim();
+      const confVal = (confirmPwdInput?.value || '').trim();
+      const actualPwd = localStorage.getItem('ascd_custom_password') || DEFAULT_AUTH_PASSWORD;
+
+      if (!curVal || !newVal || !confVal) {
+        if (pwdStatusEl) {
+          pwdStatusEl.style.color = '#DC2626';
+          pwdStatusEl.textContent = 'Por favor, preencha todos os campos.';
+        }
+        return;
+      }
+
+      if (curVal !== actualPwd) {
+        if (pwdStatusEl) {
+          pwdStatusEl.style.color = '#DC2626';
+          pwdStatusEl.textContent = 'A palavra-passe atual está incorreta.';
+        }
+        return;
+      }
+
+      if (newVal.length < 4) {
+        if (pwdStatusEl) {
+          pwdStatusEl.style.color = '#DC2626';
+          pwdStatusEl.textContent = 'A nova palavra-passe deve ter pelo menos 4 caracteres.';
+        }
+        return;
+      }
+
+      if (newVal !== confVal) {
+        if (pwdStatusEl) {
+          pwdStatusEl.style.color = '#DC2626';
+          pwdStatusEl.textContent = 'A nova palavra-passe e a confirmação não coincidem.';
+        }
+        return;
+      }
+
+      localStorage.setItem('ascd_custom_password', newVal);
+      if (currentPwdInput) currentPwdInput.value = '';
+      if (newPwdInput) newPwdInput.value = '';
+      if (confirmPwdInput) confirmPwdInput.value = '';
+
+      if (pwdStatusEl) {
+        pwdStatusEl.style.color = '#059669';
+        pwdStatusEl.textContent = '✅ Palavra-passe alterada com sucesso!';
+      }
+      showToast('✓ Palavra-passe atualizada com sucesso!');
+    });
+  }
+
+  if (btnResetPwd) {
+    btnResetPwd.addEventListener('click', () => {
+      if (confirm('Deseja restaurar a palavra-passe padrão ("ascd2026")?')) {
+        localStorage.removeItem('ascd_custom_password');
+        if (currentPwdInput) currentPwdInput.value = '';
+        if (newPwdInput) newPwdInput.value = '';
+        if (confirmPwdInput) confirmPwdInput.value = '';
+        if (pwdStatusEl) {
+          pwdStatusEl.style.color = '#059669';
+          pwdStatusEl.textContent = '✅ Palavra-passe restaurada para a predefinida (ascd2026).';
+        }
+        showToast('Palavra-passe restaurada para ascd2026');
+      }
+    });
   }
 
   // Botão Único: Sincronizar Tudo Agora (Puxa novidades + Envia alterações)
