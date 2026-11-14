@@ -311,29 +311,35 @@ function loadStoredData() {
       saveSermons();
     }
 
-    // 3. Registros de Journaling (com Oração e Tarefas)
+    // 3. Registros de Journaling (com Oração e Tarefas) — começar sempre do vazio
     const todayStr = getTodayDateStr();
     ASCD.currentJournalDate = todayStr;
     const savedJournal = localStorage.getItem('ascd_journal');
     if (savedJournal) {
-      ASCD.journalEntries = JSON.parse(savedJournal);
+      try {
+        ASCD.journalEntries = JSON.parse(savedJournal) || {};
+      } catch (_) {
+        ASCD.journalEntries = {};
+      }
     } else {
-      ASCD.journalEntries = {
-        [todayStr]: {
-          date: todayStr,
-          title: 'Meditações Matinais e Gratidão',
-          verse: 'Salmos 23:1-3',
-          prayer: 'Agradeço pelo descanso da noite e pela fidelidade de Deus. Peço direção e sabedoria nas reuniões de hoje, paz para a família e discernimento nas decisões importantes.',
-          tasks: [
-            { id: 't-1', text: 'Leitura e meditação de Salmos 23', done: true },
-            { id: 't-2', text: 'Interceder em oração pela família', done: true },
-            { id: 't-3', text: 'Revisar notas do sermão de domingo', done: false }
-          ],
-          mode: 'hybrid',
-          content: '<p>Comecei o dia em oração e leitura meditada da Palavra de Deus. Em momentos de decisão e desafios profissionais, encontro paz ao me lembrar de que o Bom Pastor guia os meus passos em veredas de justiça.</p>',
-          updatedAt: new Date().toISOString()
-        }
-      };
+      ASCD.journalEntries = {};
+    }
+
+    // Limpeza de quaisquer registros ou tarefas pré-feitas de exemplo para começar sempre do vazio
+    let cleanedLegacyJournal = false;
+    Object.keys(ASCD.journalEntries).forEach(k => {
+      const entry = ASCD.journalEntries[k];
+      if (entry && (
+        entry.title === 'Meditações Matinais e Gratidão' ||
+        entry.verse === 'Salmos 23:1-3' ||
+        (entry.tasks && entry.tasks.some(t => t.id === 't-1' || t.id === 't-2' || t.id === 't-3'))
+      )) {
+        delete ASCD.journalEntries[k];
+        trackDeletedId('JOURNAL-' + k);
+        cleanedLegacyJournal = true;
+      }
+    });
+    if (cleanedLegacyJournal) {
       saveJournalEntries();
     }
 
@@ -2194,7 +2200,7 @@ function loadJournalEntryForDate(dateStr) {
     if (prayerEditor) prayerEditor.innerHTML = '';
     if (textEditor) textEditor.innerHTML = '';
     renderJournalTasks([]);
-    if (saveStatus) saveStatus.textContent = 'Novo registro para este dia';
+    if (saveStatus) saveStatus.textContent = '';
   }
 }
 
@@ -2207,7 +2213,7 @@ function renderJournalTasks(tasks = null) {
   const taskList = tasks || (currentEntry ? currentEntry.tasks : []) || [];
 
   if (taskList.length === 0) {
-    listEl.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:6px 0;">Nenhuma tarefa adicionada para hoje ainda.</div>`;
+    listEl.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:6px 0;">Nenhuma tarefa adicionada ainda.</div>`;
     if (progressEl) progressEl.textContent = '0 tarefas';
     return;
   }
@@ -2240,7 +2246,7 @@ function addJournalTask() {
   if (!ASCD.journalEntries[dateStr]) {
     ASCD.journalEntries[dateStr] = {
       date: dateStr,
-      title: `Diário de ${formatDateShort(dateStr)}`,
+      title: '',
       verse: '',
       prayer: '',
       tasks: [],
@@ -2315,13 +2321,13 @@ function saveCurrentJournalEntry(notify = true) {
   }
 
   const old = ASCD.journalEntries[dateStr];
-  const finalTitle = title || `Diário de ${formatDateShort(dateStr)}`;
+  const finalTitle = title;
 
   let isChanged = false;
   if (!old) {
     isChanged = true;
   } else {
-    if (finalTitle !== old.title) isChanged = true;
+    if (finalTitle !== (old.title || '')) isChanged = true;
     if (verse !== (old.verse || '')) isChanged = true;
     if (prayerClean !== (old.prayer ? old.prayer.replace(/<[^>]*>/g, '').trim() : '')) isChanged = true;
     if (contentClean !== (old.content ? old.content.replace(/<[^>]*>/g, '').trim() : '')) isChanged = true;
@@ -3973,6 +3979,11 @@ async function pullFromCloud(silent = false) {
         const remoteJ = d.journalEntries[dateStr];
         if (!remoteJ) return;
 
+        // Ignorar registros de exemplo/mock para começar sempre do vazio
+        if (remoteJ.title === 'Meditações Matinais e Gratidão' || (remoteJ.tasks && remoteJ.tasks.some(t => t.id === 't-1' || t.id === 't-2' || t.id === 't-3'))) {
+          return;
+        }
+
         if (!ASCD.journalEntries[dateStr]) {
           ASCD.journalEntries[dateStr] = remoteJ;
           addedCount++;
@@ -4010,7 +4021,7 @@ async function pullFromCloud(silent = false) {
             if (remoteJ.updatedAt) localJ.updatedAt = remoteJ.updatedAt;
           } else {
             // Preencher campos que faltam no local mesmo que o local pareça mais recente
-            if ((!localJ.title || localJ.title.startsWith('Diário de')) && remoteJ.title && !remoteJ.title.startsWith('Diário de')) {
+            if (!localJ.title && remoteJ.title) {
               localJ.title = remoteJ.title; changed = true;
             }
             if (!localJ.verse && remoteJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
