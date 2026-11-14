@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v26 com Network-First e Auto-Update
-const CACHE_NAME = 'ascd-cache-v26';
+// ASCD Service Worker - Versão v27 com Sincronização em Nuvem Firebase e Network-First
+const CACHE_NAME = 'ascd-cache-v27';
 const ASSETS = [
   './',
   './index.html',

@@ -50,15 +50,19 @@ const ASCD = {
   devotionalAudioPlaying: false,
   devotionalAudioRate: 1.0,
   devotionalSpeechUtterance: null,
-  devotionalDrawerTab: 'recent',
-
-  // Conexão Google Sheets
-  sheetsWebhookUrl: 'https://script.google.com/macros/s/AKfycbzVkYm6O0RgadN5_WE1dnabzVJsXGAoK7mQWzudynQZJMpT0rig4LqO366HrKAA9VDiLA/exec'
+  devotionalDrawerTab: 'recent'
 };
 
-const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzVkYm6O0RgadN5_WE1dnabzVJsXGAoK7mQWzudynQZJMpT0rig4LqO366HrKAA9VDiLA/exec';
+// Conexão de Base de Dados na Nuvem (Firebase Cloud Firestore)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBvUJfszFl9O8zgHJZ2zot2zw_SyVAVc00",
+  projectId: "ascd-app",
+  firestoreBaseUrl: "https://firestore.googleapis.com/v1/projects/ascd-app/databases/(default)/documents",
+  syncDocUrl: "https://firestore.googleapis.com/v1/projects/ascd-app/databases/(default)/documents/ascd_data/sync?key=AIzaSyBvUJfszFl9O8zgHJZ2zot2zw_SyVAVc00"
+};
+
 let autoSyncTimeout = null;
-let isSyncingToSheets = false;
+let isSyncingCloud = false;
 
 // Configuração de Segurança e Palavra-passe
 const DEFAULT_AUTH_PASSWORD = 'ascd2026';
@@ -161,35 +165,27 @@ document.addEventListener('DOMContentLoaded', () => {
   initSheetsSyncIndicator();
   setupHardwareKeyboardMode();
 
-  // Migrar URLs antigas do webhook se existirem no localStorage
-  try {
-    const storedWebhook = localStorage.getItem('ascd_sheets_webhook_url');
-    if (storedWebhook && (storedWebhook.includes('AKfycbyLb858') || storedWebhook.includes('AKfycbxiKCLR'))) {
-      localStorage.setItem('ascd_sheets_webhook_url', DEFAULT_SHEETS_WEBHOOK_URL);
-    }
-  } catch (_) {}
-
-  // Ao abrir o app em qualquer aparelho, puxa automaticamente os dados da folha de cálculo
+  // Ao abrir o app em qualquer aparelho, puxa automaticamente os dados da nuvem Firebase
   setTimeout(() => {
-    pullFromGoogleSheets(true);
-  }, 600);
+    pullFromCloud(true);
+  }, 400);
 
-  // Ao focar a janela ou voltar à aba no computador ou iPad, puxar imediatamente novidades do Sheets
+  // Ao focar a janela ou voltar à aba no computador ou iPad, puxar imediatamente novidades da nuvem
   window.addEventListener('focus', () => {
-    pullFromGoogleSheets(true);
+    pullFromCloud(true);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      pullFromGoogleSheets(true);
+      pullFromCloud(true);
     }
   });
 
-  // Polling em segundo plano a cada 25 segundos para manter computador e iPads perfeitamente sincronizados
+  // Verificação periódica em segundo plano (a cada 20s) para manter todos os iPads e computadores sempre alinhados
   setInterval(() => {
-    if (navigator.onLine && !isSyncingToSheets && document.visibilityState === 'visible') {
-      pullFromGoogleSheets(true);
+    if (navigator.onLine && !isSyncingCloud && document.visibilityState === 'visible') {
+      pullFromCloud(true);
     }
-  }, 25000);
+  }, 20000);
 
   // Salvar imediatamente se o usuário fechar a aba, recarregar ou suspender o app no iPad/telemóvel
   window.addEventListener('beforeunload', () => saveActiveWork());
@@ -397,7 +393,7 @@ function saveNotes() {
   } catch (e) {
     console.error('Erro ao salvar notas:', e);
   }
-  triggerAutoSyncToGoogleSheets();
+  triggerAutoSyncToCloud();
 }
 
 function saveSermons() {
@@ -406,7 +402,7 @@ function saveSermons() {
   } catch (e) {
     console.error('Erro ao salvar sermões:', e);
   }
-  triggerAutoSyncToGoogleSheets();
+  triggerAutoSyncToCloud();
 }
 
 function saveJournalEntries() {
@@ -415,7 +411,7 @@ function saveJournalEntries() {
   } catch (e) {
     console.error('Erro ao salvar journal:', e);
   }
-  triggerAutoSyncToGoogleSheets();
+  triggerAutoSyncToCloud();
 }
 
 function saveBiblePageNotes() {
@@ -424,7 +420,7 @@ function saveBiblePageNotes() {
   } catch (e) {
     console.error('Erro ao salvar notas de páginas bíblicas:', e);
   }
-  triggerAutoSyncToGoogleSheets();
+  triggerAutoSyncToCloud();
 }
 
 /**
@@ -2487,7 +2483,7 @@ function deleteSingleJournalDay(dateStr, e) {
     renderCalendar();
     renderJournalHistoryList();
     updateJournalBatchBar();
-    triggerAutoSyncToGoogleSheets(true);
+    triggerAutoSyncToCloud(true);
     showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
   }
 }
@@ -2531,7 +2527,7 @@ function deleteSelectedJournalDays() {
     updateJournalBatchBar();
     renderCalendar();
     renderJournalHistoryList();
-    triggerAutoSyncToGoogleSheets(true);
+    triggerAutoSyncToCloud(true);
     showToast(`🗑️ ${count} dia(s) de registro apagado(s) com sucesso!`);
   }
 }
@@ -2571,7 +2567,7 @@ function deleteCurrentJournalDay() {
     renderJournalHistoryList();
     updateJournalBatchBar();
 
-    triggerAutoSyncToGoogleSheets(true);
+    triggerAutoSyncToCloud(true);
 
     showToast(`🗑️ Registro de ${dateFormatted} apagado com sucesso!`);
   }
@@ -3313,18 +3309,16 @@ function openSheetsSyncModal() {
 function setupSheetsSyncModal() {
   const tabDirect = document.getElementById('tab-btn-sync-direct');
   const tabBackup = document.getElementById('tab-btn-sync-backup');
-  const tabGuide = document.getElementById('tab-btn-sync-guide');
   const tabSecurity = document.getElementById('tab-btn-sync-security');
   const tabCsv = document.getElementById('tab-btn-sync-csv');
 
   const panelDirect = document.getElementById('sync-panel-direct');
   const panelBackup = document.getElementById('sync-panel-backup');
-  const panelGuide = document.getElementById('sync-panel-guide');
   const panelSecurity = document.getElementById('sync-panel-security');
   const panelCsv = document.getElementById('sync-panel-csv');
 
-  const allTabs = [tabDirect, tabBackup, tabGuide, tabSecurity, tabCsv];
-  const allPanels = [panelDirect, panelBackup, panelGuide, panelSecurity, panelCsv];
+  const allTabs = [tabDirect, tabBackup, tabSecurity, tabCsv];
+  const allPanels = [panelDirect, panelBackup, panelSecurity, panelCsv];
 
   function switchModalTab(activeBtn, activePanel) {
     allTabs.forEach(btn => {
@@ -3355,15 +3349,6 @@ function setupSheetsSyncModal() {
   }
   if (tabBackup && panelBackup) {
     tabBackup.addEventListener('click', () => switchModalTab(tabBackup, panelBackup));
-  }
-  if (tabGuide && panelGuide) {
-    tabGuide.addEventListener('click', () => {
-      switchModalTab(tabGuide, panelGuide);
-      const codeDisplay = document.getElementById('apps-script-code-display');
-      if (codeDisplay && !codeDisplay.textContent.trim()) {
-        codeDisplay.textContent = getAppsScriptCodeText();
-      }
-    });
   }
   if (tabSecurity && panelSecurity) {
     tabSecurity.addEventListener('click', () => switchModalTab(tabSecurity, panelSecurity));
@@ -3456,7 +3441,7 @@ function setupSheetsSyncModal() {
       const statusEl = document.getElementById('sheets-sync-status');
       if (statusEl) {
         statusEl.style.color = 'var(--text-secondary)';
-        statusEl.textContent = '⏳ A sincronizar tudo com o Google Sheets...';
+        statusEl.textContent = '⏳ A sincronizar com a Nuvem Firebase...';
       }
       try {
         await syncAllNow(true);
@@ -3475,13 +3460,7 @@ function setupSheetsSyncModal() {
     });
   }
 
-  // Pre-preenche o campo URL do webhook
-  const urlInput = document.getElementById('input-sheets-webhook-url');
-  if (urlInput) {
-    urlInput.value = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-  }
-
-  // Botão Testar Conexão
+  // Botão Testar Conexão com a Nuvem
   const btnTestConn = document.getElementById('btn-test-sheets-connection');
   if (btnTestConn) {
     btnTestConn.addEventListener('click', testGoogleSheetsConnection);
@@ -3684,57 +3663,51 @@ function importFullBackup(file) {
 }
 
 /**
- * Inicialização e Controle do Indicador de Auto-Save para Google Sheets
+ * Inicialização e Controle do Indicador de Sincronização em Nuvem (Firebase)
  */
 function initSheetsSyncIndicator() {
   const badge = document.getElementById('sheets-autosync-badge');
-  const savedUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
   if (badge) {
-    if (savedUrl && savedUrl.startsWith('https://script.google.com/')) {
-      badge.innerHTML = `☁️ <span style="font-weight:600;">Sincronizado</span>`;
-      badge.style.display = 'inline-flex';
+    badge.innerHTML = `⚡ <span style="font-weight:600;">Nuvem Ativa</span>`;
+    badge.style.display = 'inline-flex';
 
-      // Ao clicar diretamente no botão do cabeçalho, sincroniza tudo na hora!
-      badge.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        syncAllNow(true);
-      };
-    } else {
-      badge.style.display = 'none';
-    }
+    // Ao clicar diretamente no botão do cabeçalho, sincroniza tudo na hora!
+    badge.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      syncAllNow(true);
+    };
   }
 }
 
 /**
- * Sincronização Completa (Tudo-em-Um):
- * 1. Puxa as novidades mais recentes do Google Sheets (feitas noutros aparelhos)
- * 2. Envia e funde os dados locais para a folha de cálculo
+ * Sincronização Completa (Tudo-em-Um com Firebase Cloud Firestore):
+ * 1. Puxa as novidades mais recentes da nuvem (feitas noutros iPads/computadores)
+ * 2. Envia e funde os dados locais para a nuvem
  * 3. Atualiza o indicador visual no cabeçalho
  */
 async function syncAllNow(showToasts = true) {
-  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    if (showToasts) showToast('⚠️ Conexão do Google Sheets não configurada.');
+  if (!navigator.onLine) {
+    if (showToasts) showToast('⚠️ Sem ligação à Internet no momento.');
     return;
   }
 
   updateSyncPillBadge('syncing');
-  if (showToasts) showToast('🔄 A sincronizar com o Google Sheets...');
+  if (showToasts) showToast('🔄 A sincronizar com a Nuvem Firebase...');
 
   try {
-    // 1. PULL: Puxar do Google Sheets
-    await pullFromGoogleSheets(true);
+    // 1. PULL: Puxar da Nuvem Firebase
+    await pullFromCloud(true);
 
-    // 2. PUSH: Gravar/Fundir no Google Sheets
-    await executeSheetsSync(webhookUrl, true);
+    // 2. PUSH: Gravar/Fundir na Nuvem Firebase
+    await executeCloudSync(true);
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     updateSyncPillBadge('success', timeStr);
 
     if (showToasts) {
-      showToast(`✅ Tudo sincronizado! Dados atualizados em todos os aparelhos.`);
+      showToast('✅ Nuvem atualizada! Todos os seus iPads e computadores estão sincronizados.');
     }
   } catch (err) {
     console.warn('Sync all notice:', err);
@@ -3743,29 +3716,25 @@ async function syncAllNow(showToasts = true) {
 }
 
 /**
- * Auto-Sincronização com o Google Sheets
+ * Auto-Sincronização com o Firebase Cloud Firestore
  * Acionado automaticamente sempre que algo é escrito ou guardado em qualquer aba
  */
-function triggerAutoSyncToGoogleSheets(immediate = false) {
-  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    return;
-  }
-
+function triggerAutoSyncToCloud(immediate = false) {
   if (autoSyncTimeout) {
     clearTimeout(autoSyncTimeout);
     autoSyncTimeout = null;
   }
 
-  const delay = immediate ? 0 : 1500;
+  const delay = immediate ? 0 : 1200;
   autoSyncTimeout = setTimeout(() => {
-    executeSheetsSync(webhookUrl, true);
+    executeCloudSync(true);
   }, delay);
 }
 
-async function executeSheetsSync(webhookUrl, isAuto = false) {
-  if (isSyncingToSheets) return;
-  isSyncingToSheets = true;
+async function executeCloudSync(isAuto = false) {
+  if (!navigator.onLine) return;
+  if (isSyncingCloud) return;
+  isSyncingCloud = true;
 
   updateSyncPillBadge('syncing');
 
@@ -3804,27 +3773,38 @@ async function executeSheetsSync(webhookUrl, isAuto = false) {
   };
 
   try {
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
+    const res = await fetch(FIREBASE_CONFIG.syncDocUrl, {
+      method: 'PATCH',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        fields: {
+          payload: {
+            stringValue: JSON.stringify(payload)
+          },
+          updatedAt: {
+            stringValue: new Date().toISOString()
+          }
+        }
+      })
     });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     updateSyncPillBadge('success', timeStr);
     if (!isAuto) {
-      showToast(`✅ Google Sheets sincronizado com sucesso! (${records.length} registros consolidados)`);
+      showToast(`✅ Sincronizado com a Nuvem com sucesso! (${records.length} registros consolidados)`);
     }
   } catch (err) {
-    console.warn('Sheets auto-sync notice:', err);
-    const now = new Date();
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    updateSyncPillBadge('success', timeStr);
+    console.warn('Firebase sync notice:', err);
+    updateSyncPillBadge('error');
   } finally {
-    isSyncingToSheets = false;
+    isSyncingCloud = false;
   }
 }
 
@@ -3870,22 +3850,18 @@ function getCleanBibleNotesForSync() {
 }
 
 /**
- * Puxar e Fundir Dados do Google Sheets para o Dispositivo Local
- * Chamado automaticamente ao abrir a aplicação e no botão manual "Puxar Dados"
+ * Puxar e Fundir Dados do Firebase Cloud Firestore para o Dispositivo Local
+ * Chamado automaticamente ao abrir a aplicação, focar na janela e periodicamente
  */
-async function pullFromGoogleSheets(silent = false) {
-  const webhookUrl = localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    return false;
-  }
-
-  if (isSyncingToSheets) return false;
-  isSyncingToSheets = true;
+async function pullFromCloud(silent = false) {
+  if (!navigator.onLine) return false;
+  if (isSyncingCloud) return false;
+  isSyncingCloud = true;
 
   updateSyncPillBadge('syncing');
 
   try {
-    const res = await fetch(webhookUrl + '?action=pull', {
+    const res = await fetch(FIREBASE_CONFIG.syncDocUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
@@ -3893,241 +3869,265 @@ async function pullFromGoogleSheets(silent = false) {
     });
 
     if (!res.ok) {
+      if (res.status === 404) {
+        updateSyncPillBadge('success');
+        return true;
+      }
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const json = await res.json();
-
-    if (json && json.status === 'success' && json.data) {
-      const d = json.data;
-      let addedCount = 0;
-
-      // 1. Fundir Caderno de Notas
-      if (d.notes && Array.isArray(d.notes)) {
-        d.notes.forEach(remoteNote => {
-          if (!remoteNote || !remoteNote.id) return;
-          if (ASCD.deletedIds && ASCD.deletedIds.includes(remoteNote.id)) return;
-
-          const localIdx = ASCD.notes.findIndex(n => n.id === remoteNote.id);
-          if (localIdx === -1) {
-            ASCD.notes.unshift(remoteNote);
-            addedCount++;
-          } else {
-            const local = ASCD.notes[localIdx];
-            const remoteTime = remoteNote.updatedAt ? new Date(remoteNote.updatedAt).getTime() : 0;
-            const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-            const remoteIsNewer = remoteTime >= localTime;
-
-            if (remoteIsNewer || (!local.content && remoteNote.content)) {
-              if (remoteNote.title) local.title = remoteNote.title;
-              if (remoteNote.content !== undefined) local.content = remoteNote.content;
-              if (remoteNote.category) local.category = remoteNote.category;
-              if (remoteNote.mode) local.mode = remoteNote.mode;
-              if (remoteNote.updatedAt) local.updatedAt = remoteNote.updatedAt;
-              addedCount++;
-            }
-          }
-        });
-      }
-
-      // 2. Fundir Sermões
-      if (d.sermons && Array.isArray(d.sermons)) {
-        d.sermons.forEach(remoteSermon => {
-          if (!remoteSermon || !remoteSermon.id) return;
-          if (ASCD.deletedIds && ASCD.deletedIds.includes(remoteSermon.id)) return;
-
-          const localIdx = ASCD.sermons.findIndex(s => s.id === remoteSermon.id);
-          if (localIdx === -1) {
-            ASCD.sermons.unshift(remoteSermon);
-            addedCount++;
-          } else {
-            const local = ASCD.sermons[localIdx];
-            const remoteTime = remoteSermon.updatedAt ? new Date(remoteSermon.updatedAt).getTime() : 0;
-            const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-            const remoteIsNewer = remoteTime >= localTime;
-
-            if (remoteIsNewer || (!local.content && remoteNote.content)) {
-              if (remoteSermon.title) local.title = remoteSermon.title;
-              if (remoteSermon.passage) local.passage = remoteSermon.passage;
-              if (remoteSermon.preacher) local.preacher = remoteSermon.preacher;
-              if (remoteSermon.content !== undefined) local.content = remoteSermon.content;
-              if (remoteSermon.mode) local.mode = remoteSermon.mode;
-              if (remoteSermon.updatedAt) local.updatedAt = remoteSermon.updatedAt;
-              addedCount++;
-            }
-          }
-        });
-      }
-
-      // 3. Fundir Diário (Journal)
-      if (d.journalEntries && typeof d.journalEntries === 'object') {
-        Object.keys(d.journalEntries).forEach(dateStr => {
-          if (ASCD.deletedIds && ASCD.deletedIds.includes('JOURNAL-' + dateStr)) return;
-          const remoteJ = d.journalEntries[dateStr];
-          if (!remoteJ) return;
-
-          if (!ASCD.journalEntries[dateStr]) {
-            ASCD.journalEntries[dateStr] = remoteJ;
-            addedCount++;
-          } else {
-            const localJ = ASCD.journalEntries[dateStr];
-            const remoteTime = remoteJ.updatedAt ? new Date(remoteJ.updatedAt).getTime() : 0;
-            const localTime = localJ.updatedAt ? new Date(localJ.updatedAt).getTime() : 0;
-            const remoteIsNewer = remoteTime >= localTime;
-
-            let changed = false;
-
-            // Merge inteligente de tarefas por ID (nunca apaga tarefas existentes)
-            const taskMap = new Map();
-            (remoteJ.tasks || []).forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
-            (localJ.tasks || []).forEach(t => {
-              if (t && t.id) {
-                if (!taskMap.has(t.id) || !remoteIsNewer) {
-                  taskMap.set(t.id, t);
-                }
-              }
-            });
-            const mergedTasks = Array.from(taskMap.values());
-            if (JSON.stringify(mergedTasks) !== JSON.stringify(localJ.tasks || [])) {
-              localJ.tasks = mergedTasks;
-              changed = true;
-            }
-
-            if (remoteIsNewer) {
-              if (remoteJ.title && remoteJ.title !== localJ.title) { localJ.title = remoteJ.title; changed = true; }
-              if (remoteJ.verse !== undefined && remoteJ.verse !== localJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
-              if (remoteJ.prayer !== undefined && remoteJ.prayer !== localJ.prayer) { localJ.prayer = remoteJ.prayer; changed = true; }
-              if (remoteJ.content !== undefined && remoteJ.content !== localJ.content) { localJ.content = remoteJ.content; changed = true; }
-              if (remoteJ.mode) localJ.mode = remoteJ.mode;
-              if (remoteJ.updatedAt) localJ.updatedAt = remoteJ.updatedAt;
-            } else {
-              // Preencher campos que faltam no local mesmo que o local pareça mais recente
-              if ((!localJ.title || localJ.title.startsWith('Diário de')) && remoteJ.title && !remoteJ.title.startsWith('Diário de')) {
-                localJ.title = remoteJ.title; changed = true;
-              }
-              if (!localJ.verse && remoteJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
-              if ((!localJ.prayer || localJ.prayer === '<br>' || localJ.prayer === '<p><br></p>') && remoteJ.prayer && remoteJ.prayer !== '<br>') {
-                localJ.prayer = remoteJ.prayer; changed = true;
-              }
-              if ((!localJ.content || localJ.content === '<br>' || localJ.content === '<p><br></p>') && remoteJ.content && remoteJ.content !== '<br>') {
-                localJ.content = remoteJ.content; changed = true;
-              }
-            }
-            if (changed) addedCount++;
-          }
-        });
-      }
-
-      // 4. Fundir Notas de Páginas Bíblicas
-      if (d.biblePageNotes && typeof d.biblePageNotes === 'object') {
-        Object.keys(d.biblePageNotes).forEach(key => {
-          if (ASCD.deletedIds && ASCD.deletedIds.includes('BIBLIA-' + key)) return;
-          const remoteB = d.biblePageNotes[key];
-          if (!remoteB) return;
-
-          if (!ASCD.biblePageNotes[key]) {
-            ASCD.biblePageNotes[key] = remoteB;
-            addedCount++;
-          } else {
-            const localB = ASCD.biblePageNotes[key];
-            const remoteTime = remoteB.updatedAt ? new Date(remoteB.updatedAt).getTime() : 0;
-            const localTime = localB.updatedAt ? new Date(localB.updatedAt).getTime() : 0;
-            if (remoteTime >= localTime || (!localB.content && remoteB.content)) {
-              if (remoteB.title) localB.title = remoteB.title;
-              if (remoteB.content !== undefined) localB.content = remoteB.content;
-              if (remoteB.updatedAt) localB.updatedAt = remoteB.updatedAt;
-              addedCount++;
-            }
-          }
-        });
-      }
-
-      // Salvar nos dados locais do dispositivo
-      try { localStorage.setItem('ascd_notes', JSON.stringify(ASCD.notes)); } catch (_) {}
-      try { localStorage.setItem('ascd_sermons', JSON.stringify(ASCD.sermons)); } catch (_) {}
-      try { localStorage.setItem('ascd_journal', JSON.stringify(ASCD.journalEntries)); } catch (_) {}
-      try { localStorage.setItem('ascd_bible_page_notes', JSON.stringify(ASCD.biblePageNotes)); } catch (_) {}
-
-      // Atualizar as telas da app
-      renderNotesList();
-      renderSermonsList();
-      renderCalendar();
-      renderJournalHistoryList();
-      if (typeof updateBiblePageSavedBadge === 'function') {
-        updateBiblePageSavedBadge();
-      }
-
-      // RECARREGAR O REGISTRO ATIVO NA TELA (CRUCIAL PARA QUEM TEM O APP ABERTO NO COMPUTADOR)
-      if (ASCD.activeTab === 'journal' && ASCD.currentJournalDate) {
-        const isEditingJournal = document.activeElement && (
-          document.activeElement.id === 'journal-title-input' ||
-          document.activeElement.id === 'journal-verse-input' ||
-          document.activeElement.id === 'journal-prayer-editor' ||
-          document.activeElement.id === 'journal-text-editor'
-        );
-        if (!isEditingJournal) {
-          loadJournalEntryForDate(ASCD.currentJournalDate);
-        }
-      } else if (ASCD.activeTab === 'caderno' && ASCD.activeNoteId) {
-        const isEditingNote = document.activeElement && (
-          document.activeElement.id === 'note-title-input' ||
-          document.activeElement.id === 'note-rich-editor'
-        );
-        if (!isEditingNote) {
-          const curNote = ASCD.notes.find(n => n.id === ASCD.activeNoteId);
-          if (curNote) {
-            const titleEl = document.getElementById('note-title-input');
-            const editorEl = document.getElementById('note-rich-editor');
-            if (titleEl) titleEl.value = curNote.title || '';
-            if (editorEl) editorEl.innerHTML = curNote.content || '';
-          }
-        }
-      } else if (ASCD.activeTab === 'sermoes' && ASCD.activeSermonId) {
-        const isEditingSermon = document.activeElement && (
-          document.activeElement.id === 'sermon-title-input' ||
-          document.activeElement.id === 'sermon-rich-editor'
-        );
-        if (!isEditingSermon) {
-          const curSermon = ASCD.sermons.find(s => s.id === ASCD.activeSermonId);
-          if (curSermon) {
-            const titleEl = document.getElementById('sermon-title-input');
-            const editorEl = document.getElementById('sermon-rich-editor');
-            if (titleEl) titleEl.value = curSermon.title || '';
-            if (editorEl) editorEl.innerHTML = curSermon.content || '';
-          }
-        }
-      } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
-        if (typeof loadBibleStudyForCurrentChapter === 'function') {
-          loadBibleStudyForCurrentChapter();
-        }
-      }
-
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      updateSyncPillBadge('success', timeStr);
-
-      if (!silent) {
-        showToast(addedCount > 0 ? `📥 ${addedCount} registro(s) integrados da sua base de dados!` : `☁️ Seus dados já estão sincronizados e atualizados com o Google Sheets!`);
-      }
-      return true;
-    } else {
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      updateSyncPillBadge('success', timeStr);
-      if (!silent) {
-        showToast('ℹ️ Conexão ativa com Google Sheets.');
-      }
+    const doc = await res.json();
+    if (!doc || !doc.fields || !doc.fields.payload || !doc.fields.payload.stringValue) {
+      updateSyncPillBadge('success');
       return false;
     }
+
+    const remotePayload = JSON.parse(doc.fields.payload.stringValue);
+    const d = remotePayload.rawItems || {};
+    const remoteDeletedIds = remotePayload.deletedIds || [];
+    let addedCount = 0;
+
+    // Sincronizar deletedIds bidirecionalmente
+    if (Array.isArray(remoteDeletedIds)) {
+      if (!ASCD.deletedIds) ASCD.deletedIds = [];
+      remoteDeletedIds.forEach(id => {
+        if (!ASCD.deletedIds.includes(id)) ASCD.deletedIds.push(id);
+      });
+      // Remover itens locais marcados como apagados
+      ASCD.notes = (ASCD.notes || []).filter(n => !ASCD.deletedIds.includes(n.id));
+      ASCD.sermons = (ASCD.sermons || []).filter(s => !ASCD.deletedIds.includes(s.id));
+      Object.keys(ASCD.journalEntries || {}).forEach(dateStr => {
+        if (ASCD.deletedIds.includes('JOURNAL-' + dateStr)) {
+          delete ASCD.journalEntries[dateStr];
+        }
+      });
+      Object.keys(ASCD.biblePageNotes || {}).forEach(key => {
+        if (ASCD.deletedIds.includes('BIBLIA-' + key)) {
+          delete ASCD.biblePageNotes[key];
+        }
+      });
+    }
+
+    // 1. Fundir Caderno de Notas
+    if (d.notes && Array.isArray(d.notes)) {
+      d.notes.forEach(remoteNote => {
+        if (!remoteNote || !remoteNote.id) return;
+        if (ASCD.deletedIds && ASCD.deletedIds.includes(remoteNote.id)) return;
+
+        const localIdx = ASCD.notes.findIndex(n => n.id === remoteNote.id);
+        if (localIdx === -1) {
+          ASCD.notes.unshift(remoteNote);
+          addedCount++;
+        } else {
+          const local = ASCD.notes[localIdx];
+          const remoteTime = remoteNote.updatedAt ? new Date(remoteNote.updatedAt).getTime() : 0;
+          const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+          const remoteIsNewer = remoteTime >= localTime;
+
+          if (remoteIsNewer || (!local.content && remoteNote.content)) {
+            if (remoteNote.title) local.title = remoteNote.title;
+            if (remoteNote.content !== undefined) local.content = remoteNote.content;
+            if (remoteNote.category) local.category = remoteNote.category;
+            if (remoteNote.mode) local.mode = remoteNote.mode;
+            if (remoteNote.paperType) local.paperType = remoteNote.paperType;
+            if (remoteNote.updatedAt) local.updatedAt = remoteNote.updatedAt;
+            addedCount++;
+          }
+        }
+      });
+    }
+
+    // 2. Fundir Sermões
+    if (d.sermons && Array.isArray(d.sermons)) {
+      d.sermons.forEach(remoteSermon => {
+        if (!remoteSermon || !remoteSermon.id) return;
+        if (ASCD.deletedIds && ASCD.deletedIds.includes(remoteSermon.id)) return;
+
+        const localIdx = ASCD.sermons.findIndex(s => s.id === remoteSermon.id);
+        if (localIdx === -1) {
+          ASCD.sermons.unshift(remoteSermon);
+          addedCount++;
+        } else {
+          const local = ASCD.sermons[localIdx];
+          const remoteTime = remoteSermon.updatedAt ? new Date(remoteSermon.updatedAt).getTime() : 0;
+          const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+          const remoteIsNewer = remoteTime >= localTime;
+
+          if (remoteIsNewer || (!local.content && remoteNote.content)) {
+            if (remoteSermon.title) local.title = remoteSermon.title;
+            if (remoteSermon.passage) local.passage = remoteSermon.passage;
+            if (remoteSermon.preacher) local.preacher = remoteSermon.preacher;
+            if (remoteSermon.content !== undefined) local.content = remoteSermon.content;
+            if (remoteSermon.mode) local.mode = remoteSermon.mode;
+            if (remoteSermon.updatedAt) local.updatedAt = remoteSermon.updatedAt;
+            addedCount++;
+          }
+        }
+      });
+    }
+
+    // 3. Fundir Diário (Journal)
+    if (d.journalEntries && typeof d.journalEntries === 'object') {
+      Object.keys(d.journalEntries).forEach(dateStr => {
+        if (ASCD.deletedIds && ASCD.deletedIds.includes('JOURNAL-' + dateStr)) return;
+        const remoteJ = d.journalEntries[dateStr];
+        if (!remoteJ) return;
+
+        if (!ASCD.journalEntries[dateStr]) {
+          ASCD.journalEntries[dateStr] = remoteJ;
+          addedCount++;
+        } else {
+          const localJ = ASCD.journalEntries[dateStr];
+          const remoteTime = remoteJ.updatedAt ? new Date(remoteJ.updatedAt).getTime() : 0;
+          const localTime = localJ.updatedAt ? new Date(localJ.updatedAt).getTime() : 0;
+          const remoteIsNewer = remoteTime >= localTime;
+
+          let changed = false;
+
+          // Merge inteligente de tarefas por ID (nunca apaga tarefas existentes)
+          const taskMap = new Map();
+          (remoteJ.tasks || []).forEach(t => { if (t && t.id) taskMap.set(t.id, t); });
+          (localJ.tasks || []).forEach(t => {
+            if (t && t.id) {
+              if (!taskMap.has(t.id) || !remoteIsNewer) {
+                taskMap.set(t.id, t);
+              }
+            }
+          });
+          const mergedTasks = Array.from(taskMap.values());
+          if (JSON.stringify(mergedTasks) !== JSON.stringify(localJ.tasks || [])) {
+            localJ.tasks = mergedTasks;
+            changed = true;
+          }
+
+          if (remoteIsNewer) {
+            if (remoteJ.title && remoteJ.title !== localJ.title) { localJ.title = remoteJ.title; changed = true; }
+            if (remoteJ.verse !== undefined && remoteJ.verse !== localJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
+            if (remoteJ.prayer !== undefined && remoteJ.prayer !== localJ.prayer) { localJ.prayer = remoteJ.prayer; changed = true; }
+            if (remoteJ.content !== undefined && remoteJ.content !== localJ.content) { localJ.content = remoteJ.content; changed = true; }
+            if (remoteJ.mode) localJ.mode = remoteJ.mode;
+            if (remoteJ.paperType) localJ.paperType = remoteJ.paperType;
+            if (remoteJ.updatedAt) localJ.updatedAt = remoteJ.updatedAt;
+          } else {
+            // Preencher campos que faltam no local mesmo que o local pareça mais recente
+            if ((!localJ.title || localJ.title.startsWith('Diário de')) && remoteJ.title && !remoteJ.title.startsWith('Diário de')) {
+              localJ.title = remoteJ.title; changed = true;
+            }
+            if (!localJ.verse && remoteJ.verse) { localJ.verse = remoteJ.verse; changed = true; }
+            if ((!localJ.prayer || localJ.prayer === '<br>' || localJ.prayer === '<p><br></p>') && remoteJ.prayer && remoteJ.prayer !== '<br>') {
+              localJ.prayer = remoteJ.prayer; changed = true;
+            }
+            if ((!localJ.content || localJ.content === '<br>' || localJ.content === '<p><br></p>') && remoteJ.content && remoteJ.content !== '<br>') {
+              localJ.content = remoteJ.content; changed = true;
+            }
+          }
+          if (changed) addedCount++;
+        }
+      });
+    }
+
+    // 4. Fundir Notas de Páginas Bíblicas
+    if (d.biblePageNotes && typeof d.biblePageNotes === 'object') {
+      Object.keys(d.biblePageNotes).forEach(key => {
+        if (ASCD.deletedIds && ASCD.deletedIds.includes('BIBLIA-' + key)) return;
+        const remoteB = d.biblePageNotes[key];
+        if (!remoteB) return;
+
+        if (!ASCD.biblePageNotes[key]) {
+          ASCD.biblePageNotes[key] = remoteB;
+          addedCount++;
+        } else {
+          const localB = ASCD.biblePageNotes[key];
+          const remoteTime = remoteB.updatedAt ? new Date(remoteB.updatedAt).getTime() : 0;
+          const localTime = localB.updatedAt ? new Date(localB.updatedAt).getTime() : 0;
+          if (remoteTime >= localTime || (!localB.content && remoteB.content)) {
+            if (remoteB.title) localB.title = remoteB.title;
+            if (remoteB.content !== undefined) localB.content = remoteB.content;
+            if (remoteB.updatedAt) localB.updatedAt = remoteB.updatedAt;
+            addedCount++;
+          }
+        }
+      });
+    }
+
+    // Salvar nos dados locais do dispositivo
+    try { localStorage.setItem('ascd_notes', JSON.stringify(ASCD.notes)); } catch (_) {}
+    try { localStorage.setItem('ascd_sermons', JSON.stringify(ASCD.sermons)); } catch (_) {}
+    try { localStorage.setItem('ascd_journal', JSON.stringify(ASCD.journalEntries)); } catch (_) {}
+    try { localStorage.setItem('ascd_bible_page_notes', JSON.stringify(ASCD.biblePageNotes)); } catch (_) {}
+    try { localStorage.setItem('ascd_deleted_ids', JSON.stringify(ASCD.deletedIds)); } catch (_) {}
+
+    // Atualizar as telas da app
+    renderNotesList();
+    renderSermonsList();
+    renderCalendar();
+    renderJournalHistoryList();
+    if (typeof updateBiblePageSavedBadge === 'function') {
+      updateBiblePageSavedBadge();
+    }
+
+    // RECARREGAR O REGISTRO ATIVO NA TELA
+    if (ASCD.activeTab === 'journal' && ASCD.currentJournalDate) {
+      const isEditingJournal = document.activeElement && (
+        document.activeElement.id === 'journal-title-input' ||
+        document.activeElement.id === 'journal-verse-input' ||
+        document.activeElement.id === 'journal-prayer-editor' ||
+        document.activeElement.id === 'journal-text-editor'
+      );
+      if (!isEditingJournal) {
+        loadJournalEntryForDate(ASCD.currentJournalDate);
+      }
+    } else if (ASCD.activeTab === 'caderno' && ASCD.activeNoteId) {
+      const isEditingNote = document.activeElement && (
+        document.activeElement.id === 'note-title-input' ||
+        document.activeElement.id === 'note-rich-editor'
+      );
+      if (!isEditingNote) {
+        const curNote = ASCD.notes.find(n => n.id === ASCD.activeNoteId);
+        if (curNote) {
+          const titleEl = document.getElementById('note-title-input');
+          const editorEl = document.getElementById('note-rich-editor');
+          if (titleEl) titleEl.value = curNote.title || '';
+          if (editorEl) editorEl.innerHTML = curNote.content || '';
+        }
+      }
+    } else if (ASCD.activeTab === 'sermoes' && ASCD.activeSermonId) {
+      const isEditingSermon = document.activeElement && (
+        document.activeElement.id === 'sermon-title-input' ||
+        document.activeElement.id === 'sermon-rich-editor'
+      );
+      if (!isEditingSermon) {
+        const curSermon = ASCD.sermons.find(s => s.id === ASCD.activeSermonId);
+        if (curSermon) {
+          const titleEl = document.getElementById('sermon-title-input');
+          const editorEl = document.getElementById('sermon-rich-editor');
+          if (titleEl) titleEl.value = curSermon.title || '';
+          if (editorEl) editorEl.innerHTML = curSermon.content || '';
+        }
+      }
+    } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+      if (typeof loadBibleStudyForCurrentChapter === 'function') {
+        loadBibleStudyForCurrentChapter();
+      }
+    }
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    updateSyncPillBadge('success', timeStr);
+
+    if (!silent) {
+      showToast(addedCount > 0 ? `📥 ${addedCount} registro(s) integrados da Nuvem!` : `☁️ Seus dados já estão perfeitamente sincronizados com a Nuvem.`);
+    }
+    return true;
   } catch (err) {
-    console.warn('Pull from Google Sheets notice:', err);
+    console.warn('Pull from Cloud notice:', err);
     updateSyncPillBadge('success');
     if (!silent) {
-      showToast('⚠️ Não foi possível obter novos dados da folha neste momento.');
+      showToast('⚠️ Não foi possível sincronizar com a Nuvem neste momento.');
     }
     return false;
   } finally {
-    isSyncingToSheets = false;
+    isSyncingCloud = false;
   }
 }
 
@@ -4142,12 +4142,12 @@ function updateSyncPillBadge(status, timeStr = '') {
       badge.style.background = 'var(--bg-surface-elevated)';
       badge.style.borderColor = 'var(--accent-gold)';
     } else if (status === 'success') {
-      badge.innerHTML = `☁️ <span style="color:#059669; font-weight:600;">Sincronizado</span> ${timeStr ? `<small style="opacity:0.75; font-size:11px;">${timeStr}</small>` : ''}`;
+      badge.innerHTML = `⚡ <span style="color:#059669; font-weight:600;">Nuvem Ativa</span> ${timeStr ? `<small style="opacity:0.75; font-size:11px;">${timeStr}</small>` : ''}`;
       badge.style.color = '#065F46';
       badge.style.background = 'rgba(16, 185, 129, 0.08)';
       badge.style.borderColor = '#10B981';
     } else if (status === 'error') {
-      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro ao sincronizar</span>`;
+      badge.innerHTML = `⚠️ <span style="color:#DC2626; font-weight:600;">Erro na Nuvem</span>`;
       badge.style.borderColor = '#FCA5A5';
     }
   }
@@ -4155,109 +4155,57 @@ function updateSyncPillBadge(status, timeStr = '') {
   if (statusEl) {
     if (status === 'syncing') {
       statusEl.style.color = 'var(--text-secondary)';
-      statusEl.textContent = '⏳ A sincronizar com o Google Sheets...';
+      statusEl.textContent = '⏳ A sincronizar com a Nuvem Firebase...';
     } else if (status === 'success') {
       statusEl.style.color = '#16A34A';
-      statusEl.textContent = `✅ Sincronizado com o Google Sheets às ${timeStr}`;
+      statusEl.textContent = `✅ Sincronizado com a Nuvem às ${timeStr}`;
     } else if (status === 'error') {
       statusEl.style.color = '#DC2626';
-      statusEl.textContent = '⚠️ Erro ao comunicar com o Apps Script';
+      statusEl.textContent = '⚠️ Falha temporária na comunicação com a Nuvem';
     }
   }
 }
 
 /**
- * Testar Conexão com o Google Apps Script
+ * Testar Conexão com o Firebase Cloud Firestore
  */
 async function testGoogleSheetsConnection() {
-  const urlInput = document.getElementById('input-sheets-webhook-url');
   const statusEl = document.getElementById('sheets-sync-status');
-  const url = (urlInput ? urlInput.value.trim() : '') || localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-
-  if (!url) {
-    showToast('⚠️ Insira o link da Aplicação Web do Apps Script.');
-    return;
-  }
-
   if (statusEl) {
     statusEl.style.color = 'var(--text-secondary)';
-    statusEl.textContent = '⏳ A testar conexão com o Apps Script...';
+    statusEl.textContent = '⏳ A testar conexão com a Nuvem Firebase...';
   }
 
   try {
-    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'action=ping', { method: 'GET' });
-    const data = await res.json();
-    if (data && data.status === 'online') {
+    const res = await fetch(FIREBASE_CONFIG.syncDocUrl, { method: 'GET' });
+    if (res.ok) {
       if (statusEl) {
         statusEl.style.color = '#16A34A';
-        statusEl.textContent = '✅ Conexão ativa! O Google Sheets está pronto para receber os dados das 4 abas.';
+        statusEl.textContent = '✅ Conexão ativa! A Nuvem Firebase está conectada e operacional.';
       }
-      showToast('✅ Conexão com o Google Sheets testada e aprovada!');
+      showToast('✅ Conexão com a Nuvem Firebase testada e aprovada!');
     } else {
       if (statusEl) {
         statusEl.style.color = '#D97706';
-        statusEl.textContent = '⚠️ Conectado, mas o Apps Script retornou uma resposta inesperada.';
+        statusEl.textContent = `⚠️ Conexão respondeu com código ${res.status}.`;
       }
+      showToast(`⚠️ Resposta da Nuvem: ${res.status}`);
     }
   } catch (err) {
     if (statusEl) {
       statusEl.style.color = '#DC2626';
-      statusEl.textContent = '⚠️ O link respondeu, mas requer colar o código atualizado no Apps Script e criar uma Nova Versão da implementação.';
+      statusEl.textContent = '⚠️ Falha na conexão com a Nuvem: ' + err.message;
     }
-    showToast('⚠️ Lembre-se de colar o código atualizado no Apps Script e criar Nova Versão.');
+    showToast('⚠️ Falha ao contactar a Nuvem Firebase.');
   }
 }
 
-/**
- * Enviar dados via webhook para o Google Apps Script (Botão manual "Sincronizar Agora")
- */
 async function syncWithGoogleSheetsWebhook() {
-  const urlInput = document.getElementById('input-sheets-webhook-url');
-  const statusEl = document.getElementById('sheets-sync-status');
-  const syncBtn = document.getElementById('btn-sync-sheets-now');
-
-  let webhookUrl = (urlInput ? urlInput.value.trim() : '') || localStorage.getItem('ascd_sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK_URL;
-
-  if (urlInput) {
-    urlInput.value = webhookUrl;
-  }
-
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    if (statusEl) {
-      statusEl.style.color = '#DC2626';
-      statusEl.textContent = '⚠️ Cole o link da Aplicação Web do Apps Script acima.';
-    }
-    showToast('⚠️ Informe a URL da Aplicação Web do Apps Script');
-    if (urlInput) urlInput.focus();
-    return;
-  }
-
-  localStorage.setItem('ascd_sheets_webhook_url', webhookUrl);
-
-  const records = getFullDatabaseRecords();
-  if (records.length === 0) {
-    if (statusEl) {
-      statusEl.style.color = '#D97706';
-      statusEl.textContent = 'Nenhum registro para sincronizar.';
-    }
-    showToast('Nenhum registro disponível para sincronizar');
-    return;
-  }
-
-  if (syncBtn) syncBtn.disabled = true;
-
-  try {
-    await executeSheetsSync(webhookUrl, false);
-  } finally {
-    if (syncBtn) syncBtn.disabled = false;
-  }
+  await syncAllNow(true);
 }
 
-/**
- * Retorna o código completo do Google Apps Script
- */
 function getAppsScriptCodeText() {
-  return "/**\n * =============================================================================\n * ASCD • BÍBLIA & NOTAS — SINCRONIZADOR GOOGLE SHEETS COM MERGE (DUPLA VIA)\n * =============================================================================\n * Permite sincronização bidirecional entre múltiplos dispositivos (PC, iPads, telemóvel):\n * 1. PULL (GET): Carrega os dados da folha de cálculo para qualquer dispositivo ao abrir o App.\n * 2. PUSH (POST): Funde os novos dados com os existentes (NUNCA apaga dados de outros dispositivos!).\n * 3. Menu na folha de cálculo para organizar e embelezar as 4 abas automaticamente.\n * =============================================================================\n */\n\nfunction onOpen() {\n  SpreadsheetApp.getUi()\n    .createMenu('📖 ASCD • Bíblia & Notas')\n    .addItem('🔄 Reorganizar e Atualizar 4 Abas', 'reorganizarTodasAbasASCD')\n    .addItem('🎨 Aplicar Formatação e Cores Nobres', 'formatarTodasAbas')\n    .addSeparator()\n    .addItem('ℹ️ Status da Conexão', 'exibirStatusConexao')\n    .addToUi();\n}\n\n/**\n * Ponto de entrada GET (Web App)\n * Chamado pela app ao abrir para PUXAR (PULL) os dados existentes da base de dados.\n */\nfunction doGet(e) {\n  try {\n    const action = e && e.parameter && e.parameter.action;\n    const ss = SpreadsheetApp.getActiveSpreadsheet();\n\n    if (action === 'ping') {\n      return ContentService.createTextOutput(JSON.stringify({\n        status: 'online',\n        appName: 'ASCD • Bíblia & Notas',\n        timestamp: new Date().toISOString()\n      })).setMimeType(ContentService.MimeType.JSON);\n    }\n\n    // PULL: carrega todos os dados consolidados das abas e do backup\n    const dadosConsolidados = lerDadosParaApp(ss);\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'success',\n      appName: 'ASCD • Bíblia & Notas',\n      data: dadosConsolidados,\n      timestamp: new Date().toISOString()\n    })).setMimeType(ContentService.MimeType.JSON);\n\n  } catch (err) {\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'error',\n      message: 'Erro no doGet: ' + err.toString()\n    })).setMimeType(ContentService.MimeType.JSON);\n  }\n}\n\n/**\n * Ponto de entrada POST (Web App)\n * Chamado pelo App para GUARDAR / FUNDIR dados (MERGE sem apagar dados de outros dispositivos).\n */\nfunction doPost(e) {\n  try {\n    let payload;\n    if (e && e.postData && e.postData.contents) {\n      payload = JSON.parse(e.postData.contents);\n    } else if (e && e.parameter && e.parameter.data) {\n      payload = JSON.parse(e.parameter.data);\n    } else if (e && e.parameter) {\n      payload = e.parameter;\n    } else {\n      payload = {};\n    }\n\n    const ss = SpreadsheetApp.getActiveSpreadsheet();\n    const records = payload.records || [];\n    const rawItems = payload.rawItems || null;\n    const deletedIds = payload.deletedIds || [];\n\n    // 1. Guarda ou funde os itens detalhados na aba de backup\n    if (rawItems) {\n      salvarOuFundirBackup(ss, rawItems, deletedIds);\n    }\n\n    // 2. Atualiza as 4 abas visuais FUNDINDO com os dados existentes (NÃO apaga de outros dispositivos!)\n    atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds);\n    atualizarAbaJournalingComMerge(ss, records, deletedIds);\n    atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds);\n    atualizarAbaSermoesComMerge(ss, records, deletedIds);\n\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'success',\n      count: records.length,\n      message: 'Dados fundidos e sincronizados com sucesso!',\n      timestamp: new Date().toISOString()\n    })).setMimeType(ContentService.MimeType.JSON);\n\n  } catch (err) {\n    return ContentService.createTextOutput(JSON.stringify({\n      status: 'error',\n      message: 'Erro durante a sincronização: ' + err.toString()\n    })).setMimeType(ContentService.MimeType.JSON);\n  }\n}\n\n/**\n * Guarda e Funde os itens em formato JSON estruturado na aba oculta _ASCD_BACKUP_\n */\nfunction salvarOuFundirBackup(ss, rawItems, deletedIds) {\n  const sheet = localizarOuCriarAba(ss, ['_ASCD_BACKUP_'], '_ASCD_BACKUP_');\n  try { sheet.hideSheet(); } catch (_) {}\n\n  const lastRow = sheet.getLastRow();\n  const map = new Map(); // id -> { id, type, updatedAt, json }\n\n  if (lastRow > 1) {\n    const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();\n    values.forEach(row => {\n      const id = String(row[0] || '').trim();\n      if (id) {\n        map.set(id, {\n          id: id,\n          type: String(row[1] || '').trim(),\n          updatedAt: String(row[2] || '').trim(),\n          json: String(row[3] || '').trim()\n        });\n      }\n    });\n  }\n\n  // Deletar IDs solicitados\n  if (deletedIds && deletedIds.length > 0) {\n    deletedIds.forEach(id => map.delete(String(id).trim()));\n  }\n\n  // Fundir Notas\n  if (rawItems.notes && Array.isArray(rawItems.notes)) {\n    rawItems.notes.forEach(n => {\n      if (n && n.id) {\n        const id = String(n.id).trim();\n        map.set(id, {\n          id: id,\n          type: 'note',\n          updatedAt: n.date || new Date().toISOString(),\n          json: JSON.stringify(n)\n        });\n      }\n    });\n  }\n\n  // Fundir Sermões\n  if (rawItems.sermons && Array.isArray(rawItems.sermons)) {\n    rawItems.sermons.forEach(s => {\n      if (s && s.id) {\n        const id = String(s.id).trim();\n        map.set(id, {\n          id: id,\n          type: 'sermon',\n          updatedAt: s.date || new Date().toISOString(),\n          json: JSON.stringify(s)\n        });\n      }\n    });\n  }\n\n  // Fundir Diário (Journal)\n  if (rawItems.journalEntries && typeof rawItems.journalEntries === 'object') {\n    Object.keys(rawItems.journalEntries).forEach(dateStr => {\n      const j = rawItems.journalEntries[dateStr];\n      if (j) {\n        const id = 'JOURNAL-' + dateStr;\n        map.set(id, {\n          id: id,\n          type: 'journal',\n          updatedAt: j.updatedAt || dateStr,\n          json: JSON.stringify(j)\n        });\n      }\n    });\n  }\n\n  // Fundir Notas Bíblicas\n  if (rawItems.biblePageNotes && typeof rawItems.biblePageNotes === 'object') {\n    Object.keys(rawItems.biblePageNotes).forEach(key => {\n      const b = rawItems.biblePageNotes[key];\n      if (b) {\n        const id = 'BIBLIA-' + key;\n        map.set(id, {\n          id: id,\n          type: 'bible',\n          updatedAt: b.updatedAt || new Date().toISOString(),\n          json: JSON.stringify(b)\n        });\n      }\n    });\n  }\n\n  // Gravar tudo no _ASCD_BACKUP_\n  sheet.clearContents();\n  const rows = [['ID', 'TIPO', 'UPDATED_AT', 'JSON']];\n  map.forEach(item => {\n    rows.push([item.id, item.type, item.updatedAt, item.json]);\n  });\n  sheet.getRange(1, 1, rows.length, 4).setValues(rows);\n}\n\n/**\n * Lê os dados consolidados para enviar à aplicação quando ela abre\n */\nfunction lerDadosParaApp(ss) {\n  const result = {\n    notes: [],\n    sermons: [],\n    journalEntries: {},\n    biblePageNotes: {}\n  };\n\n  const backupSheet = ss.getSheetByName('_ASCD_BACKUP_');\n  if (backupSheet && backupSheet.getLastRow() > 1) {\n    const values = backupSheet.getRange(2, 1, backupSheet.getLastRow() - 1, 4).getValues();\n    values.forEach(row => {\n      const type = String(row[1] || '').trim();\n      const jsonStr = String(row[3] || '').trim();\n      if (!jsonStr) return;\n      try {\n        const obj = JSON.parse(jsonStr);\n        if (type === 'note') {\n          result.notes.push(obj);\n        } else if (type === 'sermon') {\n          result.sermons.push(obj);\n        } else if (type === 'journal') {\n          if (obj.date) result.journalEntries[obj.date] = obj;\n        } else if (type === 'bible') {\n          const key = String(row[0]).replace('BIBLIA-', '');\n          result.biblePageNotes[key] = obj;\n        }\n      } catch (_) {}\n    });\n    return result;\n  }\n\n  // Fallback: se _ASCD_BACKUP_ ainda não existe, lê das 4 abas visuais\n  reconstruirAPartirDasAbasVisuais(ss, result);\n  return result;\n}\n\n/**\n * Reconstrói objetos a partir das 4 abas visuais se _ASCD_BACKUP_ ainda estiver vazio\n */\nfunction reconstruirAPartirDasAbasVisuais(ss, result) {\n  // 1. Caderno de Estudos\n  const sheetNotas = ss.getSheetByName('Caderno de Estudos');\n  if (sheetNotas && sheetNotas.getLastRow() > 1) {\n    const vals = sheetNotas.getRange(2, 1, sheetNotas.getLastRow() - 1, 7).getValues();\n    vals.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) {\n        result.notes.push({\n          id: id,\n          date: String(r[1] || ''),\n          title: String(r[2] || ''),\n          category: String(r[3] || 'Estudo Bíblico'),\n          content: String(r[4] || ''),\n          mode: 'hybrid'\n        });\n      }\n    });\n  }\n\n  // 2. Sermões\n  const sheetSermoes = ss.getSheetByName('Anotações de Sermões');\n  if (sheetSermoes && sheetSermoes.getLastRow() > 1) {\n    const vals = sheetSermoes.getRange(2, 1, sheetSermoes.getLastRow() - 1, 8).getValues();\n    vals.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) {\n        result.sermons.push({\n          id: id,\n          date: String(r[1] || ''),\n          title: String(r[2] || ''),\n          passage: String(r[3] || ''),\n          preacher: String(r[4] || ''),\n          content: String(r[5] || ''),\n          mode: 'hybrid'\n        });\n      }\n    });\n  }\n\n  // 3. Diário\n  const sheetDiario = ss.getSheetByName('Journaling (Calendário)') || ss.getSheetByName('Diário');\n  if (sheetDiario && sheetDiario.getLastRow() > 1) {\n    const vals = sheetDiario.getRange(2, 1, sheetDiario.getLastRow() - 1, 8).getValues();\n    vals.forEach(r => {\n      const dateStr = String(r[0] || '').trim();\n      if (dateStr) {\n        result.journalEntries[dateStr] = {\n          date: dateStr,\n          title: String(r[1] || ''),\n          verse: String(r[2] || ''),\n          prayer: String(r[3] || ''),\n          tasks: [],\n          content: String(r[5] || ''),\n          mode: 'hybrid'\n        };\n      }\n    });\n  }\n\n  // 4. Leitor Bíblico\n  const sheetBiblia = ss.getSheetByName('Leitor Bíblico');\n  if (sheetBiblia && sheetBiblia.getLastRow() > 1) {\n    const vals = sheetBiblia.getRange(2, 1, sheetBiblia.getLastRow() - 1, 7).getValues();\n    vals.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) {\n        const key = id.replace('BIBLIA-', '');\n        result.biblePageNotes[key] = {\n          title: String(r[3] || ''),\n          content: String(r[4] || '')\n        };\n      }\n    });\n  }\n}\n\n/**\n * 1. Aba: \"Leitor Bíblico\" com MERGE\n */\nfunction atualizarAbaLeitorBiblicoComMerge(ss, records, deletedIds) {\n  const sheet = localizarOuCriarAba(ss, ['Leitor Bíblico', 'Leitor Biblico', 'Bíblia', 'Biblia'], 'Leitor Bíblico');\n  const headers = ['ID', 'Data', 'Passagem Bíblica', 'Título do Estudo', 'Conteúdo das Anotações', 'Última Atualização'];\n  const map = new Map();\n\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();\n    existing.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) map.set(id, r);\n    });\n  }\n\n  if (deletedIds && deletedIds.length > 0) {\n    deletedIds.forEach(id => map.delete(String(id).trim()));\n  }\n\n  const itens = records.filter(r => r.tipo === 'Anotação Página Bíblica');\n  itens.forEach(item => {\n    const id = String(item.id || '').trim();\n    if (id) {\n      map.set(id, [\n        id,\n        item.data || '',\n        item.passagem || '',\n        item.titulo || '',\n        item.conteudo || '',\n        item.dataRegistro || ''\n      ]);\n    }\n  });\n\n  sheet.clearContents();\n  const rows = [headers];\n  map.forEach(r => rows.push(r));\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#3E2723');\n}\n\n/**\n * 2. Aba: \"Journaling (Calendário)\" com MERGE\n */\nfunction atualizarAbaJournalingComMerge(ss, records, deletedIds) {\n  const sheet = localizarOuCriarAba(ss, ['Journaling (Calendário)', 'Journaling (Calendario)', 'Journaling', 'Diário', 'Diario'], 'Journaling (Calendário)');\n  const headers = ['Data', 'Título / Tema do Dia', 'Passagem Bíblica', 'Oração & Intercessão', 'Tarefas do Dia', 'Reflexão & Diário Espiritual', 'Última Atualização'];\n  const map = new Map();\n\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();\n    existing.forEach(r => {\n      const date = String(r[0] || '').trim();\n      if (date) map.set(date, r);\n    });\n  }\n\n  if (deletedIds && deletedIds.length > 0) {\n    deletedIds.forEach(id => {\n      const cleanId = String(id).replace('JOURNAL-', '').trim();\n      map.delete(cleanId);\n    });\n  }\n\n  const itens = records.filter(r => r.tipo === 'Journal Diário');\n  itens.forEach(j => {\n    const date = String(j.data || '').trim();\n    if (date) {\n      map.set(date, [\n        date,\n        j.titulo || '',\n        j.passagem || '',\n        j.oracao || '',\n        j.tarefas || '',\n        j.conteudo || '',\n        j.dataRegistro || ''\n      ]);\n    }\n  });\n\n  sheet.clearContents();\n  const rows = [headers];\n  map.forEach(r => rows.push(r));\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#78350F');\n}\n\n/**\n * 3. Aba: \"Caderno de Estudos\" com MERGE\n */\nfunction atualizarAbaCadernoEstudosComMerge(ss, records, deletedIds) {\n  const sheet = localizarOuCriarAba(ss, ['Caderno de Estudos', 'Estudos Bíblicos', 'Estudos', 'Caderno de Estudo'], 'Caderno de Estudos');\n  const headers = ['ID', 'Data', 'Título do Estudo', 'Categoria', 'Conteúdo do Estudo', 'Última Atualização'];\n  const map = new Map();\n\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();\n    existing.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) map.set(id, r);\n    });\n  }\n\n  if (deletedIds && deletedIds.length > 0) {\n    deletedIds.forEach(id => map.delete(String(id).trim()));\n  }\n\n  const itens = records.filter(r => r.tipo === 'Estudo Bíblico');\n  itens.forEach(e => {\n    const id = String(e.id || '').trim();\n    if (id) {\n      map.set(id, [\n        id,\n        e.data || '',\n        e.titulo || '',\n        e.categoria || 'Estudo Bíblico',\n        e.conteudo || '',\n        e.dataRegistro || ''\n      ]);\n    }\n  });\n\n  sheet.clearContents();\n  const rows = [headers];\n  map.forEach(r => rows.push(r));\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#14532D');\n}\n\n/**\n * 4. Aba: \"Anotações de Sermões\" com MERGE\n */\nfunction atualizarAbaSermoesComMerge(ss, records, deletedIds) {\n  const sheet = localizarOuCriarAba(ss, ['Anotações de Sermões', 'Anotacoes de Sermoes', 'Sermões & Pregações', 'Sermões', 'Sermoes'], 'Anotações de Sermões');\n  const headers = ['ID', 'Data', 'Tema / Título da Mensagem', 'Passagem Bíblica', 'Pregador / Orador', 'Anotações da Pregação', 'Última Atualização'];\n  const map = new Map();\n\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const existing = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();\n    existing.forEach(r => {\n      const id = String(r[0] || '').trim();\n      if (id) map.set(id, r);\n    });\n  }\n\n  if (deletedIds && deletedIds.length > 0) {\n    deletedIds.forEach(id => map.delete(String(id).trim()));\n  }\n\n  const itens = records.filter(r => r.tipo === 'Sermão & Pregação');\n  itens.forEach(s => {\n    const id = String(s.id || '').trim();\n    if (id) {\n      map.set(id, [\n        id,\n        s.data || '',\n        s.titulo || '',\n        s.passagem || '',\n        s.pregador || '',\n        s.conteudo || '',\n        s.dataRegistro || ''\n      ]);\n    }\n  });\n\n  sheet.clearContents();\n  const rows = [headers];\n  map.forEach(r => rows.push(r));\n  sheet.getRange(1, 1, rows.length, headers.length).setValues(rows);\n  aplicarEstiloAba(sheet, headers.length, '#1E3A8A');\n}\n\n/**\n * Localiza de forma flexível ou cria uma das abas\n */\nfunction localizarOuCriarAba(ss, candidatos, nomePadrao) {\n  for (let i = 0; i < candidatos.length; i++) {\n    const s = ss.getSheetByName(candidatos[i]);\n    if (s) return s;\n  }\n\n  const sheets = ss.getSheets();\n  const normalizar = function(t) {\n    return (t || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim();\n  };\n\n  for (let s of sheets) {\n    const nomeAtual = normalizar(s.getName());\n    for (let c of candidatos) {\n      const cand = normalizar(c);\n      if (nomeAtual === cand || nomeAtual.indexOf(cand) !== -1 || cand.indexOf(nomeAtual) !== -1) {\n        return s;\n      }\n    }\n  }\n\n  return ss.insertSheet(nomePadrao);\n}\n\n/**\n * Aplica formatação refinada e cabeçalhos elegantes\n */\nfunction aplicarEstiloAba(sheet, numCols, corCabecalho) {\n  sheet.setFrozenRows(1);\n\n  const headerRange = sheet.getRange(1, 1, 1, numCols);\n  headerRange\n    .setBackground(corCabecalho)\n    .setFontColor('#FFFFFF')\n    .setFontWeight('bold')\n    .setFontSize(10)\n    .setFontFamily('Arial')\n    .setHorizontalAlignment('center')\n    .setVerticalAlignment('middle');\n\n  sheet.setRowHeight(1, 32);\n\n  const lastRow = sheet.getLastRow();\n  if (lastRow > 1) {\n    const dataRange = sheet.getRange(2, 1, lastRow - 1, numCols);\n    dataRange\n      .setFontFamily('Arial')\n      .setFontSize(10)\n      .setVerticalAlignment('top')\n      .setWrap(true);\n\n    for (let r = 2; r <= lastRow; r++) {\n      if (r % 2 === 0) {\n        sheet.getRange(r, 1, 1, numCols).setBackground('#FAFAFA');\n      } else {\n        sheet.getRange(r, 1, 1, numCols).setBackground('#FFFFFF');\n      }\n    }\n  }\n\n  for (let c = 1; c <= numCols; c++) {\n    sheet.autoResizeColumn(c);\n    const colWidth = sheet.getColumnWidth(c);\n    if (colWidth > 420) {\n      sheet.setColumnWidth(c, 420);\n    } else if (colWidth < 90) {\n      sheet.setColumnWidth(c, 90);\n    }\n  }\n}\n\nfunction reorganizarTodasAbasASCD() {\n  SpreadsheetApp.getActiveSpreadsheet().toast('Atualização das 4 abas concluída.', 'ASCD • Bíblia & Notas');\n}\n\nfunction formatarTodasAbas() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheets = ss.getSheets();\n  sheets.forEach(sh => {\n    const lastCol = sh.getLastColumn();\n    if (lastCol > 0) {\n      aplicarEstiloAba(sh, lastCol, '#3E2723');\n    }\n  });\n  SpreadsheetApp.getActiveSpreadsheet().toast('Formatação aplicada em todas as abas!', 'ASCD • Bíblia & Notas');\n}\n\nfunction exibirStatusConexao() {\n  const msg =\n    'Conexão com o App ASCD (Dupla Via & Merge):\\n\\n' +\n    '1. Os dados de múltiplos iPads e computadores são fundidos automaticamente por ID (sem apagar nada!).\\n' +\n    '2. Ao abrir o app em qualquer aparelho, ele puxa as novidades da folha de cálculo.\\n' +\n    '3. Ao escrever ou salvar, os dados são enviados e fundidos em tempo real.';\n  SpreadsheetApp.getUi().alert('ASCD • Conexão Google Sheets', msg, SpreadsheetApp.getUi().ButtonSet.OK);\n}\n";
+  return "";
 }
 
 /**

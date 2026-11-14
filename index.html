@@ -135,12 +135,12 @@
             <span>📱 Guia iPad</span>
           </button>
 
-          <!-- Indicador e Botão de Sincronização Automática com Google Sheets -->
+          <!-- Indicador e Botão de Sincronização em Nuvem (Firebase / Nuvem Segura) -->
           <div style="display:inline-flex; align-items:center; gap:4px;">
-            <button type="button" id="sheets-autosync-badge" class="sheets-sync-pill" style="cursor:pointer;" title="Sincronização automática ativa. Clique para sincronizar agora!">
-              ☁️ <span style="font-weight:600;">Sincronizado</span>
+            <button type="button" id="sheets-autosync-badge" class="sheets-sync-pill" style="cursor:pointer;" title="Sincronização em Nuvem (Firebase). Clique para sincronizar agora!">
+              ⚡ <span style="font-weight:600;">Nuvem Ativa</span>
             </button>
-            <button type="button" class="btn-icon-subtle" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" title="Definições do Google Sheets" style="padding:6px; color:var(--text-muted); border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">
+            <button type="button" class="btn-icon-subtle" onclick="document.getElementById('sheets-sync-modal').classList.add('open')" title="Definições de Nuvem & Cópia de Segurança" style="padding:6px; color:var(--text-muted); border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
           </div>
@@ -973,13 +973,13 @@
     </div>
   </div>
 
-  <!-- MODAL: BASE DE DADOS & SINCRONIZAÇÃO GOOGLE SHEETS / GOOGLE DRIVE -->
+  <!-- MODAL: BASE DE DADOS & SINCRONIZAÇÃO EM NUVEM (FIREBASE) -->
   <div class="modal-overlay" id="sheets-sync-modal">
     <div class="modal-dialog modal-dialog-large" style="max-width: 780px;">
       <div class="modal-header">
         <div style="display:flex; align-items:center; gap:8px;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          <h3 style="margin:0;">Base de Dados & Google Sheets</h3>
+          <h3 style="margin:0;">Sincronização em Nuvem (Firebase) & Dados</h3>
         </div>
         <button class="modal-close-btn" id="btn-close-sheets-modal">&times;</button>
       </div>
@@ -987,25 +987,19 @@
       <div class="modal-body" style="padding: 20px 24px;">
         <!-- Seletor de Abas do Modal -->
         <div style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:12px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-sm btn-primary" id="tab-btn-sync-direct">⚡ Sincronização Direta</button>
-          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-backup">&#128242; Backup entre Dispositivos</button>
-          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-guide">📋 Código do Apps Script & Guia</button>
+          <button type="button" class="btn btn-sm btn-primary" id="tab-btn-sync-direct">⚡ Nuvem Firebase (Ativa)</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-backup">&#128242; Backup Local (.json)</button>
           <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-security">🔒 Segurança / Palavra-passe</button>
           <button type="button" class="btn btn-sm btn-secondary" id="tab-btn-sync-csv">📥 Descarregar CSV (Manual)</button>
         </div>
 
-        <!-- ABA 1: SINCRONIZAÇÃO DIRETA VIA WEB APP -->
+        <!-- ABA 1: SINCRONIZAÇÃO DIRETA VIA FIREBASE -->
         <div id="sync-panel-direct" class="sync-panel active">
-          <p style="color:var(--text-secondary); font-size:14px; margin-top:0;">
-            Sincronize todas as suas anotações, sermões e registros de diário diretamente com a sua folha de cálculo no <strong>Google Sheets</strong> em tempo real.
-          </p>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label for="input-sheets-webhook-url" style="font-weight:700;">URL da Aplicação Web do Apps Script (Web App URL):</label>
-            <input type="url" id="input-sheets-webhook-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:monospace; font-size:13px;">
-            <span style="font-size:12px; color:var(--text-muted); margin-top:4px; display:block;">
-              Cole aqui o link gerado após implementar o Apps Script na sua folha do Google Sheets (veja o guia na aba ao lado).
-            </span>
+          <div style="background:#F0FDF4; border-left:4px solid #16A34A; padding:12px 16px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+            <strong style="color:#15803D;">⚡ Sincronização em Tempo Real Ativa com Firebase Cloud Firestore</strong>
+            <p style="margin:4px 0 0 0; color:#1F2937; line-height:1.5;">
+              Todos os seus iPads, iPhones e computadores estão agora conectados diretamente à base de dados na nuvem privada (Projeto: <code>ascd-app</code>). Tudo o que escrever ou alterar sincroniza automaticamente e com proteção contra perdas.
+            </p>
           </div>
 
           <!-- BOTÃO ÚNICO DE SINCRONIZAÇÃO -->
@@ -1015,21 +1009,17 @@
               <span>🔄 Sincronizar Tudo Agora</span>
             </button>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12.5px;">
-              <span id="sheets-sync-status" style="color:var(--text-muted); font-weight:600;">✨ A sincronização é 100% automática em segundo plano.</span>
-              <button type="button" id="btn-test-sheets-connection" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline;">🔌 Testar conexão</button>
+              <span id="sheets-sync-status" style="color:var(--text-muted); font-weight:600;">✨ A sincronização é automática e contínua ao escrever.</span>
+              <button type="button" id="btn-test-sheets-connection" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline;">🔌 Testar conexão com a Nuvem</button>
             </div>
           </div>
 
           <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 18px; font-size:13px; line-height:1.6;">
-            <strong>✨ Sincronização Automática em Tempo Real:</strong>
-            <p style="margin:4px 0 8px 0; color:var(--text-secondary); font-size:12.5px;">
-              Sempre que você escreve, guarda ou apaga qualquer anotação na app, os dados são enviados automaticamente para as <strong>4 abas</strong> da sua folha de cálculo:
-            </p>
+            <strong>✨ Vantagens da Base de Dados na Nuvem (Firebase):</strong>
             <ul style="margin:6px 0 0 18px; padding:0; font-size:12.5px; color:var(--text-secondary);">
-              <li>📖 <strong>Leitor Bíblico:</strong> Estudos e anotações vinculadas aos capítulos bíblicos.</li>
-              <li>📅 <strong>Diário:</strong> Orações diárias, lista de afazeres e diário espiritual.</li>
-              <li>📝 <strong>Caderno de Estudos:</strong> Estudos temáticos, teologia e anotações gerais.</li>
-              <li>🎙️ <strong>Anotações de Sermões:</strong> Mensagens de cultos, pregador, passagem bíblica e esboços.</li>
+              <li>⚡ <strong>Instantâneo:</strong> Escreva num iPad e veja logo aparecer no outro iPad ou computador.</li>
+              <li>🛡️ <strong>À prova de conflitos:</strong> O algoritmo de fusão por data e hora protege os seus textos sem apagar notas feitas noutros aparelhos.</li>
+              <li>📶 <strong>Funciona Offline:</strong> Se estiver sem internet, pode continuar a escrever normalmente; quando voltar a ter rede, sincroniza tudo sozinho.</li>
             </ul>
           </div>
         </div>
@@ -1076,30 +1066,6 @@
 
           <div style="background:#FEF9C3; border:1px solid #FDE047; border-radius:6px; padding:10px 14px; font-size:12px; color:#713F12; line-height:1.6;">
             &#9888;&#65039; <strong>Atenção ao importar:</strong> Os dados existentes neste dispositivo serão substituídos pelos do ficheiro. Faça um backup antes de importar se tiver dados nos dois dispositivos que quer preservar.
-          </div>
-        </div>
-        <!-- ABA 2: CÓDIGO DO APPS SCRIPT E GUIA PASSO A PASSO -->
-        <div id="sync-panel-guide" class="sync-panel" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <h4 style="margin:0; font-family:var(--font-serif);">Como Configurar o Google Apps Script (Passo a Passo)</h4>
-            <button type="button" class="btn btn-primary btn-sm" id="btn-copy-apps-script">
-              📋 Copiar Código Apps Script
-            </button>
-          </div>
-
-          <ol style="font-size:13px; line-height:1.7; padding-left:20px; color:var(--text-secondary); margin-bottom:18px;">
-            <li>No seu navegador, abra a aba do seu projeto Apps Script (ou aceda ao Google Sheets &gt; <strong>Extensões</strong> &gt; <strong>Apps Script</strong>).</li>
-            <li>No arquivo <code>Código.gs</code>, selecione tudo (<strong>Ctrl + A</strong>), apague e cole o código abaixo.</li>
-            <li>Clique no ícone de disquete 💾 (<strong>Guardar projeto</strong>).</li>
-            <li>No canto superior direito, clique em <strong>Implementar</strong> &gt; <strong>Gerir implementações</strong> (<em>Deploy &gt; Manage deployments</em>).</li>
-            <li>Clique no ícone do <strong>Lápis (Editar)</strong> no canto superior direito da janela de implementação.</li>
-            <li>No campo <strong>Versão</strong>, selecione <strong>"Nova versão"</strong> (essencial para carregar o código novo).</li>
-            <li>Verifique se <em>Quem tem acesso</em> está como <em>"Qualquer pessoa" (Anyone)</em> e clique em <strong>Implementar</strong>.</li>
-            <li>Pronto! O link da Web App já está configurado na sua app e as 4 abas serão sincronizadas automaticamente!</li>
-          </ol>
-
-          <div style="position:relative;">
-            <pre id="apps-script-code-display" style="background:#1E1E1E; color:#D4D4D4; padding:14px; border-radius:var(--radius-md); font-family:Consolas, monospace; font-size:12px; max-height:240px; overflow-y:auto; line-height:1.45; white-space:pre-wrap; border:1px solid var(--border-color);"></pre>
           </div>
         </div>
 
