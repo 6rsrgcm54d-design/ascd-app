@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v28 com Diário Limpo do Vazio
-const CACHE_NAME = 'ascd-cache-v28';
+// ASCD Service Worker - Versão v29 com Versão Bíblica NVI
+const CACHE_NAME = 'ascd-cache-v29';
 const ASSETS = [
   './',
   './index.html',

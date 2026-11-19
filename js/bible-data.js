@@ -8,6 +8,14 @@
 
 const BIBLE_VERSIONS = [
   {
+    id: 'nvi',
+    shortName: 'NVI',
+    name: 'Nova Versão Internacional',
+    year: '2000',
+    description: 'Tradução contemporânea de elevado rigor exegético e beleza literária em português moderno.',
+    publicDomain: false
+  },
+  {
     id: 'bpt',
     shortName: 'BPT',
     name: 'Bíblia para Todos',
@@ -111,6 +119,32 @@ const BIBLE_TEXTS = {
     "chapter": 23,
     "title": "O Bom Pastor",
     "versions": {
+      "nvi": [
+        {
+          "num": 1,
+          "text": "O Senhor é o meu pastor; de nada terei falta."
+        },
+        {
+          "num": 2,
+          "text": "Em verdes pastagens faz-me repousar e conduz-me a águas tranquilas;"
+        },
+        {
+          "num": 3,
+          "text": "restaura-me o vigor. Guia-me nas veredas da justiça por amor do seu nome."
+        },
+        {
+          "num": 4,
+          "text": "Mesmo quando eu andar por um vale de trevas e morte, não temerei perigo algum, pois tu estás comigo; a tua vara e o teu cajado me protegem."
+        },
+        {
+          "num": 5,
+          "text": "Preparas um banquete para mim na presença dos meus inimigos. Unges a minha cabeça com óleo, e o meu cálice transborda."
+        },
+        {
+          "num": 6,
+          "text": "Sei que a bondade e a fidelidade me acompanharão todos os dias da minha vida, e voltarei à casa do Senhor enquanto eu viver."
+        }
+      ],
       "bpt": [
         {
           "num": 1,
@@ -9618,22 +9652,21 @@ async function getBibleChapterDataAsync(bookId, chapterNum, versionId = 'bpt') {
     }
   } catch (_) {}
 
-  // 3. Descarregar livro completo (BPT / NTLH / ARA)
+  // 3. Descarregar livro completo (NVI / BPT / NTLH / ARA)
   const cdnVersionMap = {
+    nvi: 'NVI',
     bpt: 'BPT',
     ntlh: 'NTLH',
     aa: 'ARA'
   };
-  const cdnFolder = cdnVersionMap[versionId] || 'BPT';
+  const cdnFolder = cdnVersionMap[versionId] || 'NVI';
 
   const candidateUrls = [
     `./data/canonical/${cdnFolder}/${book.usfm}.json`,
+    `https://raw.githubusercontent.com/damarals/biblias/main/data/canonical/${cdnFolder}/${book.usfm}.json`,
     `https://raw.githubusercontent.com/6rsrgcm54d-design/ascd-biblia-e-notas/main/data/canonical/${cdnFolder}/${book.usfm}.json`,
     `https://raw.githubusercontent.com/6rsrgcm54d-design/ascd-app/main/data/canonical/${cdnFolder}/${book.usfm}.json`
   ];
-  if (cdnFolder === 'NTLH' || cdnFolder === 'ARA') {
-    candidateUrls.splice(1, 0, `https://raw.githubusercontent.com/damarals/biblias/main/data/canonical/${cdnFolder}/${book.usfm}.json`);
-  }
 
   for (const url of candidateUrls) {
     try {
@@ -9713,6 +9746,7 @@ async function getBibleChapterDataAsync(bookId, chapterNum, versionId = 'bpt') {
   if (raw) {
     let verses = [];
     if (raw.versions && raw.versions[versionId]) verses = raw.versions[versionId];
+    else if (raw.versions && raw.versions.nvi) verses = raw.versions.nvi;
     else if (raw.versions && raw.versions.bpt) verses = raw.versions.bpt;
     else if (raw.versions && raw.versions.ntlh) verses = raw.versions.ntlh;
     else if (raw.versions && raw.versions.aa) verses = raw.versions.aa;
@@ -9797,6 +9831,7 @@ function getBibleChapterData(bookId, chapterNum, versionId = 'bpt') {
   if (raw) {
     let verses = [];
     if (raw.versions && raw.versions[versionId]) verses = raw.versions[versionId];
+    else if (raw.versions && raw.versions.nvi) verses = raw.versions.nvi;
     else if (raw.versions && raw.versions.bpt) verses = raw.versions.bpt;
     else if (raw.versions && raw.versions.ntlh) verses = raw.versions.ntlh;
     else if (raw.versions && raw.versions.aa) verses = raw.versions.aa;

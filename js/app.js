@@ -355,7 +355,7 @@ function loadStoredData() {
 
     // 6. Versão da Bíblia
     const savedVersion = localStorage.getItem('ascd_bible_version');
-    if (savedVersion && ['bpt', 'ntlh', 'aa'].includes(savedVersion)) {
+    if (savedVersion && ['nvi', 'bpt', 'ntlh', 'aa'].includes(savedVersion)) {
       ASCD.currentBibleVersion = savedVersion;
     } else {
       ASCD.currentBibleVersion = 'bpt';
@@ -3640,7 +3640,7 @@ function importFullBackup(file) {
           localStorage.setItem('ascd_theme', d.settings.theme);
         }
         if (d.settings.bibleVersion) {
-          const v = ['bpt', 'ntlh', 'aa'].includes(d.settings.bibleVersion) ? d.settings.bibleVersion : 'bpt';
+          const v = ['nvi', 'bpt', 'ntlh', 'aa'].includes(d.settings.bibleVersion) ? d.settings.bibleVersion : 'bpt';
           ASCD.currentBibleVersion = v;
           localStorage.setItem('ascd_bible_version', v);
         }
