@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v29 com Versão Bíblica NVI
-const CACHE_NAME = 'ascd-cache-v29';
+// ASCD Service Worker - Versão v30 com Barra de Formatação no Diário e Notas Livres Laterais na Bíblia
+const CACHE_NAME = 'ascd-cache-v30';
 const ASSETS = [
   './',
   './index.html',

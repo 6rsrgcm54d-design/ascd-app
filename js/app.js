@@ -518,7 +518,7 @@ function showTab(tabId) {
   // Salvar os dados da aba atual antes de mudar para não perder o que foi escrito!
   if (ASCD.activeTab === 'journal') {
     saveCurrentJournalEntry(false);
-  } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+  } else if (ASCD.activeTab === 'biblia') {
     saveCurrentBiblePageStudy(false);
   }
 
@@ -569,9 +569,9 @@ function showTab(tabId) {
 
 /**
  * ==========================================================================
- * BARRAS DE FORMATAÇÃO DE TEXTO (NOTAS, SERMÕES, JOURNAL E MODO DIVIDIDO)
+ * BARRAS DE FORMATAÇÃO DE TEXTO (NOTAS, SERMÕES, DIÁRIO, LATERAL BÍBLICA E SPLIT)
  * Inclui: Fontes, Tamanhos, Negrito (B), Itálico (I), Sublinhado (U) e
- * 3 Cores de Marca-Texto (Vermelho Claro, Verde e Amarelo)
+ * 4 Cores de Marca-Texto Claros (Verde, Amarelo, Vermelho e Azul Claros)
  * ==========================================================================
  */
 function setupTextToolbars() {
@@ -592,7 +592,7 @@ function setupTextToolbars() {
   // 3. Journaling Diário
   setupEditorToolbar({
     prefix: 'jfmt',
-    editorId: 'journal-text-editor',
+    editorId: 'journal-prayer-editor',
     hlPrefix: 'jhl'
   });
 
@@ -601,6 +601,13 @@ function setupTextToolbars() {
     prefix: 'split-fmt',
     editorId: 'split-text-editor',
     hlPrefix: 'split-hl'
+  });
+
+  // 5. Notas Livres na Lateral da Bíblia
+  setupEditorToolbar({
+    prefix: 'bside',
+    editorId: 'bible-side-text-editor',
+    hlPrefix: 'bside-hl'
   });
 }
 
@@ -657,11 +664,28 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
     });
   }
 
-  // 6. As 3 Cores de Marca-Texto: Vermelho Claro, Verde e Amarelo
-  const btnHlRed = document.getElementById(`${hlPrefix}-color-red`);
+  // 6. As 4 Cores de Marca-Texto Claros (Pastel): Verde, Amarelo, Vermelho e Azul
   const btnHlGreen = document.getElementById(`${hlPrefix}-color-green`);
   const btnHlYellow = document.getElementById(`${hlPrefix}-color-yellow`);
+  const btnHlRed = document.getElementById(`${hlPrefix}-color-red`);
+  const btnHlBlue = document.getElementById(`${hlPrefix}-color-blue`);
   const btnHlClear = document.getElementById(`${hlPrefix}-color-clear`);
+
+  if (btnHlGreen) {
+    btnHlGreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#BBF7D0');
+      showToast('🖍️ Marca-texto Verde Claro aplicado');
+    });
+  }
+
+  if (btnHlYellow) {
+    btnHlYellow.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#FEF08A');
+      showToast('🖍️ Marca-texto Amarelo Claro aplicado');
+    });
+  }
 
   if (btnHlRed) {
     btnHlRed.addEventListener('click', (e) => {
@@ -671,19 +695,11 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
     });
   }
 
-  if (btnHlGreen) {
-    btnHlGreen.addEventListener('click', (e) => {
+  if (btnHlBlue) {
+    btnHlBlue.addEventListener('click', (e) => {
       e.preventDefault();
-      applyTextHighlight(editor, '#BBF7D0');
-      showToast('🖍️ Marca-texto Verde aplicado');
-    });
-  }
-
-  if (btnHlYellow) {
-    btnHlYellow.addEventListener('click', (e) => {
-      e.preventDefault();
-      applyTextHighlight(editor, '#FEF08A');
-      showToast('🖍️ Marca-texto Amarelo aplicado');
+      applyTextHighlight(editor, '#BAE6FD');
+      showToast('🖍️ Marca-texto Azul Claro aplicado');
     });
   }
 
@@ -971,13 +987,42 @@ function setupBibleReader() {
     });
   }
 
-  // 7. Botão de Alternar Modo Dividido / Anotações na barra do Leitor Bíblico
+  // 7. Botão de Alternar Notas Livres na Lateral do Texto Bíblico
   const btnBibleToggleNotes = document.getElementById('bible-btn-toggle-notes');
   if (btnBibleToggleNotes) {
     btnBibleToggleNotes.addEventListener('click', () => {
-      toggleSplitScreen();
+      toggleBibleSideNotes();
     });
   }
+
+  const btnCloseSideNotes = document.getElementById('btn-toggle-bible-side-notes');
+  if (btnCloseSideNotes) {
+    btnCloseSideNotes.addEventListener('click', () => {
+      toggleBibleSideNotes(false);
+    });
+  }
+
+  // Auto-salvamento com debounce ao digitar no editor de notas laterais da Bíblia
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  if (sideEditor) {
+    let sideAutoSaveTimer = null;
+    sideEditor.addEventListener('input', () => {
+      const statusEl = document.getElementById('bible-side-notes-status');
+      if (statusEl) statusEl.textContent = 'A guardar...';
+      clearTimeout(sideAutoSaveTimer);
+      sideAutoSaveTimer = setTimeout(() => {
+        saveCurrentBiblePageStudy(false);
+      }, 500);
+    });
+  }
+
+  // Restaurar preferência de exibição das notas laterais (visível por padrão)
+  try {
+    const savedSidePref = localStorage.getItem('ascd_bible_side_notes_visible');
+    if (savedSidePref === '0') {
+      toggleBibleSideNotes(false);
+    }
+  } catch (_) {}
 
   // 8. Botão de Ecrã Inteiro no Leitor Bíblico
   const btnBibleFs = document.getElementById('bible-btn-fullscreen');
@@ -986,6 +1031,29 @@ function setupBibleReader() {
       e.preventDefault();
       toggleBibleFullscreen();
     });
+  }
+}
+
+function toggleBibleSideNotes(forceState = null) {
+  const container = document.querySelector('.bible-reader-container');
+  const sideCol = document.getElementById('bible-side-notes-column');
+  const btnToggle = document.getElementById('bible-btn-toggle-notes');
+  if (!sideCol) return;
+
+  const isCurrentlyHidden = sideCol.classList.contains('is-hidden');
+  const shouldShow = (forceState !== null) ? forceState : isCurrentlyHidden;
+
+  if (shouldShow) {
+    sideCol.classList.remove('is-hidden');
+    if (container) container.classList.add('has-side-notes');
+    if (btnToggle) btnToggle.classList.add('is-active');
+    try { localStorage.setItem('ascd_bible_side_notes_visible', '1'); } catch (_) {}
+  } else {
+    saveCurrentBiblePageStudy(false);
+    sideCol.classList.add('is-hidden');
+    if (container) container.classList.remove('has-side-notes');
+    if (btnToggle) btnToggle.classList.remove('is-active');
+    try { localStorage.setItem('ascd_bible_side_notes_visible', '0'); } catch (_) {}
   }
 }
 
@@ -2813,18 +2881,31 @@ document.addEventListener('webkitfullscreenchange', () => {
 });
 
 function loadBiblePageNoteIntoSplit() {
-  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const bookName = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook)?.name || 'Livro';
+  const chap = ASCD.currentBibleChapter;
+  const key = `${ASCD.currentBibleBook}_${chap}`;
   const saved = ASCD.biblePageNotes[key];
 
   const textEditor = document.getElementById('split-text-editor');
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  const sideTitle = document.getElementById('bible-side-notes-title');
+  const sideStatus = document.getElementById('bible-side-notes-status');
   const deleteBtn = document.getElementById('btn-delete-split-study');
 
-  if (saved && saved.content) {
-    if (textEditor) textEditor.innerHTML = saved.content || '';
-    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
-  } else {
-    if (textEditor) textEditor.innerHTML = '';
-    if (deleteBtn) deleteBtn.style.display = 'none';
+  if (sideTitle) {
+    sideTitle.textContent = `Notas: ${bookName} ${chap}`;
+  }
+
+  const content = (saved && saved.content) ? saved.content : '';
+
+  if (textEditor) textEditor.innerHTML = content;
+  if (sideEditor) sideEditor.innerHTML = content;
+
+  if (deleteBtn) {
+    deleteBtn.style.display = content.trim() ? 'inline-flex' : 'none';
+  }
+  if (sideStatus) {
+    sideStatus.textContent = content.trim() ? '✓ Guardado' : '';
   }
 }
 
@@ -2833,11 +2914,30 @@ function saveCurrentBiblePageStudy(notify = true) {
   const chap = ASCD.currentBibleChapter;
   const key = `${ASCD.currentBibleBook}_${chap}`;
 
-  const textContent = document.getElementById('split-text-editor')?.innerHTML || '';
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  const splitEditor = document.getElementById('split-text-editor');
+  const sideStatus = document.getElementById('bible-side-notes-status');
+
+  let textContent = '';
+  if (document.activeElement === sideEditor && sideEditor) {
+    textContent = sideEditor.innerHTML;
+    if (splitEditor && splitEditor.innerHTML !== textContent) splitEditor.innerHTML = textContent;
+  } else if (document.activeElement === splitEditor && splitEditor) {
+    textContent = splitEditor.innerHTML;
+    if (sideEditor && sideEditor.innerHTML !== textContent) sideEditor.innerHTML = textContent;
+  } else {
+    textContent = (sideEditor?.innerHTML) || (splitEditor?.innerHTML) || '';
+    if (sideEditor && splitEditor) {
+      if (sideEditor.innerHTML && !splitEditor.innerHTML) splitEditor.innerHTML = sideEditor.innerHTML;
+      else if (splitEditor.innerHTML && !sideEditor.innerHTML) sideEditor.innerHTML = splitEditor.innerHTML;
+    }
+  }
+
   const cleanText = textContent.replace(/<br\s*\/?>/gi, '').trim();
 
   // Se nada foi escrito e não havia nada guardado para este capítulo, ignora
   if (!cleanText && !ASCD.biblePageNotes[key]) {
+    if (sideStatus) sideStatus.textContent = '';
     return;
   }
 
@@ -2850,6 +2950,7 @@ function saveCurrentBiblePageStudy(notify = true) {
   }
 
   if (!isChanged && !notify) {
+    if (sideStatus) sideStatus.textContent = '✓ Guardado';
     return;
   }
 
@@ -2890,6 +2991,7 @@ function saveCurrentBiblePageStudy(notify = true) {
   updateBiblePageSavedBadge();
   const deleteBtn = document.getElementById('btn-delete-split-study');
   if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+  if (sideStatus) sideStatus.textContent = '✓ Guardado';
   if (notify) {
     showToast(`💾 Estudo de ${bookName} ${chap} guardado com sucesso!`);
   }
@@ -2926,9 +3028,13 @@ function deleteCurrentBiblePageStudy(e) {
     renderNotesList();
   }
 
-  // 3. Limpar editor de texto do Modo Dividido
+  // 3. Limpar editores de texto (Modo Dividido e Notas Laterais)
   const textEditor = document.getElementById('split-text-editor');
   if (textEditor) textEditor.innerHTML = '';
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  if (sideEditor) sideEditor.innerHTML = '';
+  const sideStatus = document.getElementById('bible-side-notes-status');
+  if (sideStatus) sideStatus.textContent = '';
 
   // 4. Atualizar badge e esconder botão de apagar no painel
   updateBiblePageSavedBadge();

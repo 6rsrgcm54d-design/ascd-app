@@ -476,19 +476,24 @@ html, body {
   border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
-#hl-color-red:hover {
+#hl-color-red:hover, #shl-color-red:hover, #jhl-color-red:hover, #split-hl-color-red:hover, #bside-hl-color-red:hover {
   background: #FFE4E6;
   border-color: #F43F5E;
 }
 
-#hl-color-green:hover {
+#hl-color-green:hover, #shl-color-green:hover, #jhl-color-green:hover, #split-hl-color-green:hover, #bside-hl-color-green:hover {
   background: #DCFCE7;
   border-color: #22C55E;
 }
 
-#hl-color-yellow:hover {
+#hl-color-yellow:hover, #shl-color-yellow:hover, #jhl-color-yellow:hover, #split-hl-color-yellow:hover, #bside-hl-color-yellow:hover {
   background: #FEF9C3;
   border-color: #EAB308;
+}
+
+#hl-color-blue:hover, #shl-color-blue:hover, #jhl-color-blue:hover, #split-hl-color-blue:hover, #bside-hl-color-blue:hover {
+  background: #E0F2FE;
+  border-color: #38BDF8;
 }
 
 .fmt-btn-clear {
@@ -545,10 +550,92 @@ html, body {
 
 
 
-/* Leitor Bíblico */
+/* Leitor Bíblico com Notas Livres na Lateral */
 .bible-reader-container {
   max-width: 900px;
   margin: 0 auto;
+  transition: max-width 0.3s ease;
+}
+
+.bible-reader-container.has-side-notes {
+  max-width: 1400px;
+}
+
+.bible-reader-main-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.bible-text-column {
+  flex: 1 1 60%;
+  min-width: 0;
+  transition: all 0.3s ease;
+}
+
+.bible-side-notes-column {
+  flex: 0 0 380px;
+  width: 380px;
+  position: sticky;
+  top: 16px;
+  transition: all 0.3s ease;
+}
+
+.bible-side-notes-column.is-hidden {
+  display: none !important;
+}
+
+.bible-side-notes-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.bible-side-notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bible-side-toolbar {
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  gap: 5px;
+}
+
+.bible-side-editor {
+  min-height: 400px;
+  max-height: calc(100vh - 280px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .bible-reader-main-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .bible-side-notes-column {
+    width: 100%;
+    flex: 1 1 100%;
+    position: static;
+  }
+  .bible-side-editor {
+    min-height: 280px;
+  }
 }
 
 .bible-controls-bar {

@@ -501,19 +501,24 @@ html, body {
   border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
-#hl-color-red:hover {
+#hl-color-red:hover, #shl-color-red:hover, #jhl-color-red:hover, #split-hl-color-red:hover, #bside-hl-color-red:hover {
   background: #FFE4E6;
   border-color: #F43F5E;
 }
 
-#hl-color-green:hover {
+#hl-color-green:hover, #shl-color-green:hover, #jhl-color-green:hover, #split-hl-color-green:hover, #bside-hl-color-green:hover {
   background: #DCFCE7;
   border-color: #22C55E;
 }
 
-#hl-color-yellow:hover {
+#hl-color-yellow:hover, #shl-color-yellow:hover, #jhl-color-yellow:hover, #split-hl-color-yellow:hover, #bside-hl-color-yellow:hover {
   background: #FEF9C3;
   border-color: #EAB308;
+}
+
+#hl-color-blue:hover, #shl-color-blue:hover, #jhl-color-blue:hover, #split-hl-color-blue:hover, #bside-hl-color-blue:hover {
+  background: #E0F2FE;
+  border-color: #38BDF8;
 }
 
 .fmt-btn-clear {
@@ -570,10 +575,92 @@ html, body {
 
 
 
-/* Leitor Bíblico */
+/* Leitor Bíblico com Notas Livres na Lateral */
 .bible-reader-container {
   max-width: 900px;
   margin: 0 auto;
+  transition: max-width 0.3s ease;
+}
+
+.bible-reader-container.has-side-notes {
+  max-width: 1400px;
+}
+
+.bible-reader-main-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.bible-text-column {
+  flex: 1 1 60%;
+  min-width: 0;
+  transition: all 0.3s ease;
+}
+
+.bible-side-notes-column {
+  flex: 0 0 380px;
+  width: 380px;
+  position: sticky;
+  top: 16px;
+  transition: all 0.3s ease;
+}
+
+.bible-side-notes-column.is-hidden {
+  display: none !important;
+}
+
+.bible-side-notes-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.bible-side-notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bible-side-toolbar {
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  gap: 5px;
+}
+
+.bible-side-editor {
+  min-height: 400px;
+  max-height: calc(100vh - 280px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .bible-reader-main-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .bible-side-notes-column {
+    width: 100%;
+    flex: 1 1 100%;
+    position: static;
+  }
+  .bible-side-editor {
+    min-height: 280px;
+  }
 }
 
 .bible-controls-bar {
@@ -3404,7 +3491,7 @@ body.ascd-printing #ascd-print-container .document-page .content {
         
         <!-- 1. ABA LEITOR BÍBLICO -->
         <section class="app-section active" id="sec-biblia">
-          <div class="bible-reader-container">
+          <div class="bible-reader-container has-side-notes">
             <div class="bible-controls-bar">
               <div class="bible-selects-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <select id="bible-version-select" class="custom-select" title="Escolha a versão da Bíblia (NVI, BPT, NTLH, AA)"></select>
@@ -3421,9 +3508,9 @@ body.ascd-printing #ascd-print-container .document-page .content {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
                 </div>
-                <button type="button" class="btn-icon-subtle" id="bible-btn-toggle-notes" title="Abrir/Fechar Anotações (Modo Dividido)">
+                <button type="button" class="btn-icon-subtle is-active" id="bible-btn-toggle-notes" title="Mostrar/Ocultar Notas Livres na Lateral">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                  <span class="split-notes-label" style="font-size:12px; font-weight:600; margin-left:3px;">Anotações</span>
+                  <span class="split-notes-label" style="font-size:12px; font-weight:600; margin-left:3px;">Notas na Lateral</span>
                 </button>
                 <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="bible-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Leitor Bíblico)">
                   <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -3450,7 +3537,73 @@ body.ascd-printing #ascd-print-container .document-page .content {
                 <div id="bible-chapter-badge-container"></div>
               </div>
 
-              <div id="bible-verses-display"></div>
+              <!-- Layout Principal com Texto Bíblico e Notas Livres na Lateral -->
+              <div class="bible-reader-main-layout" id="bible-reader-main-layout">
+                <!-- Coluna 1: Versículos da Bíblia -->
+                <div class="bible-text-column" id="bible-text-column">
+                  <div id="bible-verses-display"></div>
+                </div>
+
+                <!-- Coluna 2: Notas Livres na Lateral do Texto -->
+                <aside class="bible-side-notes-column" id="bible-side-notes-column">
+                  <div class="bible-side-notes-card">
+                    <div class="bible-side-notes-header">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:15px;">✍️</span>
+                        <strong style="font-size:13.5px; color:var(--text-primary);" id="bible-side-notes-title">Notas Livres</strong>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="bible-side-notes-status" style="font-size:11px; color:var(--text-muted);">✓ Guardado</span>
+                        <button type="button" class="btn-icon-subtle" id="btn-toggle-bible-side-notes" title="Ocultar Notas Laterais" style="padding:4px;">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Barra de Formatação para Notas Laterais -->
+                    <div class="note-rich-formatting-toolbar bible-side-toolbar" id="bside-formatting-toolbar">
+                      <div class="fmt-group">
+                        <select id="bside-font-size" class="fmt-select" title="Tamanho do texto">
+                          <option value="12px">12px</option>
+                          <option value="14px">14px</option>
+                          <option value="16px" selected>16px</option>
+                          <option value="18px">18px</option>
+                          <option value="22px">22px</option>
+                        </select>
+                      </div>
+
+                      <div class="fmt-divider"></div>
+
+                      <button type="button" class="fmt-btn" id="bside-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+                      <button type="button" class="fmt-btn" id="bside-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+                      <button type="button" class="fmt-btn" id="bside-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+                      <div class="fmt-divider"></div>
+
+                      <div class="fmt-group fmt-highlighters">
+                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-green" data-color="#BBF7D0" title="Verde Claro">
+                          <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                        </button>
+                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
+                          <span class="hl-swatch" style="background:#FEF08A;"></span>
+                        </button>
+                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-red" data-color="#FECDD3" title="Vermelho Claro">
+                          <span class="hl-swatch" style="background:#FECDD3;"></span>
+                        </button>
+                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-blue" data-color="#BAE6FD" title="Azul Claro">
+                          <span class="hl-swatch" style="background:#BAE6FD;"></span>
+                        </button>
+                        <button type="button" class="fmt-btn fmt-btn-clear" id="bside-hl-color-clear" title="Remover marcação">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Editor de Texto de Notas Livres -->
+                    <div id="bible-side-text-editor" class="rich-editor-box bible-side-editor" contenteditable="true" placeholder="Escreva aqui as suas notas livres sobre este capítulo..."></div>
+                  </div>
+                </aside>
+              </div>
 
               <!-- Navegação Inferior de Capítulos -->
               <div class="bible-bottom-nav">
@@ -3796,10 +3949,59 @@ body.ascd-printing #ascd-print-container .document-page .content {
 
                 <!-- 1. SEÇÃO DE ORAÇÃO & INTERCESSÃO -->
                 <div class="journal-section-block" id="journal-prayer-section">
-                  <label style="font-size:13px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px;">
-                    <span>🙏 Motivos de Oração, Intercessão & Agradecimento</span>
-                  </label>
-                  <div id="journal-prayer-editor" class="rich-editor-box" contenteditable="true" style="min-height:90px;" placeholder=""></div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <label style="font-size:13px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px; margin:0;">
+                      <span>🙏 Motivos de Oração, Intercessão & Agradecimento</span>
+                    </label>
+                  </div>
+
+                  <!-- Barra de Formatação do Diário -->
+                  <div class="note-rich-formatting-toolbar" id="journal-formatting-toolbar" style="margin-bottom:8px;">
+                    <div class="fmt-group">
+                      <span class="fmt-icon-label">Tamanho:</span>
+                      <select id="jfmt-font-size" class="fmt-select" title="Tamanho da fonte">
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
+                        <option value="18px">18px</option>
+                        <option value="22px">22px</option>
+                        <option value="26px">26px</option>
+                      </select>
+                    </div>
+
+                    <div class="fmt-divider"></div>
+
+                    <button type="button" class="fmt-btn" id="jfmt-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+                    <button type="button" class="fmt-btn" id="jfmt-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+                    <button type="button" class="fmt-btn" id="jfmt-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
+
+                    <div class="fmt-divider"></div>
+
+                    <div class="fmt-group fmt-highlighters">
+                      <span class="fmt-icon-label">Realce:</span>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-green" data-color="#BBF7D0" title="Verde Claro">
+                        <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                        <span>Verde</span>
+                      </button>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
+                        <span class="hl-swatch" style="background:#FEF08A;"></span>
+                        <span>Amarelo</span>
+                      </button>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-red" data-color="#FECDD3" title="Vermelho Claro">
+                        <span class="hl-swatch" style="background:#FECDD3;"></span>
+                        <span>Vermelho</span>
+                      </button>
+                      <button type="button" class="fmt-hl-btn" id="jhl-color-blue" data-color="#BAE6FD" title="Azul Claro">
+                        <span class="hl-swatch" style="background:#BAE6FD;"></span>
+                        <span>Azul</span>
+                      </button>
+                      <button type="button" class="fmt-btn fmt-btn-clear" id="jhl-color-clear" title="Remover marcação">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="journal-prayer-editor" class="rich-editor-box" contenteditable="true" style="min-height:120px;" placeholder=""></div>
                 </div>
 
                 <!-- 2. SEÇÃO: O QUE FAZER NESSE DIA (TAREFAS & PRIORIDADES) -->
@@ -3957,14 +4159,17 @@ body.ascd-printing #ascd-print-container .document-page .content {
                 <div class="fmt-divider"></div>
 
                 <div class="fmt-group fmt-highlighters">
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-green" data-color="#BBF7D0" title="Verde Claro">
+                    <span class="hl-swatch" style="background:#BBF7D0;"></span>
+                  </button>
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
+                    <span class="hl-swatch" style="background:#FEF08A;"></span>
+                  </button>
                   <button type="button" class="fmt-hl-btn" id="split-hl-color-red" data-color="#FECDD3" title="Vermelho Claro">
                     <span class="hl-swatch" style="background:#FECDD3;"></span>
                   </button>
-                  <button type="button" class="fmt-hl-btn" id="split-hl-color-green" data-color="#BBF7D0" title="Verde">
-                    <span class="hl-swatch" style="background:#BBF7D0;"></span>
-                  </button>
-                  <button type="button" class="fmt-hl-btn" id="split-hl-color-yellow" data-color="#FEF08A" title="Amarelo">
-                    <span class="hl-swatch" style="background:#FEF08A;"></span>
+                  <button type="button" class="fmt-hl-btn" id="split-hl-color-blue" data-color="#BAE6FD" title="Azul Claro">
+                    <span class="hl-swatch" style="background:#BAE6FD;"></span>
                   </button>
                   <button type="button" class="fmt-btn fmt-btn-clear" id="split-hl-color-clear" title="Remover marcação">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -4053,17 +4258,21 @@ body.ascd-printing #ascd-print-container .document-page .content {
 
             <div class="fmt-group fmt-highlighters">
               <span class="fmt-icon-label">Realce:</span>
-              <button type="button" class="fmt-hl-btn" id="shl-color-red" data-color="#FECDD3" title="Marca-Texto Vermelho Claro">
-                <span class="hl-swatch" style="background:#FECDD3;"></span>
-                <span>Vermelho</span>
-              </button>
-              <button type="button" class="fmt-hl-btn" id="shl-color-green" data-color="#BBF7D0" title="Marca-Texto Verde">
+              <button type="button" class="fmt-hl-btn" id="shl-color-green" data-color="#BBF7D0" title="Verde Claro">
                 <span class="hl-swatch" style="background:#BBF7D0;"></span>
                 <span>Verde</span>
               </button>
-              <button type="button" class="fmt-hl-btn" id="shl-color-yellow" data-color="#FEF08A" title="Marca-Texto Amarelo">
+              <button type="button" class="fmt-hl-btn" id="shl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
                 <span class="hl-swatch" style="background:#FEF08A;"></span>
                 <span>Amarelo</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="shl-color-red" data-color="#FECDD3" title="Vermelho Claro">
+                <span class="hl-swatch" style="background:#FECDD3;"></span>
+                <span>Vermelho</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="shl-color-blue" data-color="#BAE6FD" title="Azul Claro">
+                <span class="hl-swatch" style="background:#BAE6FD;"></span>
+                <span>Azul</span>
               </button>
               <button type="button" class="fmt-btn fmt-btn-clear" id="shl-color-clear" title="Remover marcação">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -4161,17 +4370,21 @@ body.ascd-printing #ascd-print-container .document-page .content {
 
             <div class="fmt-group fmt-highlighters">
               <span class="fmt-icon-label">Realce:</span>
-              <button type="button" class="fmt-hl-btn" id="hl-color-red" data-color="#FECDD3" title="Marca-Texto Vermelho Claro">
-                <span class="hl-swatch" style="background:#FECDD3;"></span>
-                <span>Vermelho</span>
-              </button>
-              <button type="button" class="fmt-hl-btn" id="hl-color-green" data-color="#BBF7D0" title="Marca-Texto Verde">
+              <button type="button" class="fmt-hl-btn" id="hl-color-green" data-color="#BBF7D0" title="Verde Claro">
                 <span class="hl-swatch" style="background:#BBF7D0;"></span>
                 <span>Verde</span>
               </button>
-              <button type="button" class="fmt-hl-btn" id="hl-color-yellow" data-color="#FEF08A" title="Marca-Texto Amarelo">
+              <button type="button" class="fmt-hl-btn" id="hl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
                 <span class="hl-swatch" style="background:#FEF08A;"></span>
                 <span>Amarelo</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="hl-color-red" data-color="#FECDD3" title="Vermelho Claro">
+                <span class="hl-swatch" style="background:#FECDD3;"></span>
+                <span>Vermelho</span>
+              </button>
+              <button type="button" class="fmt-hl-btn" id="hl-color-blue" data-color="#BAE6FD" title="Azul Claro">
+                <span class="hl-swatch" style="background:#BAE6FD;"></span>
+                <span>Azul</span>
               </button>
               <button type="button" class="fmt-btn fmt-btn-clear" id="hl-color-clear" title="Remover marcação">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -16525,7 +16738,7 @@ function showTab(tabId) {
   // Salvar os dados da aba atual antes de mudar para não perder o que foi escrito!
   if (ASCD.activeTab === 'journal') {
     saveCurrentJournalEntry(false);
-  } else if (ASCD.activeTab === 'biblia' && ASCD.isSplitView) {
+  } else if (ASCD.activeTab === 'biblia') {
     saveCurrentBiblePageStudy(false);
   }
 
@@ -16576,9 +16789,9 @@ function showTab(tabId) {
 
 /**
  * ==========================================================================
- * BARRAS DE FORMATAÇÃO DE TEXTO (NOTAS, SERMÕES, JOURNAL E MODO DIVIDIDO)
+ * BARRAS DE FORMATAÇÃO DE TEXTO (NOTAS, SERMÕES, DIÁRIO, LATERAL BÍBLICA E SPLIT)
  * Inclui: Fontes, Tamanhos, Negrito (B), Itálico (I), Sublinhado (U) e
- * 3 Cores de Marca-Texto (Vermelho Claro, Verde e Amarelo)
+ * 4 Cores de Marca-Texto Claros (Verde, Amarelo, Vermelho e Azul Claros)
  * ==========================================================================
  */
 function setupTextToolbars() {
@@ -16599,7 +16812,7 @@ function setupTextToolbars() {
   // 3. Journaling Diário
   setupEditorToolbar({
     prefix: 'jfmt',
-    editorId: 'journal-text-editor',
+    editorId: 'journal-prayer-editor',
     hlPrefix: 'jhl'
   });
 
@@ -16608,6 +16821,13 @@ function setupTextToolbars() {
     prefix: 'split-fmt',
     editorId: 'split-text-editor',
     hlPrefix: 'split-hl'
+  });
+
+  // 5. Notas Livres na Lateral da Bíblia
+  setupEditorToolbar({
+    prefix: 'bside',
+    editorId: 'bible-side-text-editor',
+    hlPrefix: 'bside-hl'
   });
 }
 
@@ -16664,11 +16884,28 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
     });
   }
 
-  // 6. As 3 Cores de Marca-Texto: Vermelho Claro, Verde e Amarelo
-  const btnHlRed = document.getElementById(`${hlPrefix}-color-red`);
+  // 6. As 4 Cores de Marca-Texto Claros (Pastel): Verde, Amarelo, Vermelho e Azul
   const btnHlGreen = document.getElementById(`${hlPrefix}-color-green`);
   const btnHlYellow = document.getElementById(`${hlPrefix}-color-yellow`);
+  const btnHlRed = document.getElementById(`${hlPrefix}-color-red`);
+  const btnHlBlue = document.getElementById(`${hlPrefix}-color-blue`);
   const btnHlClear = document.getElementById(`${hlPrefix}-color-clear`);
+
+  if (btnHlGreen) {
+    btnHlGreen.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#BBF7D0');
+      showToast('🖍️ Marca-texto Verde Claro aplicado');
+    });
+  }
+
+  if (btnHlYellow) {
+    btnHlYellow.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyTextHighlight(editor, '#FEF08A');
+      showToast('🖍️ Marca-texto Amarelo Claro aplicado');
+    });
+  }
 
   if (btnHlRed) {
     btnHlRed.addEventListener('click', (e) => {
@@ -16678,19 +16915,11 @@ function setupEditorToolbar({ prefix, editorId, hlPrefix }) {
     });
   }
 
-  if (btnHlGreen) {
-    btnHlGreen.addEventListener('click', (e) => {
+  if (btnHlBlue) {
+    btnHlBlue.addEventListener('click', (e) => {
       e.preventDefault();
-      applyTextHighlight(editor, '#BBF7D0');
-      showToast('🖍️ Marca-texto Verde aplicado');
-    });
-  }
-
-  if (btnHlYellow) {
-    btnHlYellow.addEventListener('click', (e) => {
-      e.preventDefault();
-      applyTextHighlight(editor, '#FEF08A');
-      showToast('🖍️ Marca-texto Amarelo aplicado');
+      applyTextHighlight(editor, '#BAE6FD');
+      showToast('🖍️ Marca-texto Azul Claro aplicado');
     });
   }
 
@@ -16978,13 +17207,42 @@ function setupBibleReader() {
     });
   }
 
-  // 7. Botão de Alternar Modo Dividido / Anotações na barra do Leitor Bíblico
+  // 7. Botão de Alternar Notas Livres na Lateral do Texto Bíblico
   const btnBibleToggleNotes = document.getElementById('bible-btn-toggle-notes');
   if (btnBibleToggleNotes) {
     btnBibleToggleNotes.addEventListener('click', () => {
-      toggleSplitScreen();
+      toggleBibleSideNotes();
     });
   }
+
+  const btnCloseSideNotes = document.getElementById('btn-toggle-bible-side-notes');
+  if (btnCloseSideNotes) {
+    btnCloseSideNotes.addEventListener('click', () => {
+      toggleBibleSideNotes(false);
+    });
+  }
+
+  // Auto-salvamento com debounce ao digitar no editor de notas laterais da Bíblia
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  if (sideEditor) {
+    let sideAutoSaveTimer = null;
+    sideEditor.addEventListener('input', () => {
+      const statusEl = document.getElementById('bible-side-notes-status');
+      if (statusEl) statusEl.textContent = 'A guardar...';
+      clearTimeout(sideAutoSaveTimer);
+      sideAutoSaveTimer = setTimeout(() => {
+        saveCurrentBiblePageStudy(false);
+      }, 500);
+    });
+  }
+
+  // Restaurar preferência de exibição das notas laterais (visível por padrão)
+  try {
+    const savedSidePref = localStorage.getItem('ascd_bible_side_notes_visible');
+    if (savedSidePref === '0') {
+      toggleBibleSideNotes(false);
+    }
+  } catch (_) {}
 
   // 8. Botão de Ecrã Inteiro no Leitor Bíblico
   const btnBibleFs = document.getElementById('bible-btn-fullscreen');
@@ -16993,6 +17251,29 @@ function setupBibleReader() {
       e.preventDefault();
       toggleBibleFullscreen();
     });
+  }
+}
+
+function toggleBibleSideNotes(forceState = null) {
+  const container = document.querySelector('.bible-reader-container');
+  const sideCol = document.getElementById('bible-side-notes-column');
+  const btnToggle = document.getElementById('bible-btn-toggle-notes');
+  if (!sideCol) return;
+
+  const isCurrentlyHidden = sideCol.classList.contains('is-hidden');
+  const shouldShow = (forceState !== null) ? forceState : isCurrentlyHidden;
+
+  if (shouldShow) {
+    sideCol.classList.remove('is-hidden');
+    if (container) container.classList.add('has-side-notes');
+    if (btnToggle) btnToggle.classList.add('is-active');
+    try { localStorage.setItem('ascd_bible_side_notes_visible', '1'); } catch (_) {}
+  } else {
+    saveCurrentBiblePageStudy(false);
+    sideCol.classList.add('is-hidden');
+    if (container) container.classList.remove('has-side-notes');
+    if (btnToggle) btnToggle.classList.remove('is-active');
+    try { localStorage.setItem('ascd_bible_side_notes_visible', '0'); } catch (_) {}
   }
 }
 
@@ -18820,18 +19101,31 @@ document.addEventListener('webkitfullscreenchange', () => {
 });
 
 function loadBiblePageNoteIntoSplit() {
-  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const bookName = BIBLE_BOOKS.find(b => b.id === ASCD.currentBibleBook)?.name || 'Livro';
+  const chap = ASCD.currentBibleChapter;
+  const key = `${ASCD.currentBibleBook}_${chap}`;
   const saved = ASCD.biblePageNotes[key];
 
   const textEditor = document.getElementById('split-text-editor');
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  const sideTitle = document.getElementById('bible-side-notes-title');
+  const sideStatus = document.getElementById('bible-side-notes-status');
   const deleteBtn = document.getElementById('btn-delete-split-study');
 
-  if (saved && saved.content) {
-    if (textEditor) textEditor.innerHTML = saved.content || '';
-    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
-  } else {
-    if (textEditor) textEditor.innerHTML = '';
-    if (deleteBtn) deleteBtn.style.display = 'none';
+  if (sideTitle) {
+    sideTitle.textContent = `Notas: ${bookName} ${chap}`;
+  }
+
+  const content = (saved && saved.content) ? saved.content : '';
+
+  if (textEditor) textEditor.innerHTML = content;
+  if (sideEditor) sideEditor.innerHTML = content;
+
+  if (deleteBtn) {
+    deleteBtn.style.display = content.trim() ? 'inline-flex' : 'none';
+  }
+  if (sideStatus) {
+    sideStatus.textContent = content.trim() ? '✓ Guardado' : '';
   }
 }
 
@@ -18840,11 +19134,30 @@ function saveCurrentBiblePageStudy(notify = true) {
   const chap = ASCD.currentBibleChapter;
   const key = `${ASCD.currentBibleBook}_${chap}`;
 
-  const textContent = document.getElementById('split-text-editor')?.innerHTML || '';
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  const splitEditor = document.getElementById('split-text-editor');
+  const sideStatus = document.getElementById('bible-side-notes-status');
+
+  let textContent = '';
+  if (document.activeElement === sideEditor && sideEditor) {
+    textContent = sideEditor.innerHTML;
+    if (splitEditor && splitEditor.innerHTML !== textContent) splitEditor.innerHTML = textContent;
+  } else if (document.activeElement === splitEditor && splitEditor) {
+    textContent = splitEditor.innerHTML;
+    if (sideEditor && sideEditor.innerHTML !== textContent) sideEditor.innerHTML = textContent;
+  } else {
+    textContent = (sideEditor?.innerHTML) || (splitEditor?.innerHTML) || '';
+    if (sideEditor && splitEditor) {
+      if (sideEditor.innerHTML && !splitEditor.innerHTML) splitEditor.innerHTML = sideEditor.innerHTML;
+      else if (splitEditor.innerHTML && !sideEditor.innerHTML) sideEditor.innerHTML = splitEditor.innerHTML;
+    }
+  }
+
   const cleanText = textContent.replace(/<br\s*\/?>/gi, '').trim();
 
   // Se nada foi escrito e não havia nada guardado para este capítulo, ignora
   if (!cleanText && !ASCD.biblePageNotes[key]) {
+    if (sideStatus) sideStatus.textContent = '';
     return;
   }
 
@@ -18857,6 +19170,7 @@ function saveCurrentBiblePageStudy(notify = true) {
   }
 
   if (!isChanged && !notify) {
+    if (sideStatus) sideStatus.textContent = '✓ Guardado';
     return;
   }
 
@@ -18897,6 +19211,7 @@ function saveCurrentBiblePageStudy(notify = true) {
   updateBiblePageSavedBadge();
   const deleteBtn = document.getElementById('btn-delete-split-study');
   if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+  if (sideStatus) sideStatus.textContent = '✓ Guardado';
   if (notify) {
     showToast(`💾 Estudo de ${bookName} ${chap} guardado com sucesso!`);
   }
@@ -18933,9 +19248,13 @@ function deleteCurrentBiblePageStudy(e) {
     renderNotesList();
   }
 
-  // 3. Limpar editor de texto do Modo Dividido
+  // 3. Limpar editores de texto (Modo Dividido e Notas Laterais)
   const textEditor = document.getElementById('split-text-editor');
   if (textEditor) textEditor.innerHTML = '';
+  const sideEditor = document.getElementById('bible-side-text-editor');
+  if (sideEditor) sideEditor.innerHTML = '';
+  const sideStatus = document.getElementById('bible-side-notes-status');
+  if (sideStatus) sideStatus.textContent = '';
 
   // 4. Atualizar badge e esconder botão de apagar no painel
   updateBiblePageSavedBadge();
