@@ -43,6 +43,12 @@ const ASCD = {
   biblePageNotes: {}, // chave: `${bookId}_${chapterNum}`
   splitCurrentMode: 'hybrid',
 
+  // Marcadores de Cor dos Versículos Bíblicos
+  bibleVerseColors: {}, // chave: `${bookId}_${chapterNum}`, valor: { verseNum: '#color' }
+
+  // Notas na Margem da Bíblia (in-margin notes)
+  bibleMarginNotes: {}, // chave: `${bookId}_${chapterNum}`, valor: [{ id, html, createdAt }]
+
   // Devocional Diário (Our Daily Bread / Pão Diário)
   currentDevotionalDate: '',
   devotionalFavorites: [],
@@ -155,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupThemes();
   setupBibleReader();
+  setupBibleVerseHighlighter();
+  setupBibleMarginNotes();
   setupDevotional();
   setupTextToolbars();
   setupHybridNotes();
@@ -349,6 +357,18 @@ function loadStoredData() {
       ASCD.biblePageNotes = JSON.parse(savedBibleNotes);
     }
 
+    // 4b. Marcadores de Cor dos Versículos Bíblicos
+    const savedVerseColors = localStorage.getItem('ascd_verse_colors');
+    if (savedVerseColors) {
+      try { ASCD.bibleVerseColors = JSON.parse(savedVerseColors); } catch (_) { ASCD.bibleVerseColors = {}; }
+    }
+
+    // 4c. Notas na Margem da Bíblia
+    const savedMarginNotes = localStorage.getItem('ascd_margin_notes');
+    if (savedMarginNotes) {
+      try { ASCD.bibleMarginNotes = JSON.parse(savedMarginNotes); } catch (_) { ASCD.bibleMarginNotes = {}; }
+    }
+
     // 5. Tema
     const savedTheme = localStorage.getItem('ascd_theme');
     if (savedTheme) ASCD.theme = savedTheme;
@@ -427,6 +447,378 @@ function saveBiblePageNotes() {
     console.error('Erro ao salvar notas de páginas bíblicas:', e);
   }
   triggerAutoSyncToCloud();
+}
+
+function saveBibleVerseColors() {
+  try {
+    localStorage.setItem('ascd_verse_colors', JSON.stringify(ASCD.bibleVerseColors));
+  } catch (_) {}
+  triggerAutoSyncToCloud();
+}
+
+function saveBibleMarginNotes() {
+  try {
+    localStorage.setItem('ascd_margin_notes', JSON.stringify(ASCD.bibleMarginNotes));
+  } catch (_) {}
+  triggerAutoSyncToCloud();
+}
+
+/**
+ * ==========================================================================
+ * MARCADORES DE COR NOS VERSÍCULOS BÍBLICOS
+ * ==========================================================================
+ */
+function setupBibleVerseHighlighter() {
+  const colors = ['green', 'yellow', 'red', 'blue', 'clear'];
+  colors.forEach(c => {
+    const btn = document.getElementById(`bible-hl-${c}`);
+    if (!btn) return;
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      applyVerseHighlight(c === 'clear' ? null : btn.dataset.hl);
+      hideBibleFloatingHlPopover();
+    });
+  });
+
+  // Criar popover flutuante rápido ao selecionar texto nos versículos
+  let popover = document.getElementById('bible-floating-hl-popover');
+  if (!popover) {
+    popover = document.createElement('div');
+    popover.id = 'bible-floating-hl-popover';
+    popover.className = 'bible-floating-hl-popover';
+    popover.innerHTML = `
+      <button type="button" class="bible-hl-btn" data-hl="#BBF7D0" title="Verde Claro"><span class="hl-swatch" style="background:#BBF7D0;"></span></button>
+      <button type="button" class="bible-hl-btn" data-hl="#FEF08A" title="Amarelo Claro"><span class="hl-swatch" style="background:#FEF08A;"></span></button>
+      <button type="button" class="bible-hl-btn" data-hl="#FECDD3" title="Vermelho Claro"><span class="hl-swatch" style="background:#FECDD3;"></span></button>
+      <button type="button" class="bible-hl-btn" data-hl="#BAE6FD" title="Azul Claro"><span class="hl-swatch" style="background:#BAE6FD;"></span></button>
+      <button type="button" class="bible-hl-btn bible-hl-clear-btn" data-hl="" title="Remover marcação">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    `;
+    document.body.appendChild(popover);
+
+    popover.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const color = btn.dataset.hl || null;
+        applyVerseHighlight(color);
+        hideBibleFloatingHlPopover();
+      });
+    });
+  }
+
+  const versesDisplay = document.getElementById('bible-verses-display');
+  if (versesDisplay) {
+    const checkSelection = () => {
+      setTimeout(() => {
+        const rows = getSelectedVerseRows();
+        if (rows.length > 0) {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const rect = sel.getRangeAt(0).getBoundingClientRect();
+            if (rect.width > 0 || rect.height > 0) {
+              const pop = document.getElementById('bible-floating-hl-popover');
+              if (pop) {
+                pop.style.left = `${Math.max(12, Math.min(window.innerWidth - 190, rect.left + rect.width / 2 - 80))}px`;
+                pop.style.top = `${Math.max(12, rect.top - 46)}px`;
+                pop.classList.add('visible');
+              }
+            }
+          }
+        } else {
+          hideBibleFloatingHlPopover();
+        }
+      }, 20);
+    };
+    versesDisplay.addEventListener('mouseup', checkSelection);
+    versesDisplay.addEventListener('touchend', checkSelection);
+  }
+
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('#bible-floating-hl-popover') && !e.target.closest('#bible-hl-toolbar')) {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) {
+        hideBibleFloatingHlPopover();
+      }
+    }
+  });
+}
+
+function hideBibleFloatingHlPopover() {
+  const pop = document.getElementById('bible-floating-hl-popover');
+  if (pop) pop.classList.remove('visible');
+}
+
+function getSelectedVerseRows() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return [];
+  const range = sel.getRangeAt(0);
+  const versesDisplay = document.getElementById('bible-verses-display');
+  if (!versesDisplay || !versesDisplay.contains(range.commonAncestorContainer)) {
+    // Verificar se pelo menos anchorNode está dentro de um .verse-row
+    const anchorRow = sel.anchorNode?.nodeType === 1
+      ? sel.anchorNode.closest('.verse-row')
+      : sel.anchorNode?.parentElement?.closest('.verse-row');
+    return anchorRow ? [anchorRow] : [];
+  }
+
+  const allRows = Array.from(versesDisplay.querySelectorAll('.verse-row'));
+  const selected = allRows.filter(row => {
+    try {
+      return range.intersectsNode(row);
+    } catch (_) {
+      return false;
+    }
+  });
+  return selected;
+}
+
+function applyVerseHighlight(color) {
+  const rows = getSelectedVerseRows();
+  if (!rows.length) {
+    showToast('Selecione um versículo ou frase na Bíblia antes de aplicar a cor');
+    return;
+  }
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  if (!ASCD.bibleVerseColors[key]) ASCD.bibleVerseColors[key] = {};
+
+  rows.forEach(row => {
+    const verseNum = parseInt(row.dataset.verse, 10);
+    const textSpan = row.querySelector('.verse-text');
+    if (color) {
+      ASCD.bibleVerseColors[key][verseNum] = color;
+      row.style.background = color;
+      row.dataset.hl = color;
+      if (textSpan) textSpan.style.cssText = `background:${color}; padding:3px 6px; border-radius:4px;`;
+    } else {
+      delete ASCD.bibleVerseColors[key][verseNum];
+      row.style.background = '';
+      delete row.dataset.hl;
+      if (textSpan) textSpan.style.cssText = '';
+    }
+  });
+
+  saveBibleVerseColors();
+  window.getSelection()?.removeAllRanges();
+  showToast(color ? '🖍️ Marcação aplicada ao texto bíblico' : 'Marcação removida');
+}
+
+/**
+ * ==========================================================================
+ * NOTAS NA MARGEM DA BÍBLIA (ESPAÇO LATERAL LIVRE AO LADO DO TEXTO)
+ * ==========================================================================
+ */
+function setupBibleMarginNotes() {
+  const marginCol = document.getElementById('bible-margin-column');
+  if (!marginCol) return;
+
+  marginCol.addEventListener('click', (e) => {
+    // Não criar nova nota se clicou dentro de uma nota existente
+    if (e.target.closest('.margin-note-block')) return;
+    const rect = marginCol.getBoundingClientRect();
+    const topOffset = Math.max(0, Math.round(e.clientY - rect.top - 14));
+    addMarginNote(topOffset);
+  });
+}
+
+function updateMarginColumnMinHeight() {
+  const marginCol = document.getElementById('bible-margin-column');
+  if (!marginCol) return;
+  let maxBottom = 460;
+  marginCol.querySelectorAll('.margin-note-block.is-positioned').forEach(el => {
+    const bottom = (parseInt(el.style.top, 10) || 0) + el.offsetHeight + 24;
+    if (bottom > maxBottom) maxBottom = bottom;
+  });
+  marginCol.style.minHeight = `${maxBottom}px`;
+}
+
+function renderMarginNotes() {
+  const marginCol = document.getElementById('bible-margin-column');
+  if (!marginCol) return;
+
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const notes = ASCD.bibleMarginNotes[key] || [];
+
+  // Limpar notas anteriores (manter o hint)
+  marginCol.querySelectorAll('.margin-note-block').forEach(el => el.remove());
+
+  const hint = document.getElementById('bible-margin-hint');
+  if (hint) hint.style.display = notes.length === 0 ? 'flex' : 'none';
+
+  notes.forEach((note, idx) => {
+    const block = createMarginNoteBlock(note, idx);
+    marginCol.appendChild(block);
+  });
+
+  requestAnimationFrame(updateMarginColumnMinHeight);
+}
+
+function addMarginNote(topOffset = 0) {
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  if (!ASCD.bibleMarginNotes[key]) ASCD.bibleMarginNotes[key] = [];
+
+  const note = {
+    id: `mn-${Date.now()}`,
+    html: '',
+    top: topOffset,
+    fontSize: '13px',
+    createdAt: new Date().toISOString()
+  };
+  ASCD.bibleMarginNotes[key].push(note);
+
+  const marginCol = document.getElementById('bible-margin-column');
+  const hint = document.getElementById('bible-margin-hint');
+  if (hint) hint.style.display = 'none';
+
+  const block = createMarginNoteBlock(note, ASCD.bibleMarginNotes[key].length - 1);
+  if (marginCol) marginCol.appendChild(block);
+
+  updateMarginColumnMinHeight();
+
+  // Focar o editor
+  const editor = block.querySelector('.margin-note-editor');
+  if (editor) {
+    editor.focus();
+  }
+}
+
+function createMarginNoteBlock(note, index = 0) {
+  const block = document.createElement('div');
+  block.className = 'margin-note-block';
+  block.dataset.noteId = note.id;
+
+  const topPos = typeof note.top === 'number' ? note.top : (index * 150);
+  block.classList.add('is-positioned');
+  block.style.top = `${topPos}px`;
+
+  const currentSize = note.fontSize || '13px';
+
+  block.innerHTML = `
+    <div class="margin-note-toolbar">
+      <select class="margin-note-size-select" title="Tamanho da letra">
+        <option value="11px" ${currentSize === '11px' ? 'selected' : ''}>11px</option>
+        <option value="12px" ${currentSize === '12px' ? 'selected' : ''}>12px</option>
+        <option value="13px" ${currentSize === '13px' ? 'selected' : ''}>13px</option>
+        <option value="15px" ${currentSize === '15px' ? 'selected' : ''}>15px</option>
+        <option value="17px" ${currentSize === '17px' ? 'selected' : ''}>17px</option>
+        <option value="20px" ${currentSize === '20px' ? 'selected' : ''}>20px</option>
+      </select>
+      <button type="button" class="margin-note-btn mn-bold" title="Negrito (Bold)"><b>B</b></button>
+      <button type="button" class="margin-note-btn mn-italic" title="Itálico"><i>I</i></button>
+      <button type="button" class="margin-note-btn mn-underline" title="Sublinhado (Underline)"><u>U</u></button>
+      <span style="width:1px; height:14px; background:var(--border-color); display:inline-block; margin:0 2px;"></span>
+      <button type="button" class="margin-note-hl-btn" data-color="#BBF7D0" title="Verde Claro" style="background:#BBF7D0;"></button>
+      <button type="button" class="margin-note-hl-btn" data-color="#FEF08A" title="Amarelo Claro" style="background:#FEF08A;"></button>
+      <button type="button" class="margin-note-hl-btn" data-color="#FECDD3" title="Vermelho Claro" style="background:#FECDD3;"></button>
+      <button type="button" class="margin-note-hl-btn" data-color="#BAE6FD" title="Azul Claro" style="background:#BAE6FD;"></button>
+      <button type="button" class="margin-note-btn mn-hl-clear" title="Remover realce" style="font-size:10px; padding:2px 3px;">✕</button>
+    </div>
+    <div class="margin-note-editor" contenteditable="true" style="font-size:${currentSize};" placeholder="Escreva a sua nota livre aqui...">${note.html || ''}</div>
+    <div class="margin-note-footer">
+      <button type="button" class="margin-note-delete-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        Apagar
+      </button>
+      <span class="margin-note-save-status">✓ Guardado</span>
+    </div>
+  `;
+
+  const sizeSelect = block.querySelector('.margin-note-size-select');
+  const editor = block.querySelector('.margin-note-editor');
+  const statusEl = block.querySelector('.margin-note-save-status');
+
+  // Impedir que cliques nos botões da toolbar tirem a seleção do texto
+  block.querySelectorAll('.margin-note-btn, .margin-note-hl-btn').forEach(btn => {
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+  });
+
+  // Tamanho
+  sizeSelect.addEventListener('change', () => {
+    editor.style.fontSize = sizeSelect.value;
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+    if (statusEl) statusEl.textContent = '✓ Guardado';
+    updateMarginColumnMinHeight();
+  });
+
+  // Bold / Italic / Underline
+  block.querySelector('.mn-bold').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('bold', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+  block.querySelector('.mn-italic').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('italic', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+  block.querySelector('.mn-underline').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('underline', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+
+  // Marcadores de cor dentro da nota
+  block.querySelectorAll('.margin-note-hl-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      editor.focus();
+      const color = btn.dataset.color;
+      let success = document.execCommand('hiliteColor', false, color);
+      if (!success) document.execCommand('backColor', false, color);
+      saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+    });
+  });
+
+  block.querySelector('.mn-hl-clear').addEventListener('click', (e) => {
+    e.preventDefault();
+    editor.focus();
+    document.execCommand('hiliteColor', false, 'transparent');
+    document.execCommand('backColor', false, 'transparent');
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+
+  // Auto-save ao digitar
+  let saveTimer = null;
+  editor.addEventListener('input', () => {
+    if (statusEl) statusEl.textContent = 'A guardar...';
+    updateMarginColumnMinHeight();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+      if (statusEl) statusEl.textContent = '✓ Guardado';
+    }, 500);
+  });
+
+  // Apagar nota
+  block.querySelector('.margin-note-delete-btn').addEventListener('click', () => {
+    deleteMarginNote(note.id);
+    block.remove();
+    updateMarginColumnMinHeight();
+    const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+    const remaining = ASCD.bibleMarginNotes[key] || [];
+    const hint = document.getElementById('bible-margin-hint');
+    if (hint && remaining.length === 0) hint.style.display = 'flex';
+  });
+
+  return block;
+}
+
+function saveMarginNote(noteId, html, fontSize = null) {
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  if (!ASCD.bibleMarginNotes[key]) ASCD.bibleMarginNotes[key] = [];
+  const idx = ASCD.bibleMarginNotes[key].findIndex(n => n.id === noteId);
+  if (idx !== -1) {
+    ASCD.bibleMarginNotes[key][idx].html = html;
+    if (fontSize) ASCD.bibleMarginNotes[key][idx].fontSize = fontSize;
+    ASCD.bibleMarginNotes[key][idx].updatedAt = new Date().toISOString();
+  }
+  saveBibleMarginNotes();
+}
+
+function deleteMarginNote(noteId) {
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  if (!ASCD.bibleMarginNotes[key]) return;
+  ASCD.bibleMarginNotes[key] = ASCD.bibleMarginNotes[key].filter(n => n.id !== noteId);
+  saveBibleMarginNotes();
 }
 
 /**
@@ -1174,6 +1566,7 @@ async function loadBibleChapter(bookId, chapterNum) {
     splitStudyTitle.textContent = `Estudo: ${book.name} ${validChap} (${vObj.shortName || ''})`;
   }
   loadBiblePageNoteIntoSplit();
+  renderMarginNotes();
 
   // 4. Mostrar estado de carregamento se não estiver em cache
   const container = document.getElementById('bible-verses-display');
@@ -1217,16 +1610,24 @@ async function loadBibleChapter(bookId, chapterNum) {
       `;
     } else {
       renderVersesList(container, data);
+      renderMarginNotes();
     }
   }
 }
 
 function renderVersesList(container, data) {
   if (!container || !data || !data.verses) return;
-  container.innerHTML = data.verses.map(v => `
-    <div class="verse-row" data-verse="${v.num}">
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const verseColors = (ASCD.bibleVerseColors && ASCD.bibleVerseColors[key]) ? ASCD.bibleVerseColors[key] : {};
+
+  container.innerHTML = data.verses.map(v => {
+    const hl = verseColors[v.num];
+    const hlStyle = hl ? `background:${hl}; padding:3px 6px; border-radius:4px;` : '';
+    const hlAttr = hl ? ` data-hl="${hl}" style="background:${hl}; border-radius:4px;"` : '';
+    return `
+    <div class="verse-row" data-verse="${v.num}"${hlAttr}>
       <span class="verse-num">${v.num}</span>
-      <span class="verse-text">${v.text}</span>
+      <span class="verse-text" style="${hlStyle}">${v.text}</span>
       <div class="verse-actions">
         <button class="verse-action-btn" title="Copiar versículo" onclick="copyVerse('${data.book}', ${data.chapter}, ${v.num}, '${escapeForJs(v.text)}')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -1236,7 +1637,7 @@ function renderVersesList(container, data) {
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function updateBiblePageSavedBadge() {
@@ -3071,6 +3472,7 @@ function toggleSplitScreen() {
     }
 
     loadBiblePageNoteIntoSplit();
+  renderMarginNotes();
   } else {
     saveCurrentBiblePageStudy(false);
     appContainer.classList.remove('split-view-active');
@@ -3873,7 +4275,9 @@ async function executeCloudSync(isAuto = false) {
       updatedAt: s.updatedAt || s.date || new Date().toISOString()
     })),
     journalEntries: getCleanJournalEntriesForSync(),
-    biblePageNotes: getCleanBibleNotesForSync()
+    biblePageNotes: getCleanBibleNotesForSync(),
+    bibleVerseColors: ASCD.bibleVerseColors || {},
+    bibleMarginNotes: ASCD.bibleMarginNotes || {}
   };
 
   const payload = {
@@ -4167,11 +4571,52 @@ async function pullFromCloud(silent = false) {
       });
     }
 
+    // 5. Fundir Marcadores de Cor dos Versículos Bíblicos
+    if (d.bibleVerseColors && typeof d.bibleVerseColors === 'object') {
+      if (!ASCD.bibleVerseColors) ASCD.bibleVerseColors = {};
+      Object.keys(d.bibleVerseColors).forEach(key => {
+        const remoteMap = d.bibleVerseColors[key];
+        if (!remoteMap || typeof remoteMap !== 'object') return;
+        if (!ASCD.bibleVerseColors[key]) {
+          ASCD.bibleVerseColors[key] = remoteMap;
+        } else {
+          Object.assign(ASCD.bibleVerseColors[key], remoteMap);
+        }
+      });
+    }
+
+    // 6. Fundir Notas Livres na Margem da Bíblia
+    if (d.bibleMarginNotes && typeof d.bibleMarginNotes === 'object') {
+      if (!ASCD.bibleMarginNotes) ASCD.bibleMarginNotes = {};
+      Object.keys(d.bibleMarginNotes).forEach(key => {
+        const remoteList = d.bibleMarginNotes[key];
+        if (!Array.isArray(remoteList)) return;
+        if (!ASCD.bibleMarginNotes[key]) {
+          ASCD.bibleMarginNotes[key] = remoteList;
+        } else {
+          const localMap = new Map(ASCD.bibleMarginNotes[key].map(n => [n.id, n]));
+          remoteList.forEach(rn => {
+            const ln = localMap.get(rn.id);
+            if (!ln) {
+              localMap.set(rn.id, rn);
+            } else {
+              const rTime = rn.updatedAt ? new Date(rn.updatedAt).getTime() : 0;
+              const lTime = ln.updatedAt ? new Date(ln.updatedAt).getTime() : 0;
+              if (rTime >= lTime) localMap.set(rn.id, rn);
+            }
+          });
+          ASCD.bibleMarginNotes[key] = Array.from(localMap.values());
+        }
+      });
+    }
+
     // Salvar nos dados locais do dispositivo
     try { localStorage.setItem('ascd_notes', JSON.stringify(ASCD.notes)); } catch (_) {}
     try { localStorage.setItem('ascd_sermons', JSON.stringify(ASCD.sermons)); } catch (_) {}
     try { localStorage.setItem('ascd_journal', JSON.stringify(ASCD.journalEntries)); } catch (_) {}
     try { localStorage.setItem('ascd_bible_page_notes', JSON.stringify(ASCD.biblePageNotes)); } catch (_) {}
+    try { localStorage.setItem('ascd_verse_colors', JSON.stringify(ASCD.bibleVerseColors)); } catch (_) {}
+    try { localStorage.setItem('ascd_margin_notes', JSON.stringify(ASCD.bibleMarginNotes)); } catch (_) {}
     try { localStorage.setItem('ascd_deleted_ids', JSON.stringify(ASCD.deletedIds)); } catch (_) {}
 
     // Atualizar as telas da app
@@ -4181,6 +4626,12 @@ async function pullFromCloud(silent = false) {
     renderJournalHistoryList();
     if (typeof updateBiblePageSavedBadge === 'function') {
       updateBiblePageSavedBadge();
+    }
+    if (ASCD.activeTab === 'biblia') {
+      const isEditingMargin = document.activeElement && document.activeElement.classList.contains('margin-note-editor');
+      if (!isEditingMargin && typeof renderMarginNotes === 'function') {
+        renderMarginNotes();
+      }
     }
 
     // RECARREGAR O REGISTRO ATIVO NA TELA

@@ -170,7 +170,7 @@
         
         <!-- 1. ABA LEITOR BÍBLICO -->
         <section class="app-section active" id="sec-biblia">
-          <div class="bible-reader-container has-side-notes">
+          <div class="bible-reader-container">
             <div class="bible-controls-bar">
               <div class="bible-selects-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <select id="bible-version-select" class="custom-select" title="Escolha a versão da Bíblia (NVI, BPT, NTLH, AA)"></select>
@@ -183,14 +183,21 @@
               </div>
 
               <div style="display:flex; align-items:center; gap:8px;">
+                <!-- Barra de Marcadores de Cor para o texto bíblico -->
+                <div class="bible-hl-toolbar" id="bible-hl-toolbar" title="Selecione um versículo ou texto para marcar com cor">
+                  <span style="font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap;">Marcador:</span>
+                  <button type="button" class="bible-hl-btn" id="bible-hl-green"  data-hl="#BBF7D0" title="Verde Claro"><span class="hl-swatch" style="background:#BBF7D0;"></span></button>
+                  <button type="button" class="bible-hl-btn" id="bible-hl-yellow" data-hl="#FEF08A" title="Amarelo Claro"><span class="hl-swatch" style="background:#FEF08A;"></span></button>
+                  <button type="button" class="bible-hl-btn" id="bible-hl-red"    data-hl="#FECDD3" title="Vermelho Claro"><span class="hl-swatch" style="background:#FECDD3;"></span></button>
+                  <button type="button" class="bible-hl-btn" id="bible-hl-blue"   data-hl="#BAE6FD" title="Azul Claro"><span class="hl-swatch" style="background:#BAE6FD;"></span></button>
+                  <button type="button" class="bible-hl-btn bible-hl-clear-btn" id="bible-hl-clear" title="Remover marcação do versículo">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
                 <div class="search-input-wrapper">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input type="text" id="bible-search-input" placeholder="Pesquisar palavra ou versículo...">
                 </div>
-                <button type="button" class="btn-icon-subtle is-active" id="bible-btn-toggle-notes" title="Mostrar/Ocultar Notas Livres na Lateral">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
-                  <span class="split-notes-label" style="font-size:12px; font-weight:600; margin-left:3px;">Notas na Lateral</span>
-                </button>
                 <button type="button" class="btn-icon-subtle btn-fullscreen-toggle" id="bible-btn-fullscreen" title="Ecrã Inteiro / Tela Cheia (Leitor Bíblico)">
                   <svg class="fs-icon-enter" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                   <svg class="fs-icon-exit" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -199,7 +206,7 @@
               </div>
             </div>
 
-            <!-- Folha de Leitura Bíblica -->
+            <!-- Folha de Leitura Bíblica com Margem Lateral para Notas -->
             <div class="bible-reading-paper">
               <div class="bible-chapter-header" id="bible-chapter-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
                 <div>
@@ -216,72 +223,20 @@
                 <div id="bible-chapter-badge-container"></div>
               </div>
 
-              <!-- Layout Principal com Texto Bíblico e Notas Livres na Lateral -->
-              <div class="bible-reader-main-layout" id="bible-reader-main-layout">
-                <!-- Coluna 1: Versículos da Bíblia -->
-                <div class="bible-text-column" id="bible-text-column">
+              <!-- Layout: Texto Bíblico + Margem de Notas -->
+              <div class="bible-with-margin-layout" id="bible-with-margin-layout">
+                <!-- Coluna Principal: Versículos -->
+                <div class="bible-text-main" id="bible-text-column">
                   <div id="bible-verses-display"></div>
                 </div>
-
-                <!-- Coluna 2: Notas Livres na Lateral do Texto -->
-                <aside class="bible-side-notes-column" id="bible-side-notes-column">
-                  <div class="bible-side-notes-card">
-                    <div class="bible-side-notes-header">
-                      <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:15px;">✍️</span>
-                        <strong style="font-size:13.5px; color:var(--text-primary);" id="bible-side-notes-title">Notas Livres</strong>
-                      </div>
-                      <div style="display:flex; align-items:center; gap:8px;">
-                        <span id="bible-side-notes-status" style="font-size:11px; color:var(--text-muted);">✓ Guardado</span>
-                        <button type="button" class="btn-icon-subtle" id="btn-toggle-bible-side-notes" title="Ocultar Notas Laterais" style="padding:4px;">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Barra de Formatação para Notas Laterais -->
-                    <div class="note-rich-formatting-toolbar bible-side-toolbar" id="bside-formatting-toolbar">
-                      <div class="fmt-group">
-                        <select id="bside-font-size" class="fmt-select" title="Tamanho do texto">
-                          <option value="12px">12px</option>
-                          <option value="14px">14px</option>
-                          <option value="16px" selected>16px</option>
-                          <option value="18px">18px</option>
-                          <option value="22px">22px</option>
-                        </select>
-                      </div>
-
-                      <div class="fmt-divider"></div>
-
-                      <button type="button" class="fmt-btn" id="bside-btn-bold" title="Negrito (Ctrl+B)"><b>B</b></button>
-                      <button type="button" class="fmt-btn" id="bside-btn-italic" title="Itálico (Ctrl+I)"><i>I</i></button>
-                      <button type="button" class="fmt-btn" id="bside-btn-underline" title="Sublinhar (Ctrl+U)"><u>U</u></button>
-
-                      <div class="fmt-divider"></div>
-
-                      <div class="fmt-group fmt-highlighters">
-                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-green" data-color="#BBF7D0" title="Verde Claro">
-                          <span class="hl-swatch" style="background:#BBF7D0;"></span>
-                        </button>
-                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-yellow" data-color="#FEF08A" title="Amarelo Claro">
-                          <span class="hl-swatch" style="background:#FEF08A;"></span>
-                        </button>
-                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-red" data-color="#FECDD3" title="Vermelho Claro">
-                          <span class="hl-swatch" style="background:#FECDD3;"></span>
-                        </button>
-                        <button type="button" class="fmt-hl-btn" id="bside-hl-color-blue" data-color="#BAE6FD" title="Azul Claro">
-                          <span class="hl-swatch" style="background:#BAE6FD;"></span>
-                        </button>
-                        <button type="button" class="fmt-btn fmt-btn-clear" id="bside-hl-color-clear" title="Remover marcação">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Editor de Texto de Notas Livres -->
-                    <div id="bible-side-text-editor" class="rich-editor-box bible-side-editor" contenteditable="true" placeholder="Escreva aqui as suas notas livres sobre este capítulo..."></div>
+                <!-- Margem Lateral Direita: Notas In-Margin -->
+                <div class="bible-margin-column" id="bible-margin-column">
+                  <div class="bible-margin-hint" id="bible-margin-hint">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span>Clique aqui para adicionar uma nota</span>
                   </div>
-                </aside>
+                  <!-- As notas in-margin são inseridas dinamicamente aqui -->
+                </div>
               </div>
 
               <!-- Navegação Inferior de Capítulos -->
@@ -614,15 +569,12 @@
                   </div>
                 </div>
 
-                <!-- Metadados do Dia -->
+                <!-- Passagem Bíblica opcional (linha única, sem Título/Tema) -->
                 <div class="journal-meta-inputs">
-                  <div class="form-group" style="flex: 2;">
-                    <label>Título / Tema do Dia</label>
-                    <input type="text" id="journal-title-input" class="form-input" placeholder="Título / Tema do Dia">
-                  </div>
-                  <div class="form-group" style="flex: 1.5;">
+                  <div class="form-group" style="flex: 1;">
                     <label>Passagem Bíblica (Opcional)</label>
-                    <input type="text" id="journal-verse-input" class="form-input" placeholder="Passagem Bíblica">
+                    <input type="text" id="journal-verse-input" class="form-input" placeholder="Passagem Bíblica (ex: Salmos 23:1)">
+                    <input type="hidden" id="journal-title-input" value="">
                   </div>
                 </div>
 

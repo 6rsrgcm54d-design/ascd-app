@@ -550,13 +550,284 @@ html, body {
 
 
 
-/* Leitor Bíblico com Notas Livres na Lateral */
+/* Leitor Bíblico com Margem de Notas In-Text + Painel Lateral */
 .bible-reader-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   transition: max-width 0.3s ease;
 }
 
+/* Barra de marcadores de cor para o texto bíblico */
+.bible-hl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 5px 10px;
+}
+
+.bible-hl-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, transform 0.1s;
+  padding: 0;
+}
+
+.bible-hl-btn:hover {
+  border-color: var(--text-secondary);
+  transform: scale(1.15);
+}
+
+.bible-hl-btn .hl-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: block;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.bible-hl-clear-btn {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Layout: texto bíblico + margem de notas */
+.bible-with-margin-layout {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  margin-top: 16px;
+  min-height: 460px;
+}
+
+.bible-text-main {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Margem de Notas In-Bible: espaço lateral em branco à direita do texto */
+.bible-margin-column {
+  flex: 0 0 280px;
+  width: 280px;
+  min-height: 460px;
+  border-left: 2px dashed var(--border-color);
+  margin-left: 24px;
+  padding: 8px 0 24px 16px;
+  position: relative;
+  cursor: text;
+  transition: background 0.15s;
+}
+
+.bible-margin-column:hover {
+  background: rgba(var(--accent-gold-rgb, 194,142,44), 0.03);
+}
+
+.bible-margin-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 36px 12px;
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bible-margin-hint svg {
+  opacity: 0.5;
+}
+
+/* Notas individuais na margem */
+.margin-note-block {
+  position: relative;
+  margin-bottom: 10px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  box-shadow: var(--shadow-sm);
+  animation: fadeInNote 0.2s ease;
+  z-index: 2;
+}
+
+@media (min-width: 1025px) {
+  .margin-note-block.is-positioned {
+    position: absolute;
+    left: 16px;
+    right: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* Barra flutuante rápida de marcadores ao selecionar texto bíblico */
+.bible-floating-hl-popover {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.bible-floating-hl-popover.visible {
+  display: flex;
+}
+
+@keyframes fadeInNote {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.margin-note-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.margin-note-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 5px;
+  line-height: 1;
+  transition: all 0.1s;
+}
+
+.margin-note-btn:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.margin-note-size-select {
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 1px 3px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  height: 20px;
+}
+
+.margin-note-hl-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  display: inline-block;
+  vertical-align: middle;
+  transition: border-color 0.1s, transform 0.1s;
+}
+
+.margin-note-hl-btn:hover {
+  border-color: var(--text-secondary);
+  transform: scale(1.2);
+}
+
+.margin-note-editor {
+  min-height: 60px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.margin-note-editor:empty:before {
+  content: attr(placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
+  font-style: italic;
+}
+
+.margin-note-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.margin-note-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.15s;
+}
+
+.margin-note-delete-btn:hover {
+  color: #DC2626;
+}
+
+.margin-note-save-status {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Versículo com cor de fundo (marcador) */
+.verse-row[data-hl] {
+  border-radius: 4px;
+}
+
+/* Responsivo: em ecrãs pequenos a margem vai para baixo */
+@media (max-width: 1024px) {
+  .bible-with-margin-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .bible-margin-column {
+    width: 100%;
+    flex: 1 1 100%;
+    border-left: none;
+    border-top: 2px dashed var(--border-color);
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: 16px;
+    min-height: 160px;
+  }
+}
+
+/* Manter compatibilidade para o painel lateral (mantido oculto, substituído pela margem) */
 .bible-reader-container.has-side-notes {
   max-width: 1400px;
 }
