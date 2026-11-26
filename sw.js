@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v31 com Notas Livres na Margem da Bíblia, Marcadores no Texto Bíblico e Diário Simplificado
-const CACHE_NAME = 'ascd-cache-v31';
+// ASCD Service Worker - Versão v32 com Sublinhador por Palavra/Frase/Versículo e Caixas GoodNotes Arrastáveis na Bíblia
+const CACHE_NAME = 'ascd-cache-v32';
 const ASSETS = [
   './',
   './index.html',

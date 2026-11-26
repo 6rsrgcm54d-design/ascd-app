@@ -550,9 +550,9 @@ html, body {
 
 
 
-/* Leitor Bíblico com Margem de Notas In-Text + Painel Lateral */
+/* Leitor Bíblico com Margem Livre estilo GoodNotes + Marcadores de Texto */
 .bible-reader-container {
-  max-width: 1200px;
+  max-width: 1360px;
   margin: 0 auto;
   transition: max-width 0.3s ease;
 }
@@ -600,35 +600,36 @@ html, body {
   font-size: 12px;
 }
 
-/* Layout: texto bíblico + margem de notas */
+/* Layout: texto bíblico à esquerda + coluna livre de cima a baixo à direita */
 .bible-with-margin-layout {
   display: flex;
   gap: 0;
   align-items: stretch;
   margin-top: 16px;
-  min-height: 460px;
+  min-height: 580px;
 }
 
 .bible-text-main {
-  flex: 1 1 0;
+  flex: 1 1 56%;
   min-width: 0;
+  padding-right: 20px;
 }
 
-/* Margem de Notas In-Bible: espaço lateral em branco à direita do texto */
+/* Coluna Livre na Direita (estilo GoodNotes) */
 .bible-margin-column {
-  flex: 0 0 280px;
-  width: 280px;
-  min-height: 460px;
+  flex: 0 0 42%;
+  min-width: 320px;
+  max-width: 520px;
+  min-height: 580px;
   border-left: 2px dashed var(--border-color);
-  margin-left: 24px;
-  padding: 8px 0 24px 16px;
+  padding: 12px 12px 40px 16px;
   position: relative;
   cursor: text;
   transition: background 0.15s;
 }
 
 .bible-margin-column:hover {
-  background: rgba(var(--accent-gold-rgb, 194,142,44), 0.03);
+  background: rgba(var(--accent-gold-rgb, 194,142,44), 0.025);
 }
 
 .bible-margin-hint {
@@ -638,9 +639,9 @@ html, body {
   justify-content: center;
   gap: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 12.5px;
   text-align: center;
-  padding: 36px 12px;
+  padding: 48px 16px;
   opacity: 0.7;
   pointer-events: none;
   user-select: none;
@@ -650,32 +651,83 @@ html, body {
   opacity: 0.5;
 }
 
-/* Notas individuais na margem */
+/* Marcador de palavra/frase/versículo no texto bíblico */
+.bible-hl-mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  color: inherit;
+}
+
+/* Caixa de texto livre estilo GoodNotes (selecionável, arrastável e editável) */
 .margin-note-block {
   position: relative;
-  margin-bottom: 10px;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-left: 3px solid var(--accent-gold);
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-sm);
-  padding: 8px 10px 6px;
-  font-size: 13px;
+  padding: 6px 10px 8px;
+  font-size: 14px;
   line-height: 1.55;
-  box-shadow: var(--shadow-sm);
-  animation: fadeInNote 0.2s ease;
+  transition: border-color 0.15s, box-shadow 0.15s;
   z-index: 2;
+  min-width: 170px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.margin-note-block.is-selected,
+.margin-note-block:focus-within {
+  background: var(--bg-surface-elevated);
+  border: 1.5px solid var(--accent-gold);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+  resize: horizontal;
+  overflow: auto;
+}
+
+.margin-note-drag-handle {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 4px 5px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.margin-note-drag-handle:active {
+  cursor: grabbing;
+}
+
+.margin-note-block.is-selected .margin-note-drag-handle,
+.margin-note-block:focus-within .margin-note-drag-handle {
+  display: flex;
+}
+
+.margin-note-block.is-selected .margin-note-toolbar,
+.margin-note-block:focus-within .margin-note-toolbar {
+  display: flex;
+}
+
+.margin-note-block.is-selected .margin-note-footer,
+.margin-note-block:focus-within .margin-note-footer {
+  display: flex;
 }
 
 @media (min-width: 1025px) {
   .margin-note-block.is-positioned {
     position: absolute;
-    left: 16px;
-    right: 0;
     margin-bottom: 0;
   }
 }
 
-/* Barra flutuante rápida de marcadores ao selecionar texto bíblico */
+/* Barra flutuante rápida de marcadores + nota ao selecionar texto bíblico */
 .bible-floating-hl-popover {
   position: fixed;
   z-index: 9999;
@@ -685,12 +737,33 @@ html, body {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  padding: 6px 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 6px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
 }
 
 .bible-floating-hl-popover.visible {
   display: flex;
+}
+
+.bible-popover-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-gold-light, rgba(194,142,44,0.12));
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 2px;
+  transition: background 0.15s;
+}
+
+.bible-popover-note-btn:hover {
+  background: var(--accent-gold);
+  color: #fff;
 }
 
 @keyframes fadeInNote {
@@ -699,7 +772,7 @@ html, body {
 }
 
 .margin-note-toolbar {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 3px;
   margin-bottom: 6px;
@@ -756,8 +829,8 @@ html, body {
 }
 
 .margin-note-editor {
-  min-height: 60px;
-  font-size: 13px;
+  min-height: 28px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--text-primary);
   outline: none;
@@ -773,7 +846,7 @@ html, body {
 }
 
 .margin-note-footer {
-  display: flex;
+  display: none;
   justify-content: space-between;
   align-items: center;
   margin-top: 5px;
