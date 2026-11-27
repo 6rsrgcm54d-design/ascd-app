@@ -634,6 +634,42 @@ html, body {
   font-size: 12px;
 }
 
+/* Controlo de tamanho de letra da Bíblia (A- / A+) */
+.bible-font-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 3px 6px;
+}
+
+.bible-font-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bible-font-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.bible-font-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 30px;
+  text-align: center;
+  user-select: none;
+}
+
 /* Layout: texto bíblico à esquerda + coluna livre "Notas:" de cima a baixo à direita */
 .bible-with-margin-layout {
   display: flex;
@@ -1234,7 +1270,7 @@ html, body {
 }
 
 .verse-text {
-  font-size: 17px;
+  font-size: var(--bible-font-size, 17px);
   line-height: 1.8;
   color: var(--text-primary);
   font-family: var(--font-serif);
@@ -3880,7 +3916,13 @@ body.ascd-printing #ascd-print-container .document-page .content {
                 </div>
               </div>
 
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <!-- Controlo de Tamanho do Texto da Bíblia -->
+                <div class="bible-font-controls" title="Aumentar ou diminuir o tamanho do texto da Bíblia">
+                  <button type="button" class="bible-font-btn" id="bible-font-dec" title="Diminuir letra">A−</button>
+                  <span class="bible-font-label" id="bible-font-size-label">17px</span>
+                  <button type="button" class="bible-font-btn" id="bible-font-inc" title="Aumentar letra">A+</button>
+                </div>
                 <!-- Barra de Marcadores de Cor para o texto bíblico -->
                 <div class="bible-hl-toolbar" id="bible-hl-toolbar" title="Selecione um versículo ou texto para marcar com cor">
                   <span style="font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap;">Marcador:</span>
@@ -18173,6 +18215,28 @@ function setupBibleReader() {
       toggleBibleFullscreen();
     });
   }
+
+  // 9. Controlo de Tamanho do Texto da Bíblia (A− / A+)
+  let bibleFontSize = 17;
+  try {
+    const savedFs = parseInt(localStorage.getItem('ascd_bible_font_size'), 10);
+    if (savedFs >= 13 && savedFs <= 34) bibleFontSize = savedFs;
+  } catch (_) {}
+
+  const applyBibleFontSize = (size) => {
+    bibleFontSize = Math.min(34, Math.max(13, size));
+    document.documentElement.style.setProperty('--bible-font-size', `${bibleFontSize}px`);
+    const lbl = document.getElementById('bible-font-size-label');
+    if (lbl) lbl.textContent = `${bibleFontSize}px`;
+    try { localStorage.setItem('ascd_bible_font_size', String(bibleFontSize)); } catch (_) {}
+  };
+
+  applyBibleFontSize(bibleFontSize);
+
+  const btnFontDec = document.getElementById('bible-font-dec');
+  const btnFontInc = document.getElementById('bible-font-inc');
+  if (btnFontDec) btnFontDec.addEventListener('click', () => applyBibleFontSize(bibleFontSize - 2));
+  if (btnFontInc) btnFontInc.addEventListener('click', () => applyBibleFontSize(bibleFontSize + 2));
 }
 
 function toggleBibleSideNotes(forceState = null) {

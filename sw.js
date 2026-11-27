@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v34 com Papel Pontilhado e Caixas Alinhadas aos Temas Papiro/Claro/Escuro
-const CACHE_NAME = 'ascd-cache-v34';
+// ASCD Service Worker - Versão v35 com Controlo de Tamanho do Texto da Bíblia (A- / A+)
+const CACHE_NAME = 'ascd-cache-v35';
 const ASSETS = [
   './',
   './index.html',

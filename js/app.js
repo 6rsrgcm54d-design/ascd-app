@@ -1623,6 +1623,28 @@ function setupBibleReader() {
       toggleBibleFullscreen();
     });
   }
+
+  // 9. Controlo de Tamanho do Texto da Bíblia (A− / A+)
+  let bibleFontSize = 17;
+  try {
+    const savedFs = parseInt(localStorage.getItem('ascd_bible_font_size'), 10);
+    if (savedFs >= 13 && savedFs <= 34) bibleFontSize = savedFs;
+  } catch (_) {}
+
+  const applyBibleFontSize = (size) => {
+    bibleFontSize = Math.min(34, Math.max(13, size));
+    document.documentElement.style.setProperty('--bible-font-size', `${bibleFontSize}px`);
+    const lbl = document.getElementById('bible-font-size-label');
+    if (lbl) lbl.textContent = `${bibleFontSize}px`;
+    try { localStorage.setItem('ascd_bible_font_size', String(bibleFontSize)); } catch (_) {}
+  };
+
+  applyBibleFontSize(bibleFontSize);
+
+  const btnFontDec = document.getElementById('bible-font-dec');
+  const btnFontInc = document.getElementById('bible-font-inc');
+  if (btnFontDec) btnFontDec.addEventListener('click', () => applyBibleFontSize(bibleFontSize - 2));
+  if (btnFontInc) btnFontInc.addEventListener('click', () => applyBibleFontSize(bibleFontSize + 2));
 }
 
 function toggleBibleSideNotes(forceState = null) {

@@ -609,6 +609,42 @@ html, body {
   font-size: 12px;
 }
 
+/* Controlo de tamanho de letra da Bíblia (A- / A+) */
+.bible-font-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 3px 6px;
+}
+
+.bible-font-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bible-font-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.bible-font-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 30px;
+  text-align: center;
+  user-select: none;
+}
+
 /* Layout: texto bíblico à esquerda + coluna livre "Notas:" de cima a baixo à direita */
 .bible-with-margin-layout {
   display: flex;
@@ -1209,7 +1245,7 @@ html, body {
 }
 
 .verse-text {
-  font-size: 17px;
+  font-size: var(--bible-font-size, 17px);
   line-height: 1.8;
   color: var(--text-primary);
   font-family: var(--font-serif);

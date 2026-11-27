@@ -182,7 +182,13 @@
                 </div>
               </div>
 
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <!-- Controlo de Tamanho do Texto da Bíblia -->
+                <div class="bible-font-controls" title="Aumentar ou diminuir o tamanho do texto da Bíblia">
+                  <button type="button" class="bible-font-btn" id="bible-font-dec" title="Diminuir letra">A−</button>
+                  <span class="bible-font-label" id="bible-font-size-label">17px</span>
+                  <button type="button" class="bible-font-btn" id="bible-font-inc" title="Aumentar letra">A+</button>
+                </div>
                 <!-- Barra de Marcadores de Cor para o texto bíblico -->
                 <div class="bible-hl-toolbar" id="bible-hl-toolbar" title="Selecione um versículo ou texto para marcar com cor">
                   <span style="font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap;">Marcador:</span>
