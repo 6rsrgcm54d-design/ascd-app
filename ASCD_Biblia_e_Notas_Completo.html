@@ -809,11 +809,26 @@ html, body {
   display: flex;
 }
 
-@media (min-width: 601px) {
-  .margin-note-block.is-positioned {
-    position: absolute;
-    margin-bottom: 0;
-  }
+.margin-note-block.is-positioned {
+  position: absolute;
+  margin-bottom: 0;
+  transition: top 0.18s ease, border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.margin-note-block.is-dragging {
+  transition: none !important;
+}
+
+.margin-note-verse-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: var(--accent-gold-light);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  user-select: none;
 }
 
 /* Barra flutuante rápida de marcadores + nota ao selecionar texto bíblico */
@@ -971,26 +986,44 @@ html, body {
   border-radius: 4px;
 }
 
-/* Responsivo: apenas em telemóveis muito estreitos a margem vai para baixo */
+/* Responsivo: mesmo em telemóveis mantém texto à esquerda e notas alinhadas ao versículo à direita */
 @media (max-width: 600px) {
+  .bible-reading-paper {
+    padding: 16px 10px !important;
+  }
   .bible-with-margin-layout {
-    flex-direction: column;
-    gap: 20px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
   }
   .bible-text-main {
-    width: 100%;
-    flex: 1 1 100%;
-    padding-right: 0;
+    width: 56%;
+    flex: 1 1 56%;
+    padding: 8px 10px 16px 0;
   }
   .bible-margin-column {
-    width: 100%;
-    flex: 1 1 100%;
-    border-left: none;
-    border-top: 2px dashed var(--border-color);
+    width: 44%;
+    flex: 1 1 44%;
+    min-width: 0;
+    border-left: 1px solid var(--border-color);
+    border-top: none;
     margin-left: 0;
-    padding-left: 0;
-    padding-top: 16px;
-    min-height: 220px;
+    padding: 8px 4px 32px 8px;
+    min-height: 460px;
+  }
+  .margin-note-block.is-positioned {
+    left: 6px !important;
+    width: calc(100% - 10px) !important;
+    min-width: 0;
+    padding: 5px 7px;
+    font-size: 12.5px;
+  }
+  .verse-num {
+    margin-right: 6px;
+    min-width: 16px;
+  }
+  .verse-row {
+    padding: 5px 4px;
   }
 }
 
@@ -17309,6 +17342,131 @@ function applyVerseHighlight(color) {
  * NOTAS NA MARGEM DA BÍBLIA (COLUNA LIVRE ESTILO GOODNOTES)
  * ==========================================================================
  */
+/**
+ * ==========================================================================
+ * ANCORAGEM INTELIGENTE DAS NOTAS AOS VERSÍCULOS (iPad 12.9" <-> Telemóvel + A+/A-)
+ * ==========================================================================
+ */
+function computeVerseAnchorForTop(topPx) {
+  const marginCol = document.getElementById('bible-margin-column');
+  const versesDisplay = document.getElementById('bible-verses-display');
+  if (!marginCol || !versesDisplay) return { anchorVerse: null, anchorOffsetRatio: 0 };
+
+  const marginRect = marginCol.getBoundingClientRect();
+  const rows = Array.from(versesDisplay.querySelectorAll('.verse-row[data-verse]'));
+  if (!rows.length) return { anchorVerse: null, anchorOffsetRatio: 0 };
+
+  let bestRow = rows[0];
+  let bestTop = 0;
+  let bestHeight = 1;
+  let bestDist = Infinity;
+
+  rows.forEach(row => {
+    const r = row.getBoundingClientRect();
+    const rTop = r.top - marginRect.top;
+    const rHeight = Math.max(1, r.height);
+    const rBottom = rTop + rHeight;
+
+    let dist = 0;
+    if (topPx < rTop) dist = rTop - topPx;
+    else if (topPx > rBottom) dist = topPx - rBottom;
+    else dist = 0;
+
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestRow = row;
+      bestTop = rTop;
+      bestHeight = rHeight;
+    }
+  });
+
+  const anchorVerse = parseInt(bestRow.dataset.verse, 10) || 1;
+  const rawRatio = (topPx - bestTop) / bestHeight;
+  const anchorOffsetRatio = Math.max(-0.15, Math.min(1.15, Number(rawRatio.toFixed(3))));
+  return { anchorVerse, anchorOffsetRatio };
+}
+
+function repositionMarginNotes() {
+  const marginCol = document.getElementById('bible-margin-column');
+  const versesDisplay = document.getElementById('bible-verses-display');
+  if (!marginCol || !versesDisplay || marginCol.clientWidth === 0) return;
+
+  const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
+  const notes = ASCD.bibleMarginNotes[key] || [];
+  if (!notes.length) {
+    updateMarginColumnMinHeight();
+    return;
+  }
+
+  const marginRect = marginCol.getBoundingClientRect();
+  const isPhone = window.innerWidth <= 600;
+  const colW = marginCol.clientWidth;
+
+  const placed = [];
+
+  notes.forEach((note, idx) => {
+    const block = marginCol.querySelector(`.margin-note-block[data-note-id="${note.id}"]`);
+    if (!block) return;
+
+    // Se nota antiga ainda não tem anchorVerse, inferir uma vez com base na posição guardada
+    if (!note.anchorVerse && typeof note.top === 'number') {
+      const inferred = computeVerseAnchorForTop(note.top);
+      if (inferred.anchorVerse) {
+        note.anchorVerse = inferred.anchorVerse;
+        note.anchorOffsetRatio = inferred.anchorOffsetRatio;
+      }
+    }
+
+    let targetTop = typeof note.top === 'number' ? note.top : (54 + idx * 140);
+    if (note.anchorVerse) {
+      const vRow = versesDisplay.querySelector(`.verse-row[data-verse="${note.anchorVerse}"]`);
+      if (vRow) {
+        const r = vRow.getBoundingClientRect();
+        const relTop = r.top - marginRect.top;
+        const ratio = typeof note.anchorOffsetRatio === 'number' ? note.anchorOffsetRatio : 0;
+        targetTop = Math.max(52, Math.round(relTop + ratio * r.height));
+      }
+    }
+
+    let targetWidth = isPhone ? Math.max(100, colW - 10) : Math.min(note.width || 240, Math.max(160, colW - 16));
+    let targetLeft = isPhone ? 6 : (
+      typeof note.leftRatio === 'number'
+        ? Math.round(note.leftRatio * colW)
+        : (typeof note.left === 'number' ? note.left : 14)
+    );
+    if (!isPhone) {
+      targetLeft = Math.max(8, Math.min(Math.max(8, colW - targetWidth - 6), targetLeft));
+      block.style.width = `${targetWidth}px`;
+      block.style.left = `${targetLeft}px`;
+    }
+
+    // Atualizar etiqueta de versículo
+    const vBadge = block.querySelector('.margin-note-verse-badge');
+    if (vBadge && note.anchorVerse) {
+      vBadge.textContent = `v.${note.anchorVerse}`;
+    }
+
+    placed.push({ block, top: targetTop, left: targetLeft, width: targetWidth });
+  });
+
+  // Ordenar de cima para baixo e evitar sobreposição quando o texto encolhe ou no telemóvel
+  placed.sort((a, b) => a.top - b.top);
+  for (let i = 0; i < placed.length; i++) {
+    const cur = placed[i];
+    for (let j = 0; j < i; j++) {
+      const prev = placed[j];
+      const prevBottom = prev.top + (prev.block.offsetHeight || 64) + 8;
+      const horizOverlap = isPhone || (cur.left < prev.left + prev.width && cur.left + cur.width > prev.left);
+      if (horizOverlap && cur.top < prevBottom) {
+        cur.top = prevBottom;
+      }
+    }
+    cur.block.style.top = `${cur.top}px`;
+  }
+
+  updateMarginColumnMinHeight();
+}
+
 function setupBibleMarginNotes() {
   const marginCol = document.getElementById('bible-margin-column');
   if (!marginCol) return;
@@ -17329,6 +17487,20 @@ function setupBibleMarginNotes() {
       document.querySelectorAll('.margin-note-block.is-selected').forEach(b => b.classList.remove('is-selected'));
     }
   });
+
+  // Reposicionar automaticamente quando o ecrã muda de tamanho, roda (iPad) ou texto bíblico muda de altura
+  let resizeTimer = null;
+  const scheduleReposition = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => repositionMarginNotes(), 60);
+  };
+  window.addEventListener('resize', scheduleReposition);
+
+  const versesDisplay = document.getElementById('bible-verses-display');
+  if (versesDisplay && typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(scheduleReposition);
+    ro.observe(versesDisplay);
+  }
 }
 
 function updateMarginColumnMinHeight() {
@@ -17360,25 +17532,31 @@ function renderMarginNotes() {
     marginCol.appendChild(block);
   });
 
-  requestAnimationFrame(updateMarginColumnMinHeight);
+  requestAnimationFrame(() => repositionMarginNotes());
 }
 
-function addMarginNote(leftOffset = 14, topOffset = 12) {
+function addMarginNote(leftOffset = 14, topOffset = 54) {
   const key = `${ASCD.currentBibleBook}_${ASCD.currentBibleChapter}`;
   if (!ASCD.bibleMarginNotes[key]) ASCD.bibleMarginNotes[key] = [];
+
+  const marginCol = document.getElementById('bible-margin-column');
+  const colW = marginCol ? Math.max(1, marginCol.clientWidth) : 360;
+  const anchor = computeVerseAnchorForTop(topOffset);
 
   const note = {
     id: `mn-${Date.now()}`,
     html: '',
     left: leftOffset,
+    leftRatio: Number((leftOffset / colW).toFixed(3)),
     top: topOffset,
+    anchorVerse: anchor.anchorVerse,
+    anchorOffsetRatio: anchor.anchorOffsetRatio,
     width: 240,
     fontSize: '14px',
     createdAt: new Date().toISOString()
   };
   ASCD.bibleMarginNotes[key].push(note);
 
-  const marginCol = document.getElementById('bible-margin-column');
   const hint = document.getElementById('bible-margin-hint');
   if (hint) hint.style.display = 'none';
 
@@ -17403,18 +17581,19 @@ function createMarginNoteBlock(note, index = 0) {
   block.dataset.noteId = note.id;
 
   const leftPos = typeof note.left === 'number' ? note.left : 14;
-  const topPos = typeof note.top === 'number' ? note.top : (index * 150);
+  const topPos = typeof note.top === 'number' ? note.top : (54 + index * 150);
   const widthVal = typeof note.width === 'number' ? note.width : 240;
   block.style.left = `${leftPos}px`;
   block.style.top = `${topPos}px`;
   block.style.width = `${widthVal}px`;
 
   const currentSize = note.fontSize || '14px';
+  const verseBadgeText = note.anchorVerse ? `v.${note.anchorVerse}` : '';
 
   block.innerHTML = `
     <div class="margin-note-drag-handle" title="Arrastar caixa de texto para outro local">
       <span>⋮⋮ Mover caixa</span>
-      <span style="font-size:10px; opacity:0.6;">GoodNotes</span>
+      <span class="margin-note-verse-badge" style="margin:0;">${verseBadgeText}</span>
     </div>
     <div class="margin-note-toolbar">
       <select class="margin-note-size-select" title="Tamanho da letra">
@@ -17451,6 +17630,7 @@ function createMarginNoteBlock(note, index = 0) {
   const editor = block.querySelector('.margin-note-editor');
   const statusEl = block.querySelector('.margin-note-save-status');
   const dragHandle = block.querySelector('.margin-note-drag-handle');
+  const vBadgeEl = block.querySelector('.margin-note-verse-badge');
 
   // Selecionar esta caixa ao clicar/focar
   block.addEventListener('mousedown', () => {
@@ -17468,27 +17648,31 @@ function createMarginNoteBlock(note, index = 0) {
       const marginCol = document.getElementById('bible-margin-column');
       if (!marginCol) return;
 
+      block.classList.add('is-dragging');
       const startX = e.clientX;
       const startY = e.clientY;
       const origLeft = parseInt(block.style.left, 10) || 14;
-      const origTop = parseInt(block.style.top, 10) || 0;
+      const origTop = parseInt(block.style.top, 10) || 54;
 
       const onMove = (ev) => {
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
         const maxL = Math.max(8, marginCol.clientWidth - block.offsetWidth - 6);
         const newLeft = Math.max(8, Math.min(maxL, Math.round(origLeft + dx)));
-        const newTop = Math.max(4, Math.round(origTop + dy));
+        const newTop = Math.max(52, Math.round(origTop + dy));
         block.style.left = `${newLeft}px`;
         block.style.top = `${newTop}px`;
+        const liveAnchor = computeVerseAnchorForTop(newTop);
+        if (vBadgeEl && liveAnchor.anchorVerse) vBadgeEl.textContent = `v.${liveAnchor.anchorVerse}`;
         updateMarginColumnMinHeight();
       };
 
       const onUp = () => {
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
+        block.classList.remove('is-dragging');
         const finalLeft = parseInt(block.style.left, 10) || 14;
-        const finalTop = parseInt(block.style.top, 10) || 0;
+        const finalTop = parseInt(block.style.top, 10) || 54;
         saveMarginNotePosition(note.id, finalLeft, finalTop, block.offsetWidth);
       };
 
@@ -17585,8 +17769,14 @@ function saveMarginNotePosition(noteId, left, top, width) {
   if (!ASCD.bibleMarginNotes[key]) return;
   const idx = ASCD.bibleMarginNotes[key].findIndex(n => n.id === noteId);
   if (idx !== -1) {
+    const marginCol = document.getElementById('bible-margin-column');
+    const colW = marginCol ? Math.max(1, marginCol.clientWidth) : 360;
+    const anchor = computeVerseAnchorForTop(top);
     ASCD.bibleMarginNotes[key][idx].left = left;
+    ASCD.bibleMarginNotes[key][idx].leftRatio = Number((left / colW).toFixed(3));
     ASCD.bibleMarginNotes[key][idx].top = top;
+    ASCD.bibleMarginNotes[key][idx].anchorVerse = anchor.anchorVerse;
+    ASCD.bibleMarginNotes[key][idx].anchorOffsetRatio = anchor.anchorOffsetRatio;
     if (width) ASCD.bibleMarginNotes[key][idx].width = width;
     ASCD.bibleMarginNotes[key][idx].updatedAt = new Date().toISOString();
   }
@@ -18229,6 +18419,9 @@ function setupBibleReader() {
     const lbl = document.getElementById('bible-font-size-label');
     if (lbl) lbl.textContent = `${bibleFontSize}px`;
     try { localStorage.setItem('ascd_bible_font_size', String(bibleFontSize)); } catch (_) {}
+    requestAnimationFrame(() => {
+      if (typeof repositionMarginNotes === 'function') repositionMarginNotes();
+    });
   };
 
   applyBibleFontSize(bibleFontSize);

@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v35 com Controlo de Tamanho do Texto da Bíblia (A- / A+)
-const CACHE_NAME = 'ascd-cache-v35';
+// ASCD Service Worker - Versão v36 com Ancoragem Dinâmica das Notas aos Versículos (iPad <-> Telemóvel + A+/A-)
+const CACHE_NAME = 'ascd-cache-v36';
 const ASSETS = [
   './',
   './index.html',
