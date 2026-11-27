@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v32 com Sublinhador por Palavra/Frase/Versículo e Caixas GoodNotes Arrastáveis na Bíblia
-const CACHE_NAME = 'ascd-cache-v32';
+// ASCD Service Worker - Versão v33 com Coluna "Notas:" Lado a Lado com o Texto Bíblico
+const CACHE_NAME = 'ascd-cache-v33';
 const ASSETS = [
   './',
   './index.html',

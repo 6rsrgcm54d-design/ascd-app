@@ -727,7 +727,7 @@ function setupBibleMarginNotes() {
     const rect = marginCol.getBoundingClientRect();
     const maxLeft = Math.max(12, marginCol.clientWidth - 240);
     const leftOffset = Math.max(12, Math.min(maxLeft, Math.round(e.clientX - rect.left - 16)));
-    const topOffset = Math.max(8, Math.round(e.clientY - rect.top - 16));
+    const topOffset = Math.max(52, Math.round(e.clientY - rect.top - 16));
     addMarginNote(leftOffset, topOffset);
   });
 

@@ -625,36 +625,57 @@ html, body {
   font-size: 12px;
 }
 
-/* Layout: texto bíblico à esquerda + coluna livre de cima a baixo à direita */
+/* Layout: texto bíblico à esquerda + coluna livre "Notas:" de cima a baixo à direita */
 .bible-with-margin-layout {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: 0;
   align-items: stretch;
-  margin-top: 16px;
-  min-height: 580px;
+  margin-top: 8px;
+  min-height: 620px;
 }
 
 .bible-text-main {
-  flex: 1 1 56%;
+  flex: 1 1 52%;
+  width: 52%;
   min-width: 0;
-  padding-right: 20px;
+  padding: 12px 24px 20px 0;
 }
 
-/* Coluna Livre na Direita (estilo GoodNotes) */
+/* Coluna Livre na Direita (estilo caderno pautado / GoodNotes) */
 .bible-margin-column {
-  flex: 0 0 42%;
-  min-width: 320px;
-  max-width: 520px;
-  min-height: 580px;
-  border-left: 2px dashed var(--border-color);
-  padding: 12px 12px 40px 16px;
+  flex: 1 1 48%;
+  width: 48%;
+  min-width: 240px;
+  min-height: 620px;
+  border-left: 1px solid var(--border-color);
+  padding: 12px 12px 40px 20px;
   position: relative;
   cursor: text;
   transition: background 0.15s;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 31px,
+    rgba(0, 0, 0, 0.055) 32px
+  );
+  background-position: 0 54px;
 }
 
 .bible-margin-column:hover {
-  background: rgba(var(--accent-gold-rgb, 194,142,44), 0.025);
+  background-color: rgba(var(--accent-gold-rgb, 194,142,44), 0.02);
+}
+
+.bible-margin-header-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1.5px dashed var(--border-color);
+  pointer-events: none;
+  user-select: none;
 }
 
 .bible-margin-hint {
@@ -745,7 +766,7 @@ html, body {
   display: flex;
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 601px) {
   .margin-note-block.is-positioned {
     position: absolute;
     margin-bottom: 0;
@@ -907,11 +928,16 @@ html, body {
   border-radius: 4px;
 }
 
-/* Responsivo: em ecrãs pequenos a margem vai para baixo */
-@media (max-width: 1024px) {
+/* Responsivo: apenas em telemóveis muito estreitos a margem vai para baixo */
+@media (max-width: 600px) {
   .bible-with-margin-layout {
     flex-direction: column;
     gap: 20px;
+  }
+  .bible-text-main {
+    width: 100%;
+    flex: 1 1 100%;
+    padding-right: 0;
   }
   .bible-margin-column {
     width: 100%;
@@ -921,7 +947,7 @@ html, body {
     margin-left: 0;
     padding-left: 0;
     padding-top: 16px;
-    min-height: 160px;
+    min-height: 220px;
   }
 }
 
@@ -3894,13 +3920,14 @@ body.ascd-printing #ascd-print-container .document-page .content {
                 <div class="bible-text-main" id="bible-text-column">
                   <div id="bible-verses-display"></div>
                 </div>
-                <!-- Margem Lateral Direita: Notas In-Margin -->
+                <!-- Margem Lateral Direita: Espaço Livre "Notas:" estilo Caderno / GoodNotes -->
                 <div class="bible-margin-column" id="bible-margin-column">
+                  <div class="bible-margin-header-label">Notas:</div>
                   <div class="bible-margin-hint" id="bible-margin-hint">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    <span>Clique aqui para adicionar uma nota</span>
+                    <span>Clique aqui em qualquer lugar para escrever</span>
                   </div>
-                  <!-- As notas in-margin são inseridas dinamicamente aqui -->
+                  <!-- As caixas de texto livres são inseridas dinamicamente aqui -->
                 </div>
               </div>
 
@@ -17243,7 +17270,7 @@ function setupBibleMarginNotes() {
     const rect = marginCol.getBoundingClientRect();
     const maxLeft = Math.max(12, marginCol.clientWidth - 240);
     const leftOffset = Math.max(12, Math.min(maxLeft, Math.round(e.clientX - rect.left - 16)));
-    const topOffset = Math.max(8, Math.round(e.clientY - rect.top - 16));
+    const topOffset = Math.max(52, Math.round(e.clientY - rect.top - 16));
     addMarginNote(leftOffset, topOffset);
   });
 
