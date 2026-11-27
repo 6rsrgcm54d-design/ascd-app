@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v33 com Coluna "Notas:" Lado a Lado com o Texto Bíblico
-const CACHE_NAME = 'ascd-cache-v33';
+// ASCD Service Worker - Versão v34 com Papel Pontilhado e Caixas Alinhadas aos Temas Papiro/Claro/Escuro
+const CACHE_NAME = 'ascd-cache-v34';
 const ASSETS = [
   './',
   './index.html',

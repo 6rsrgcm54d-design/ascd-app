@@ -40,6 +40,9 @@
   
   --border-color: #E2D3BE;
   --border-subtle: #EDE3D4;
+  --dot-paper-color: rgba(139, 105, 65, 0.24);
+  --margin-note-bg: #FCF9F2;
+  --margin-note-bg-active: #F9F3E6;
   
   --primary: #8B4513;          /* Marrom couro bíblico */
   --primary-hover: #72360E;
@@ -79,6 +82,9 @@
   --text-muted: #94A3B8;
   --border-color: #E2E8F0;
   --border-subtle: #F1F5F9;
+  --dot-paper-color: rgba(100, 116, 139, 0.24);
+  --margin-note-bg: #FFFFFF;
+  --margin-note-bg-active: #F8FAFC;
   --primary: #1E3A8A;
   --primary-hover: #172554;
   --accent-gold: #D97706;
@@ -97,6 +103,9 @@
   --text-muted: #6E7681;
   --border-color: #30363D;
   --border-subtle: #21262D;
+  --dot-paper-color: rgba(240, 246, 252, 0.18);
+  --margin-note-bg: #161B22;
+  --margin-note-bg-active: #1F2630;
   --primary: #D29922;
   --primary-hover: #BB8009;
   --accent-gold: #F59E0B;
@@ -643,7 +652,7 @@ html, body {
   padding: 12px 24px 20px 0;
 }
 
-/* Coluna Livre na Direita (estilo caderno pautado / GoodNotes) */
+/* Coluna Livre na Direita (papel pontilhado / dot-grid estilo GoodNotes) */
 .bible-margin-column {
   flex: 1 1 48%;
   width: 48%;
@@ -653,18 +662,15 @@ html, body {
   padding: 12px 12px 40px 20px;
   position: relative;
   cursor: text;
-  transition: background 0.15s;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 31px,
-    rgba(0, 0, 0, 0.055) 32px
-  );
-  background-position: 0 54px;
+  transition: background-color 0.15s;
+  background-color: var(--bg-surface);
+  background-image: radial-gradient(circle, var(--dot-paper-color) 1.25px, transparent 1.25px);
+  background-size: 20px 20px;
+  background-position: 8px 8px;
 }
 
 .bible-margin-column:hover {
-  background-color: rgba(var(--accent-gold-rgb, 194,142,44), 0.02);
+  background-color: var(--bg-surface);
 }
 
 .bible-margin-header-label {
@@ -701,20 +707,21 @@ html, body {
 .bible-hl-mark {
   padding: 1px 2px;
   border-radius: 3px;
-  color: inherit;
+  color: #1F2937;
 }
 
-/* Caixa de texto livre estilo GoodNotes (selecionável, arrastável e editável) */
+/* Caixa de texto livre estilo GoodNotes (alinhada ao tema Papiro, Claro e Escuro) */
 .margin-note-block {
   position: relative;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--margin-note-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 6px 10px 8px;
   font-size: 14px;
   line-height: 1.55;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
   z-index: 2;
   min-width: 170px;
   max-width: 100%;
@@ -723,9 +730,9 @@ html, body {
 
 .margin-note-block.is-selected,
 .margin-note-block:focus-within {
-  background: var(--bg-surface-elevated);
+  background: var(--margin-note-bg-active);
   border: 1.5px solid var(--accent-gold);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
   z-index: 20;
   resize: horizontal;
   overflow: auto;
