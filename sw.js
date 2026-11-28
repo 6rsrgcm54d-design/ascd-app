@@ -1,5 +1,5 @@
-// ASCD Service Worker - Versão v36 com Ancoragem Dinâmica das Notas aos Versículos (iPad <-> Telemóvel + A+/A-)
-const CACHE_NAME = 'ascd-cache-v36';
+// ASCD Service Worker - Versão v37 com Selos de Estudo, Alinhamento nas Caixas, Notas Alinhadas ao Topo e Diário Devocional
+const CACHE_NAME = 'ascd-cache-v37';
 const ASSETS = [
   './',
   './index.html',

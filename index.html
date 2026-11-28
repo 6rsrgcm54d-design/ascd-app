@@ -145,12 +145,6 @@
             </button>
           </div>
 
-          <!-- Modo Dividido: Bíblia + Bloco de Notas Lado a Lado -->
-          <button class="btn-topbar-action" id="btn-toggle-split" title="Dividir tela para ler a Bíblia e anotar simultaneamente">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-            <span>Modo Dividido</span>
-          </button>
-
           <!-- Teclado Externo / Físico (Sem teclado virtual do iPad) -->
           <button class="btn-topbar-action" id="btn-toggle-hardware-kb" title="Alternar Modo Teclado Externo / Físico (Desativa o teclado virtual do iPad e elimina manchas no ecrã)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
@@ -214,25 +208,24 @@
 
             <!-- Folha de Leitura Bíblica com Margem Lateral para Notas -->
             <div class="bible-reading-paper">
-              <div class="bible-chapter-header" id="bible-chapter-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
-                <div>
-                  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <h2 id="bible-header-title" style="margin:0;">Salmos 23</h2>
-                    <span class="bible-version-badge" id="bible-header-version-badge" title="Versão Bíblica Ativa">BPT</span>
-                  </div>
-                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap;">
-                    <span class="chapter-subtitle" id="bible-header-sub">O Bom Pastor</span>
-                    <span style="color:var(--text-muted); font-size:12px;">•</span>
-                    <span id="bible-header-version-fullname" style="color:var(--text-muted); font-size:12px; font-weight:500;">Bíblia para Todos • BPT</span>
-                  </div>
-                </div>
-                <div id="bible-chapter-badge-container"></div>
-              </div>
-
-              <!-- Layout: Texto Bíblico + Margem de Notas -->
+              <!-- Layout: Texto Bíblico (com título) à esquerda + Margem "Notas:" à direita alinhada ao topo -->
               <div class="bible-with-margin-layout" id="bible-with-margin-layout">
-                <!-- Coluna Principal: Versículos -->
+                <!-- Coluna Principal: Título do Livro + Versículos -->
                 <div class="bible-text-main" id="bible-text-column">
+                  <div class="bible-chapter-header" id="bible-chapter-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                    <div>
+                      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h2 id="bible-header-title" style="margin:0;">Salmos 23</h2>
+                        <span class="bible-version-badge" id="bible-header-version-badge" title="Versão Bíblica Ativa">BPT</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap;">
+                        <span class="chapter-subtitle" id="bible-header-sub">O Bom Pastor</span>
+                        <span style="color:var(--text-muted); font-size:12px;">•</span>
+                        <span id="bible-header-version-fullname" style="color:var(--text-muted); font-size:12px; font-weight:500;">Bíblia para Todos • BPT</span>
+                      </div>
+                    </div>
+                    <div id="bible-chapter-badge-container"></div>
+                  </div>
                   <div id="bible-verses-display"></div>
                 </div>
                 <!-- Margem Lateral Direita: Espaço Livre "Notas:" estilo Caderno / GoodNotes -->
@@ -589,7 +582,7 @@
                 <div class="journal-section-block" id="journal-prayer-section">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <label style="font-size:13px; font-weight:700; color:var(--text-secondary); display:flex; align-items:center; gap:6px; margin:0;">
-                      <span>🙏 Motivos de Oração, Intercessão & Agradecimento</span>
+                      <span>Devocional</span>
                     </label>
                   </div>
 
@@ -636,6 +629,19 @@
                       <button type="button" class="fmt-btn fmt-btn-clear" id="jhl-color-clear" title="Remover marcação">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                       </button>
+                    </div>
+
+                    <div class="fmt-divider"></div>
+
+                    <!-- Botão Dropdown de Selos de Estudo -->
+                    <div class="journal-stamps-dropdown-wrap" id="journal-stamps-dropdown-wrap">
+                      <button type="button" class="fmt-btn journal-stamps-toggle-btn" id="btn-toggle-journal-stamps" title="Inserir Selos de Estudo">
+                        <span>🏷️</span>
+                        <span>Selos</span>
+                      </button>
+                      <div class="journal-stamps-popover" id="journal-stamps-popover">
+                        <!-- Preenchido dinamicamente com todos os Selos de Estudo -->
+                      </div>
                     </div>
                   </div>
 

@@ -652,7 +652,7 @@ html, body {
   flex-wrap: nowrap;
   gap: 0;
   align-items: stretch;
-  margin-top: 8px;
+  margin-top: 0;
   min-height: 620px;
 }
 
@@ -660,7 +660,7 @@ html, body {
   flex: 1 1 52%;
   width: 52%;
   min-width: 0;
-  padding: 12px 24px 20px 0;
+  padding: 0 24px 20px 0;
 }
 
 /* Coluna Livre na Direita (papel pontilhado / dot-grid estilo GoodNotes) */
@@ -670,7 +670,7 @@ html, body {
   min-width: 240px;
   min-height: 620px;
   border-left: 1px solid var(--border-color);
-  padding: 12px 12px 40px 20px;
+  padding: 6px 12px 40px 20px;
   position: relative;
   cursor: text;
   transition: background-color 0.15s;
@@ -1246,7 +1246,137 @@ html, body {
 }
 
 .verse-row:hover {
-  background: var(--bg-surface-hover);
+  background: transparent;
+}
+
+/* Selos de Estudo na Aba Diário (botão dropdown ao lado dos marcadores) */
+.journal-stamps-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.journal-stamps-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  width: auto !important;
+}
+
+.journal-stamps-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 150;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-lg);
+}
+
+.journal-stamps-popover.open {
+  display: block;
+}
+
+.bible-margin-stamps-popover {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  width: 410px;
+  max-width: 92vw;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-lg);
+}
+
+.bible-margin-stamps-popover.open {
+  display: block;
+}
+
+.journal-stamps-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin: 10px 0 7px;
+}
+
+.journal-stamps-group-label:first-child {
+  margin-top: 0;
+}
+
+.journal-stamps-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.journal-stamps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.journal-stamp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.journal-stamp-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.97);
+}
+
+.journal-stamp-btn:active {
+  transform: scale(0.98);
+}
+
+.journal-stamp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  vertical-align: middle;
+  margin: 2px 4px 2px 0;
+  user-select: all;
+}
+
+@media (max-width: 520px) {
+  .journal-stamps-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .verse-row.verse-highlighted {
@@ -1289,13 +1419,11 @@ html, body {
 }
 
 .verse-actions {
-  display: none;
-  gap: 6px;
-  margin-left: 12px;
+  display: none !important;
 }
 
 .verse-row:hover .verse-actions {
-  display: flex;
+  display: none !important;
 }
 
 .verse-action-btn {

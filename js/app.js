@@ -719,6 +719,130 @@ function applyVerseHighlight(color) {
  */
 /**
  * ==========================================================================
+ * CATÁLOGO PARTILHADO DE SELOS DE ESTUDO (DIÁRIO + LEITOR BÍBLICO)
+ * ==========================================================================
+ */
+const STUDY_STAMPS_GROUPS = [
+  {
+    title: 'Aplicação Pessoal',
+    stamps: [
+      { icon: '⚠️', label: 'Pecado a confessar', bg: '#FFE4E6', color: '#9F1239', border: '#FECDD3' },
+      { icon: '✨', label: 'Promessa a confiar', bg: '#FEF3C7', color: '#92400E', border: '#FDE68A' },
+      { icon: '📜', label: 'Mandamento a obedecer', bg: '#DBEAFE', color: '#1E40AF', border: '#BFDBFE' },
+      { icon: '🔄', label: 'Mudança de atitude', bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
+      { icon: '👣', label: 'Exemplo a seguir', bg: '#CCFBF1', color: '#115E59', border: '#99F6E4' },
+      { icon: '🚫', label: 'Erro a evitar', bg: '#FFEDD5', color: '#9A3412', border: '#FED7AA' },
+      { icon: '🙏', label: 'Oração a fazer', bg: '#F3E8FF', color: '#6B21A8', border: '#E9D5FF' },
+      { icon: '💛', label: 'Verdades sobre Deus', bg: '#E0E7FF', color: '#3730A3', border: '#C7D2FE' }
+    ]
+  },
+  {
+    title: 'Estudo, Teologia & Aplicação',
+    stamps: [
+      { icon: '🔍', label: 'Palavra-chave / Original', bg: '#E0F2FE', color: '#075985', border: '#BAE6FD' },
+      { icon: '📖', label: 'Contexto histórico', bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE' },
+      { icon: '🔗', label: 'Referência cruzada', bg: '#ECFEFF', color: '#155E75', border: '#A5F3FC' },
+      { icon: '💡', label: 'Ideia principal', bg: '#FEF9C3', color: '#854D0E', border: '#FEF08A' },
+      { icon: '❓', label: 'Dúvida / Aprofundar', bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' },
+      { icon: '✝️', label: 'Cristo no texto', bg: '#FCE7F3', color: '#9D174D', border: '#FBCFE8' },
+      { icon: '🕊️', label: 'Obra do Espírito', bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+      { icon: '⏳', label: 'Profecia / Cumprimento', bg: '#EDE9FE', color: '#4C1D95', border: '#C4B5FD' },
+      { icon: '⭐', label: 'Versículo para memorizar', bg: '#FFFBEB', color: '#B45309', border: '#FDE68A' },
+      { icon: '📚', label: 'Ideia para estudo', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
+      { icon: '❤️', label: 'Louvor & Gratidão', bg: '#FFF1F2', color: '#BE123C', border: '#FECDD3' }
+    ]
+  }
+];
+
+function buildStudyStampsHtml() {
+  return STUDY_STAMPS_GROUPS.map(g => `
+    <div class="journal-stamps-group-label">${g.title}</div>
+    <div class="journal-stamps-grid">
+      ${g.stamps.map(s => `
+        <button type="button" class="journal-stamp-btn"
+          data-icon="${s.icon}" data-label="${s.label}" data-bg="${s.bg}" data-color="${s.color}" data-border="${s.border}"
+          style="background:${s.bg}; color:${s.color}; border-color:${s.border};">
+          <span>${s.icon}</span><span>${s.label}</span>
+        </button>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function insertStudyStampIntoEditor(editor, stamp) {
+  if (!editor || !stamp) return;
+  editor.focus();
+  const stampHtml = `<span class="journal-stamp-badge" contenteditable="false" style="background:${stamp.bg}; color:${stamp.color}; border:1px solid ${stamp.border || 'transparent'};">${stamp.icon} ${stamp.label}</span>&nbsp;`;
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+    document.execCommand('insertHTML', false, stampHtml);
+  } else {
+    editor.insertAdjacentHTML('beforeend', (editor.innerHTML.trim() ? '<br>' : '') + stampHtml);
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+}
+
+let activeMarginStampTarget = null;
+
+function openBibleMarginStampsPopover(anchorBtn, editor, onAfterInsert) {
+  let pop = document.getElementById('bible-margin-stamps-popover');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'bible-margin-stamps-popover';
+    pop.className = 'bible-margin-stamps-popover';
+    pop.innerHTML = buildStudyStampsHtml();
+    document.body.appendChild(pop);
+
+    pop.querySelectorAll('.journal-stamp-btn').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (activeMarginStampTarget && activeMarginStampTarget.editor) {
+          insertStudyStampIntoEditor(activeMarginStampTarget.editor, {
+            icon: btn.dataset.icon,
+            label: btn.dataset.label,
+            bg: btn.dataset.bg,
+            color: btn.dataset.color,
+            border: btn.dataset.border
+          });
+          if (typeof activeMarginStampTarget.onAfterInsert === 'function') {
+            activeMarginStampTarget.onAfterInsert();
+          }
+        }
+        pop.classList.remove('open');
+      });
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('#bible-margin-stamps-popover') && !e.target.closest('.mn-stamps-btn')) {
+        pop.classList.remove('open');
+      }
+    });
+  }
+
+  const isSameBtn = activeMarginStampTarget && activeMarginStampTarget.btn === anchorBtn && pop.classList.contains('open');
+  if (isSameBtn) {
+    pop.classList.remove('open');
+    return;
+  }
+
+  activeMarginStampTarget = { btn: anchorBtn, editor, onAfterInsert };
+  const rect = anchorBtn.getBoundingClientRect();
+  const popW = Math.min(410, window.innerWidth * 0.92);
+  const left = Math.max(10, Math.min(window.innerWidth - popW - 10, rect.right - popW));
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const top = spaceBelow > 240 ? rect.bottom + 6 : Math.max(10, rect.top - 366);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+  pop.classList.add('open');
+}
+
+/**
+ * ==========================================================================
  * ANCORAGEM INTELIGENTE DAS NOTAS AOS VERSÍCULOS (iPad 12.9" <-> Telemóvel + A+/A-)
  * ==========================================================================
  */
@@ -846,21 +970,38 @@ function setupBibleMarginNotes() {
   const marginCol = document.getElementById('bible-margin-column');
   if (!marginCol) return;
 
+  let justDeselectedMarginNote = false;
+
+  // 1º clique fora de uma caixa ativa apenas fecha/desseleciona a caixa (sem criar nova)
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.margin-note-block') && !e.target.closest('#bible-margin-stamps-popover')) {
+      const hadSelected = document.querySelector('.margin-note-block.is-selected') !== null;
+      const hadFocusedEditor = document.activeElement && document.activeElement.closest('.margin-note-block') !== null;
+      if (hadSelected || hadFocusedEditor) {
+        justDeselectedMarginNote = true;
+        document.querySelectorAll('.margin-note-block.is-selected').forEach(b => b.classList.remove('is-selected'));
+        if (hadFocusedEditor && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+      } else {
+        justDeselectedMarginNote = false;
+      }
+    }
+  });
+
   marginCol.addEventListener('click', (e) => {
     // Não criar nova nota se clicou dentro de uma caixa de nota existente
     if (e.target.closest('.margin-note-block')) return;
+    // Se acabou de clicar fora para fechar/desselecionar a caixa anterior, não abre nova caixa
+    if (justDeselectedMarginNote) {
+      justDeselectedMarginNote = false;
+      return;
+    }
     const rect = marginCol.getBoundingClientRect();
     const maxLeft = Math.max(12, marginCol.clientWidth - 240);
     const leftOffset = Math.max(12, Math.min(maxLeft, Math.round(e.clientX - rect.left - 16)));
     const topOffset = Math.max(52, Math.round(e.clientY - rect.top - 16));
     addMarginNote(leftOffset, topOffset);
-  });
-
-  // Desselecionar caixas estilo GoodNotes ao clicar fora
-  document.addEventListener('mousedown', (e) => {
-    if (!e.target.closest('.margin-note-block')) {
-      document.querySelectorAll('.margin-note-block.is-selected').forEach(b => b.classList.remove('is-selected'));
-    }
   });
 
   // Reposicionar automaticamente quando o ecrã muda de tamanho, roda (iPad) ou texto bíblico muda de altura
@@ -985,11 +1126,23 @@ function createMarginNoteBlock(note, index = 0) {
       <button type="button" class="margin-note-btn mn-italic" title="Itálico"><i>I</i></button>
       <button type="button" class="margin-note-btn mn-underline" title="Sublinhado (Underline)"><u>U</u></button>
       <span style="width:1px; height:14px; background:var(--border-color); display:inline-block; margin:0 2px;"></span>
+      <button type="button" class="margin-note-btn mn-align-left" title="Alinhar à esquerda">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+      </button>
+      <button type="button" class="margin-note-btn mn-align-center" title="Centrar texto">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <button type="button" class="margin-note-btn mn-align-right" title="Alinhar à direita">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span style="width:1px; height:14px; background:var(--border-color); display:inline-block; margin:0 2px;"></span>
       <button type="button" class="margin-note-hl-btn" data-color="#BBF7D0" title="Verde Claro" style="background:#BBF7D0;"></button>
       <button type="button" class="margin-note-hl-btn" data-color="#FEF08A" title="Amarelo Claro" style="background:#FEF08A;"></button>
       <button type="button" class="margin-note-hl-btn" data-color="#FECDD3" title="Vermelho Claro" style="background:#FECDD3;"></button>
       <button type="button" class="margin-note-hl-btn" data-color="#BAE6FD" title="Azul Claro" style="background:#BAE6FD;"></button>
       <button type="button" class="margin-note-btn mn-hl-clear" title="Remover realce" style="font-size:10px; padding:2px 3px;">✕</button>
+      <span style="width:1px; height:14px; background:var(--border-color); display:inline-block; margin:0 2px;"></span>
+      <button type="button" class="margin-note-btn mn-stamps-btn" title="Inserir Selos de Estudo" style="font-size:11px; padding:2px 5px;">🏷️ Selos</button>
     </div>
     <div class="margin-note-editor" contenteditable="true" style="font-size:${currentSize};" placeholder="Escreva a sua nota livre aqui...">${note.html || ''}</div>
     <div class="margin-note-footer">
@@ -1092,6 +1245,20 @@ function createMarginNoteBlock(note, index = 0) {
     saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
   });
 
+  // Alinhamento: Esquerda, Centro e Direita
+  block.querySelector('.mn-align-left').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('justifyLeft', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+  block.querySelector('.mn-align-center').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('justifyCenter', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+  block.querySelector('.mn-align-right').addEventListener('click', (e) => {
+    e.preventDefault(); editor.focus(); document.execCommand('justifyRight', false, null);
+    saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+  });
+
   // Marcadores de cor dentro da nota
   block.querySelectorAll('.margin-note-hl-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1111,6 +1278,20 @@ function createMarginNoteBlock(note, index = 0) {
     document.execCommand('backColor', false, 'transparent');
     saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
   });
+
+  // Botão "Selos" dentro da caixa de nota da Bíblia
+  const btnMnStamps = block.querySelector('.mn-stamps-btn');
+  if (btnMnStamps) {
+    btnMnStamps.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openBibleMarginStampsPopover(btnMnStamps, editor, () => {
+        saveMarginNote(note.id, editor.innerHTML, sizeSelect.value);
+        if (statusEl) statusEl.textContent = '✓ Guardado';
+        updateMarginColumnMinHeight();
+      });
+    });
+  }
 
   // Auto-save ao digitar
   let saveTimer = null;
@@ -2013,14 +2194,6 @@ function renderVersesList(container, data) {
     <div class="verse-row" data-verse="${v.num}"${hlAttr}>
       <span class="verse-num">${v.num}</span>
       <span class="verse-text" style="${hlStyle}">${renderedText}</span>
-      <div class="verse-actions">
-        <button class="verse-action-btn" title="Copiar versículo" onclick="copyVerse('${data.book}', ${data.chapter}, ${v.num}, '${escapeForJs(v.text)}')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        </button>
-        <button class="verse-action-btn" title="Criar Anotação de Estudo" onclick="createNoteFromVerse('${data.book}', ${data.chapter}, ${v.num}, '${escapeForJs(v.text)}')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </button>
-      </div>
     </div>
   `}).join('');
 }
@@ -2811,6 +2984,47 @@ function setupJournal() {
   // Navegação de Dias Anteriores / Seguintes no Journal
   document.getElementById('journal-prev-day')?.addEventListener('click', () => {
     changeJournalDay(-1);
+  });
+
+  // Selos de Estudo no Diário (botão dropdown "Selos" ao lado dos marcadores)
+  const btnToggleStamps = document.getElementById('btn-toggle-journal-stamps');
+  const stampsPopover = document.getElementById('journal-stamps-popover');
+
+  if (stampsPopover) {
+    stampsPopover.innerHTML = buildStudyStampsHtml();
+  }
+
+  if (btnToggleStamps && stampsPopover) {
+    btnToggleStamps.addEventListener('mousedown', (e) => e.preventDefault());
+    btnToggleStamps.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stampsPopover.classList.toggle('open');
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('#journal-stamps-dropdown-wrap')) {
+        stampsPopover.classList.remove('open');
+      }
+    });
+  }
+
+  document.querySelectorAll('#journal-stamps-popover .journal-stamp-btn').forEach(btn => {
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const editor = document.getElementById('journal-prayer-editor');
+      if (!editor) return;
+      insertStudyStampIntoEditor(editor, {
+        icon: btn.dataset.icon || '',
+        label: btn.dataset.label || '',
+        bg: btn.dataset.bg || '#FEF08A',
+        color: btn.dataset.color || '#1F2937',
+        border: btn.dataset.border || 'transparent'
+      });
+      if (stampsPopover) stampsPopover.classList.remove('open');
+      saveCurrentJournalEntry(false);
+    });
   });
 
   document.getElementById('journal-next-day')?.addEventListener('click', () => {
